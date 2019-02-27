@@ -1,0 +1,11 @@
+Installation
+wget https://github.com/kepkin/dev-shell-essentials/archive/master.zip -O dev-shell-essentials.zip &&
+  unzip dev-shell-essentials.zip &&
+  source dev-shell-essentials-master/dev-shell-essentials.sh
+Or using git
+
+git clone https://github.com/kepkin/dev-shell-essentials.git
+cd dev-shell-essentials
+source dev-shell-essentials.sh
+
+command_here | highlight green "input" | highlight red "output"

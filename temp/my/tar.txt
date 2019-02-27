@@ -1,0 +1,93 @@
+9. Просмотр содержимого tar.bz2
+Чтобы просмотреть содержимое файла tar.bz2, выполните следующую команду.
+
+# tar -tvf Phpfiles-org.tar.bz2
+drwxr-xr-x root/root 0 2012-09-15 03:06:08 /home/php/
+-rw-r--r-- root/root 1751 2012-09-15 03:06:08 /home/php/iframe_ew.php
+-rw-r--r-- root/root 11220 2012-09-15 03:06:08 /home/php/videos_all.php
+-rw-r--r-- root/root 2152 2012-09-15 03:06:08 /home/php/rss.php
+-rw-r--r-- root/root 3021 2012-09-15 03:06:08 /home/php/index.php
+-rw-r--r-- root/root 2554 2012-09-15 03:06:08 /home/php/vendor.php
+-rw-r--r-- root/root 406 2012-09-15 03:06:08 /home/php/video_title.php
+-rw-r--r-- root/root 4116 2012-09-15 03:06:08 /home/php/report.php
+-rw-r--r-- root/root 1273 2012-09-15 03:06:08 /home/php/object.html
+
+
+
+
+11. Разархивирование отдельного из файла tar.gz
+К примеру, чтобы извлечь один файл tecmintbackup.xml из архива tecmintbackup.tar.gz, используйте команду следующим образом.
+
+# tar -zxvf tecmintbackup.tar.gz tecmintbackup.xml
+ИЛИ
+# tar --extract --file=tecmintbackup.tar.gz tecmintbackup.xml
+tecmintbackup.xml
+
+
+
+13. Разархивирование нескольких файлов из tar, tar.gz и tar.bz2
+Чтобы извлечь несколько файлов из архива tar, tar.gz и tar.bz2 необходимо использовать приведенную ниже команду. Эта команда извлекает из архива «file 1» и «file 2».
+
+# tar -xvf sedicomm-14-09-12.tar "file 1" "file 2"
+# tar -zxvf MyImages-14-09-12.tar.gz "file 1" "file 2"
+# tar -jxvf Phpfiles-org.tar.bz2 "file 1" "file 2"
+
+
+14. Извлечение группы файлов с помощью метасимволов
+Чтобы извлечь группу файлов, мы используем метасимволы. Например, чтобы извлечь группу файлов с расширением .php из архива tar, tar.gz и tar.bz2 необходимо использовать следующую команду:
+
+# tar -xvf Phpfiles-org.tar --wildcards '*.php'
+# tar -zxvf Phpfiles-org.tar.gz --wildcards '*.php'
+# tar -jxvf Phpfiles-org.tar.bz2 --wildcards '*.php'
+/home/php/iframe_ew.php
+/home/php/videos_all.php
+/home/php/rss.php
+/home/php/index.php
+/home/php/vendor.php
+/home/php/video_title.php
+/home/php/report.php
+/home/php/video.php
+
+
+
+
+16. Добавление файлов или каталогов в tar.gz и tar.bz2.
+У команды tar нет возможности добавлять файлы или каталоги в существующий сжатый файл tar.gz и tar.bz2. Если мы попытаемся, то получим следующую ошибку:
+
+# tar -rvf MyImages-14-09-12.tar.gz xyz.txt
+# tar -rvf Phpfiles-org.tar.bz2 xyz.txt
+tar: This does not look like a tar archive
+tar: Skipping to next header
+xyz.txt
+tar: Error exit delayed from previous errors
+
+17. Как проверить архивы tar, tar.gz и tar.bz2
+Для проверки любого tar архива мы используем опцию -W (проверка). Для этого просто используйте приведенные ниже примеры команд.
+
+Примечание. Вы не можете выполнить проверку в сжатом архиве (*.tar.gz, *.tar.bz2).
+
+# tar tvfW tecmint-14-09-12.tar
+tar: This does not look like a tar archive
+tar: Skipping to next header
+tar: Archive contains obsolescent base-64 headers
+tar: VERIFY FAILURE: 30740 invalid headers detected
+Verify -rw-r--r-- root/root 863726 2012-09-15 02:23:41 /home/tecmint/openvpn-2.1.4.tar.gz
+Verify -rw-r--r-- root/root 21063680 2012-09-15 02:24:21 /home/tecmint/tecmint-14-09-12.tar
+tar: /home/tecmint/tecmint-14-09-12.tar: Warning: Cannot stat: No such file or directory
+Verify -rw-r--r-- root/root 4437600 2012-09-15 02:23:41 home/tecmint/phpmyadmin-2.11.11.3-1.el5.rf.noarch.rpm
+tar: /home/tecmint/phpmyadmin-2.11.11.3-1.el5.rf.noarch.rpm: Warning: Cannot stat: No such file or directory
+Verify -rw-r--r-- root/root 12680 2012-09-15 02:23:41 home/tecmint/rpmforge-release-0.5.2-2.el5.rf.i386.rpm
+tar: /home/tecmint/rpmforge-release-0.5.2-2.el5.rf.i386.rpm: Warning: Cannot stat: No such file or directory
+Verify -rw-r--r-- root/root 0 2012-08-18 19:11:04 xyz.txt
+Verify drwxr-xr-x root/root 0 2012-09-15 03:06:08 php/
+
+
+18. Проверка размера tar, tar.gz и tar.bz2.
+Чтобы проверить размер архива tar, tar.gz и tar.bz2, используйте следующую команду. Например, приведенная ниже команда отобразит размер архивного файла в Kilobytes (KB).
+
+# tar -czf - tecmint-14-09-12.tar | wc -c
+12820480
+# tar -czf - MyImages-14-09-12.tar.gz | wc -c
+112640
+# tar -czf - Phpfiles-org.tar.bz2 | wc -c
+20480

@@ -1,0 +1,13 @@
+deb http://archive.ubuntu.com/ubuntu xenial main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu xenial-updates main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+deb http://archive.canonical.com/ubuntu xenial partner
+
+#http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+#http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+#http://archive.canonical.com/ubuntu xenial partner
+#http://archive.canonical.com/ubuntu xenial partner
+#http://mirror.yandex.ru/ubuntu xenial partner
+#http://mirror.yandex.ru/ubuntu xenial-security main restricted universe multiverse
+#http://mirror.yandex.ru/ubuntu xenial-updates main restricted universe
+#http://mirror.yandex.ru/ubuntu xenial main restricted universe

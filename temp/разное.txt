@@ -1,0 +1,5 @@
+вывод из файла по нескольким условиям
+more /etc/group | grep -E 'ftp-access.*lamer'
+
+
+echo "Для создания коммита репозитария "$SCRIPTS" введите \"y\", для выхода - \"n\": " | highlight green "Для создания коммита репозитария" | highlight yellow \"y\" | highlight yellow \"n\"
