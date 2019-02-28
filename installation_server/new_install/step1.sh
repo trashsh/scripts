@@ -129,21 +129,6 @@ usermod -G ssh-access -a root
 #cp -R /etc/ssh/ $BACKUPFOLDER_EMPTY/
 tar -czvf $BACKUPFOLDER_INSTALLED/ssh.tar.gz /etc/ssh/
 sed -i -e "s/#Port 22/Port "$SSHPORT"/" /etc/ssh/sshd_config
-sed -i -e "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
-#sed -i -e "s/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/" /etc/ssh/sshd_config
-#sed -i '$ a \\nAuthenticationMethods publickey,password publickey,keyboard-interactive'  /etc/ssh/sshd_config
-#sed -i -e "s/@include common-auth/#@include common-auth/" /etc/pam.d/sshd
-
-sed -i -e "s/PermitRootLogin yes/PermitRootLogin no/" /etc/ssh/sshd_config
-sed -i '$ a \\nAuthenticationMethods publickey'  /etc/ssh/sshd_config
-sed -i -e "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
-sed -i -e "s/#AuthorizedKeysFile/AuthorizedKeysFile/" /etc/ssh/sshd_config
-sed -i '$ a \\nAllowGroups ssh-access'  /etc/ssh/sshd_config
-sed -i '$ a \\n#Banner /etc/banner'  /etc/ssh/sshd_config
-cp $TEMPLATES/ssh/banner/banner /etc/banner
-chown root:root /etc/banner
-chmod 644 /etc/banner
-service sshd restart
 
 echo "install mysql"
 apt -y install mysql-server
@@ -159,6 +144,7 @@ apt -y install apache2
 tar -czvf $BACKUPFOLDER_INSTALLED/apache2.tar.gz /etc/apache2
 
 echo "install php"
+apt update
 apt -y install php libapache2-mod-php php-mysql php-fpm
 apt -y install php-pear php7.2-curl php7.2-dev php7.2-gd php7.2-mbstring php7.2-zip php7.2-mysql php7.2-xml
 apt -y install libapache2-mod-php7.2 php7.2-cli php7.2-pgsql php7.2-imagick php7.2-intl
@@ -278,30 +264,54 @@ git commit -m "initial commit etc"
 
 apt install net-tools
 
-echo "proftpd settings"
-sed -i -e "s/# DefaultRoot/DefaultRoot/" /etc/proftpd/proftpd.conf
-sed -i -e "s/Port\t\t\t\t21/Port\t\t\t\t10081/" /etc/proftpd/proftpd.conf
-echo '/bin/false' >> /etc/shells
-#AuthUserFile /etc/proftpd/ftpd.passwd
-service proftpd restart
+
+#fix phpmyadmin error
+sed -i "s/|\s*\((count(\$analyzed_sql_results\['select_expr'\]\)/| (\1)/g" /usr/share/phpmyadmin/libraries/sql.lib.php
 
 
-echo "create user"
+
+sed -i '$ a export LINE=\"----------------------------------------------------------------------------------------------"'  /etc/profile
+
+
+groupadd admin-access
+usermod -G admin-access -a root
+
+apt-get -y install quota
+#fstab usrquota
+sed -i -e "s/=remount-ro /=remount-ro,usrquota /" /etc/fstab
+mount -o remount /
+quotacheck -cum /
+quotaon /
+
+
+sed -i '$ a export sshAdminKeyFilePath=\"\/my\/scripts\/.config\/settings\/ssh\/keys\/lamer\"'  /etc/profile
+sed -i '$ a export DATEFORMAT=`date +%Y.%m.%d`'  /etc/profile
+sed -i '$ a export DATETIMEFORMAT=`date +%Y.%m.%d-%H.%M.%S`'  /etc/profile
+sed -i '$ a export DATETIMESQLFORMAT=`date +%Y-%m-%d\\ %H:%M:%S`'  /etc/profile
+sed -i '$ a export WEBSERVER_DB=lamer_webserver'  /etc/profile
+
+
+apt -y install p7zip-rar p7zip-full
+
+#sed -i -e "s/bind-address\t\t= 127.0.0.1/bind-address\t\t= 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
 source /etc/profile
-$SCRIPTS/users/useradd_system.sh $USERLAMER
-mkdir -p $HOMEPATHWEBUSERS/$USERLAMER/.ssh
-touch $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
-#usermod -G ssh-access -a $USERLAMER
+sed -i '/bind-address/s/^/#/' /etc/mysql/mysql.conf.d/mysqld.cnf
+service mysql restart
 
-#sed -i '$ a \\nssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAp2FS7uz8Y5lo+022MmRgwiFEmlZfK9WKdamw2DH3blowO0736Z7H4PPcx8PGSxOfeBcl6iZ+G+ukNKrDLBY0EPqc6jNE9966zvdE9N2ws9NfNZD+7+26JARRlkYnqIuUIqCiO0bz1eICyDV+1TwZ7anKxUgG+dfbFIjSdfeodSVHMeNaT8NCcYho1lWXgwy6q7h3k8EikS0qLqQmWOAPRrKUPXpsIzQTS8ll5B27U+w0OV0E222W4NOWHIbWDTorFxhqV7B4L+Z8+eao2en3i75Qng9YEe5l09HN33oQe2SsU6CfpeN0+FqwWaUT/hsYU2qS80U2oK5DGKA6vgk8rQ== myvds_lamer'  $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
-cp $SETTINGS/ssh/keys/lamer $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
+echo "ufw settings"
+ufw enable
+ufw default allow outgoing
+ufw default deny incoming
+ufw allow 6666/tcp comment 'SSH'
+ufw allow 80/tcp comment 'HTTP-Nginx'
+ufw allow 443/tcp comment 'HTTPS-Nginx'
+ufw allow 10081/tcp comment 'ProFTPd'
+ufw allow 8080/tcp comment 'HTTP-Apache'
+ufw allow 8443/tcp comment 'HTTPS-Apacne'
+ufw allow 7000/tcp comment 'Webmin from Home'
+ufw allow 3306/tcp comment 'Mysql server'
 
-chmod 700 $HOMEPATHWEBUSERS/$USERLAMER/.ssh
-chmod 600 $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
-chown $USERLAMER:users $HOMEPATHWEBUSERS/$USERLAMER/.ssh
-chown $USERLAMER:users $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
-  service ssh restart
 
-echo "ftp settings"
-groupadd ftp-access
-usermod -G ftp-access -a $USERLAMER
+mysql -e "CREATE DATABASE IF NOT EXISTS lamer_webserver CHARACTER SET utf8 COLLATE utf8_general_ci;"
+mysql lamer_webserver < $SCRIPTS/.config/templates/db/webserver/webserver.sql
+
