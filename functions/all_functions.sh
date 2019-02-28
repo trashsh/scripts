@@ -98,6 +98,8 @@ declare -x -f dbBackupBase #Создание бэкапа указанной б�
 declare -x -f userAddSystem #Добавление системного пользователя: ($1-user ;)
 
 ########################################################### mysql ###########################################################
+
+
 ####НЕ ТРОГАТЬ
 #Создание базы данных $1
 #$1-dbname ;
@@ -731,7 +733,8 @@ dbInsertToDbUsers() {
 #$1-user,
 #$2-dbname ;
 #$3 - full_info/silent - вывод сообщений о выполнении операции
-#$4-В параметре $4 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+#$4 - mode - data/structure
+#$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
 
 #return
 #0 - выполнено успешно,
@@ -741,6 +744,7 @@ dbInsertToDbUsers() {
 #4 - ошибка при финальной проверке создания бэкапа,
 #5 - ошибка передачи параметра full_info/silent,
 #6 - не существует пользователь
+#7 - не передан параметр mode
 dbBackupBase() {
 	#	d=`date +%Y.%m.%d`;
     #	dt=`date +%Y.%m.%d_%H.%M.%S`;
@@ -748,7 +752,7 @@ dbBackupBase() {
     datetime=$DATETIMEFORMAT
 
     #Проверка на существование параметров запуска скрипта
-    if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+    if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
     then
     #Параметры запуска существуют
 
@@ -770,10 +774,10 @@ dbBackupBase() {
                         sitedomain_trim_dbname=${dopdbname_trim_dbname%_*}
 
                         #Проверка на существование параметров запуска скрипта
-                        if [ -n "$4" ]
+                        if [ -n "$5" ]
                         then
                         #Параметры запуска существуют
-                            DESTINATIONFOLDER=$4
+                            DESTINATIONFOLDER=$5
                         #Параметры запуска существуют (конец)
                         else
                         #Параметры запуска отсутствуют
@@ -791,18 +795,56 @@ dbBackupBase() {
                             #Каталог "$DESTINATIONFOLDER" существует
                             case "$3" in
                                 silent)
-                                    mysqldump --databases $2 > $FILENAME
-                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                    dbCheckExportedBase $2 error_only $FILENAME.tar.gz
-                                    return 0
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            mysqldump --databases $2 > $FILENAME
+                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
+                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mysqldump --databases $2 > $FILENAME
+                                            mysqldump --databases $2 --compact --no-data > $FILENAME
+                                            #mysqldump database_name --compact --no-data
+                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
+                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
                                     ;;
                                 full_info)
-                                    mysqldump --databases $2 > $FILENAME
-                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                    dbCheckExportedBase $2 full_info $FILENAME.tar.gz
-                                    return 0
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+
+                                            mysqldump --databases $2 > $FILENAME
+                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
+                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 full_info $FILENAME.tar.gz
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mysqldump --databases $2 --compact --no-data > $FILENAME
+                                            #mysqldump database_name --compact --no-data
+                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
+                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 full_info $FILENAME.tar.gz
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
                                     ;;
                                 *)
                                     echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
@@ -815,38 +857,94 @@ dbBackupBase() {
                             #Каталог "$DESTINATIONFOLDER" не существует
                             case "$3" in
                                 silent)
-                                    #mkdir -p $DESTINATIONFOLDER;
-                                    mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
-                                    chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
-                                    mysqldump --databases $2 > $FILENAME;
-                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                    dbCheckExportedBase $2 error_only $FILENAME.tar.gz
-                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                    return 0
-                                    ;;
-                                full_info)
-                                    echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}${COLOR_RED} не найден. Создать его? Функция ${COLOR_GREEN}\"dbBackupBase\".${COLOR_NC}"
-                                    echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-
-                                    while read
-                                    do
-                                    echo -n ": "
-                                        case "$REPLY" in
-                                        y|Y)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
                                             #mkdir -p $DESTINATIONFOLDER;
                                             mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
                                             chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
                                             mysqldump --databases $2 > $FILENAME;
                                             tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                            dbCheckExportedBase $2 full_info $FILENAME.tar.gz;
+                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
                                             chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                            return 0;
-                                            break;;
-                                        n|N)
-                                            echo -e "${COLOR_RED}Операция по созданию базы данных ${COLOR_GREEN}\"$2\"${COLOR_RED} отменена пользователем.${COLOR_NC}"
-                                            return 3;;
-                                        esac
-                                    done
+                                            return 0
+                                            ;;
+                                        structure)
+                                            #mkdir -p $DESTINATIONFOLDER;
+                                            mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
+                                            chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
+                                            mysqldump --databases $2 --compact --no-data > $FILENAME;
+                                            #mysqldump database_name --compact --no-data
+                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
+                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
+                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                full_info)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}${COLOR_RED} не найден. Создать его? Функция ${COLOR_GREEN}\"dbBackupBase\".${COLOR_NC}"
+                                            echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                            while read
+                                            do
+                                            echo -n ": "
+                                                case "$REPLY" in
+                                                y|Y)
+                                                    #mkdir -p $DESTINATIONFOLDER;
+                                                    mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
+                                                    chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
+                                                    mysqldump --databases $2 > $FILENAME;
+                                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
+                                                    dbCheckExportedBase $2 full_info $FILENAME.tar.gz;
+                                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                                    return 0;
+                                                    break;;
+                                                n|N)
+                                                    echo -e "${COLOR_RED}Операция по созданию базы данных ${COLOR_GREEN}\"$2\"${COLOR_RED} отменена пользователем.${COLOR_NC}"
+                                                    return 3;;
+                                                esac
+                                            done
+                                            ;;
+                                        structure)
+                                            echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}${COLOR_RED} не найден. Создать его? Функция ${COLOR_GREEN}\"dbBackupBase\".${COLOR_NC}"
+                                            echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                            while read
+                                            do
+                                            echo -n ": "
+                                                case "$REPLY" in
+                                                y|Y)
+                                                    #mkdir -p $DESTINATIONFOLDER;
+                                                    mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
+                                                    chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
+                                                    mysqldump --databases $2 --compact --no-data > $FILENAME;
+                                                    #mysqldump database_name --compact --no-data
+                                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
+                                                    dbCheckExportedBase $2 full_info $FILENAME.tar.gz;
+                                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                                    return 0;
+                                                    break;;
+                                                n|N)
+                                                    echo -e "${COLOR_RED}Операция по созданию базы данных ${COLOR_GREEN}\"$2\"${COLOR_RED} отменена пользователем.${COLOR_NC}"
+                                                    return 3;;
+                                                esac
+                                            done
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
                                     ;;
                                 *)
                                     echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
