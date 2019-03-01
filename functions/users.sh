@@ -8,10 +8,7 @@ source $SCRIPTS/functions/site.sh
 
 
 
-declare -x -f sshKeyAddToUser                           #$1-user ; $2-Если параметр равен 1, то запрос происходит в интерактивном режиме, если 0, то в тихом режиме ;
-                                                        #3 - $3-путь к ключу ;
-                                                        #return 1 - пользователь не существует, 2 - файл ключа не существует
-                                                        #3- ошибка передачи параметра $3, 4 - не передан путь к файлу при тихом режиме
+
 
 #описать функцию
 declare -x -f viewUserFullInfo #Отображение полной информации о пользователе: ($1-user)
@@ -39,9 +36,7 @@ declare -x -f userDeleteFromGroup                       #Удаление пол
                                                         #$1-user ; $2-group ;
                                                         #return 0 - пользователь удален; 1 - отмена удаления пользователем
                                                         #2 - пользователя $1 нет в группе $2; 3 - группа $2 не существует
-declare -x -f sshKeyGenerateToUser                      #Генерация ssh-ключа для пользователя: ($1-user)
-                                                        #return 0 - выполнено без ошибок, 1 - отсутствуют параметры запуска
-                                                        #2 - нет указанного пользователя
+
 declare -x -f viewUsersInGroup                            #Вывод списка пользователей, входящих в группу $1: ($1-группа ;)
                                                         #return 0 - выполнено успешно,  1- отсутствуют параметры, 2 - группа не существует
 declare -x -f viewUsersInGroupByPartName                  #Вывод списка пользователей, входящих в группу $2 по части имени пользователя $1
@@ -514,163 +509,10 @@ userAddToGroup() {
 }
 
 
-#Добавление существующего ключа $2 пользователю $1
-#$1-user ; $2-Если параметр равен 1, то запрос происходит в интерактивном режиме, если 0, то в тихом режиме ;
-#3 - $3-путь к ключу ;
-#return 1 - пользователь не существует, 2 - файл ключа не существует
-#3- ошибка передачи параметра $3, 4 - не передан путь к файлу при тихом режиме
-sshKeyAddToUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-    #Проверка существования системного пользователя "$1"
-    	grep "^$1:" /etc/passwd >/dev/null
-    	if  [ $? -eq 0 ]
-    	then
-    	#Пользователь $1 существует
-            #Проверка наличия параметра $2, равного 1
-    		if [ "$2" == "1" ]
-    		then
-                 echo -e "\n${COLOR_YELLOW} Список возможных ключей для импорта: ${COLOR_NC}"
-			     ls -l $SETTINGS/ssh/keys/
-			     echo -n -e "${COLOR_BLUE} Укажите название открытого ключа, который необходимо применить к текущему пользователю: ${COLOR_NC}"
-			     read  keyname
-			     key=$SETTINGS/ssh/keys/$keyname
-			     #Проверка существования файла "$key"
-			     if ! [ -f $key ] ; then
-			         #Файл "$key" не существует
-			         echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$key\"${COLOR_RED} не существует. Выполнение операции прервано${COLOR_NC}"
-			         return 2
-			         break
-			         #Файл "$key" не существует (конец)
-			     fi
-			     #Конец проверки существования файла "$key"
-    		else
-                if [ "$2" == "0" ]
-                then
-                    #Проверка на существование параметров запуска скрипта
-                    if [ -n "$3" ]
-                    then
-                    #Параметры запуска существуют
-                        #Проверка существования файла "$3"
-                        if [ -f $3 ] ; then
-                            #Файл "$3" существует
-                            key=$3
-                            #Файл "$3" существует (конец)
-                        else
-                            #Файл "$3" не существует
-                            echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyAddToUser\"${COLOR_NC}"
-                            return 2
-                            break
-                            #Файл "$3" не существует (конец)
-                        fi
-                        #Конец проверки существования файла "$3"
-                    #Параметры запуска существуют (конец)
-                    else
-                    #Параметры запуска отсутствуют
-                        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyAddToUser\"${COLOR_RED} ${COLOR_NC}"
-                        return 4
-                        break
-                    #Параметры запуска отсутствуют (конец)
-                    fi
-                    #Конец проверки существования параметров запуска скрипта
-                else
-                    echo -e "${COLOR_RED}"Ошибка передачи параметра $3"${COLOR_NC}"
-                    return 3
-                    break
-                fi
-    		fi
-
-                 mkdirWithOwn $HOMEPATHWEBUSERS/$1/ $1 users 755
-    		     mkdirWithOwn $HOMEPATHWEBUSERS/$1/.ssh $1 users 755
-    		     DATE=`date '+%Y-%m-%d__%H-%M-%S'`
-				 mkdirWithOwn $BACKUPFOLDER_IMPORTANT/ssh/$1 $1 users 755
-				 cat $key >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
-				 echo "" >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
-				 tar_file_structure $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys $BACKUPFOLDER_IMPORTANT/ssh/$1/authorized_keys_$DATE.tar.gz
-				 chModAndOwnFile $BACKUPFOLDER_IMPORTANT/ssh/$1/authorized_keys_$DATE.tar.gz $1 users 644
-				 chModAndOwnFile $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys $1 users 600
-				 chown $1:users $HOMEPATHWEBUSERS/$1/.ssh
-				 usermod -G ssh-access -a $1
-				 echo -e "\n${COLOR_YELLOW} Импорт ключа ${COLOR_LIGHT_PURPLE}\"$key\"${COLOR_YELLOW} пользователю ${COLOR_LIGHT_PURPLE}\"$1\"${COLOR_YELLOW} выполнен${COLOR_NC}"
-    		#Проверка наличия параметра $2, равного 1 (конец)
-
-    	#Пользователь $1 существует (конец)
-    	else
-    	#Пользователь $1 не существует
-    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
-    		return 1
-    	#Пользователь $1 не существует (конец)
-    	fi
-    #Конец проверки существования системного пользователя $1
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyAddToUser\"${COLOR_RED} ${COLOR_NC}"
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта    
-}
 
 
-#Генерация ssh-ключа для пользователя
-#$1-user ;
-#return 0 - выполнено без ошибок, 1 - отсутствуют параметры запуска
-#2 - нет указанного пользователя
-sshKeyGenerateToUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]   
-	then
-	#Параметры запуска существуют
 
-	#Проверка существования системного пользователя "$1"
-		grep "^$1:" /etc/passwd >/dev/null
-		if  [ $? -eq 0 ]
-		then
-		#Пользователь $1 существует
-                DATE=`date '+%Y-%m-%d__%H-%M-%S'`
-                DATE_TYPE2=`date '+%d.%m.%Y %H:%M:%S'`
-                #Проверка существования каталога "$HOMEPATHWEBUSERS/$1/.ssh"
-                if [ -d $HOMEPATHWEBUSERS/$1/.ssh ] ; then
-                    #Каталог "$HOMEPATHWEBUSERS/$1/.ssh" существует
-                    tar_folder_structure $HOMEPATHWEBUSERS/$1/.ssh/ $BACKUPFOLDER_IMPORTANT/ssh/$1/ssh_backuped_$DATE.tar.gz
-                    #Каталог "$HOMEPATHWEBUSERS/$1/.ssh" существует (конец)
-                fi
-            #Конец проверки существования каталога "$HOMEPATHWEBUSERS/$1/.ssh"
-				#mkdir -p $HOMEPATHWEBUSERS/$1/.ssh
-				mkdirWithOwn $HOMEPATHWEBUSERS/$1/.ssh $1 users 766
-				cd $HOMEPATHWEBUSERS/$1/.ssh
-				echo -e "\n${COLOR_YELLOW} Генерация ключа. Сейчас необходимо будет установить пароль на ключевой файл.Минимум - 5 символов${COLOR_NC}"
-				ssh-keygen -t rsa -f ssh_$1 -C "ssh_$1 ($DATE_TYPE2)"
-				#echo -e "\n${COLOR_YELLOW} Конвертация ключа в формат программы Putty. Необходимо ввести пароль на ключевой файл, установленный на предыдушем шаге ${COLOR_NC}"
-				sudo puttygen $HOMEPATHWEBUSERS/$1/.ssh/ssh_$1 -C "ssh_$1 ($DATE_TYPE2)" -o $HOMEPATHWEBUSERS/$1/.ssh/ssh_$1.ppk
-				mkdirWithOwn $BACKUPFOLDER_IMPORTANT/ssh/$1 $1 users 766
-				cat $HOMEPATHWEBUSERS/$1/.ssh/ssh_$1.pub >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
-				tar_folder_structure $HOMEPATHWEBUSERS/$1/.ssh/ $BACKUPFOLDER_IMPORTANT/ssh/$1/ssh_generated_$DATE.tar.gz
-                chModAndOwnFile $BACKUPFOLDER_IMPORTANT/ssh/$1/ssh_generated_$DATE.tar.gz $1 users 644
 
-                #chModAndOwnFolderAndFiles $HOMEPATHWEBUSERS/$1/.ssh 700 600 $1 users
-				usermod -G ssh-access -a $1
-				return 0
-		#Пользователь $1 существует (конец)
-		else
-		#Пользователь $1 не существует
-		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyGenerateToUser\"${COLOR_NC}"
-			return 2
-		#Пользователь $1 не существует (конец)
-		fi
-	#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyGenerateToUser\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта    
-}
 
 #Вывод списка пользователей, входящих в группу $1
 #$1-группа ;
