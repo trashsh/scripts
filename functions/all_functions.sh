@@ -91,7 +91,22 @@ declare -x -f dbUpdateRecordToDb    #обновление записи в таб
                                     #7 - отсутствует столбец для вставки текста
 
 ########################################################### backup ###########################################################
-declare -x -f dbBackupBase #Создание бэкапа указанной базы данных: ($1-dbname ; $2-В параметре $2 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` )
+declare -x -f dbBackupBase #Создание бэкапа указанной базы данных:
+#$1-user,
+#$2-dbname ;
+#$3 - full_info/silent - вывод сообщений о выполнении операции
+#$4 - mode - data/structure
+#$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+
+#return
+#0 - выполнено успешно,
+#1 - отсутствуют параметры,
+#2 - отсутствует база данных,
+#3 - отменено пользователем создание каталога
+#4 - ошибка при финальной проверке создания бэкапа,
+#5 - ошибка передачи параметра full_info/silent,
+#6 - не существует пользователь
+#7 - не передан параметр mode
 
 
 ########################################################### users ###########################################################
@@ -732,7 +747,7 @@ dbInsertToDbUsers() {
 #Создание бэкапа указанной базы данных
 #$1-user,
 #$2-dbname ;
-#$3 - full_info/silent - вывод сообщений о выполнении операции
+#$3 - full_info/error_only - вывод сообщений о выполнении операции
 #$4 - mode - data/structure
 #$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
 
@@ -742,9 +757,9 @@ dbInsertToDbUsers() {
 #2 - отсутствует база данных,
 #3 - отменено пользователем создание каталога
 #4 - ошибка при финальной проверке создания бэкапа,
-#5 - ошибка передачи параметра full_info/silent,
+#5 - ошибка передачи параметра mode: full_info/error_only,
 #6 - не существует пользователь
-#7 - не передан параметр mode
+#7 - не передан параметр mode: data/structure
 dbBackupBase() {
 	#	d=`date +%Y.%m.%d`;
     #	dt=`date +%Y.%m.%d_%H.%M.%S`;
@@ -787,34 +802,34 @@ dbBackupBase() {
                         #Конец проверки существования параметров запуска скрипта
 
                         #пусть к файлу с бэкапом без расширения
-                        FILENAME=$DESTINATIONFOLDER/sql.$1-"$2"-$datetime.sql
+                        FILENAME=$DESTINATIONFOLDER/sql.$1-"$2"-$datetime
 
                         #Проверка существования каталога "$DESTINATIONFOLDER"
                         if [ -d $DESTINATIONFOLDER ] ; then
 
                             #Каталог "$DESTINATIONFOLDER" существует
                             case "$3" in
-                                silent)
+                                error_only)
                                     #параметр 4 - выгрузка базы с данными или только структуры
                                     case "$4" in
                                         data)
-                                            mysqldump --databases $2 > $FILENAME
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
+                                            mysqldump --databases $2 > $FILENAME.sql
+                                            tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz
                                             return 0
                                             ;;
                                         structure)
-                                            mysqldump --databases $2 > $FILENAME
-                                            mysqldump --databases $2 --compact --no-data > $FILENAME
+                                            mysqldump --databases $2 > $FILENAME.sql
+                                            mysqldump --databases $2 --compact --no-data > $FILENAME.sql
                                             #mysqldump database_name --compact --no-data
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
+                                            tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz
                                             return 0
                                             ;;
                                     	*)
-                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     	    return 7
                                     	    ;;
                                     esac
@@ -825,22 +840,22 @@ dbBackupBase() {
                                     case "$4" in
                                         data)
 
-                                            mysqldump --databases $2 > $FILENAME
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                            dbCheckExportedBase $2 full_info $FILENAME.tar.gz
+                                            mysqldump --databases $2 > $FILENAME.sql
+                                            tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 full_info $FILENAME.sql.tar.gz
                                             return 0
                                             ;;
                                         structure)
-                                            mysqldump --databases $2 --compact --no-data > $FILENAME
+                                            mysqldump --databases $2 --compact --no-data > ${FILENAME}_structure.sql
                                             #mysqldump database_name --compact --no-data
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
-                                            dbCheckExportedBase $2 full_info $FILENAME.tar.gz
+                                            tar_file_without_structure_remove ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644
+                                            dbCheckExportedBase $2 full_info ${FILENAME}_structure.sql.tar.gz
                                             return 0
                                             ;;
                                     	*)
-                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     	    return 7
                                     	    ;;
                                     esac
@@ -856,32 +871,32 @@ dbBackupBase() {
                         else
                             #Каталог "$DESTINATIONFOLDER" не существует
                             case "$3" in
-                                silent)
+                                error_only)
                                     #параметр 4 - выгрузка базы с данными или только структуры
                                     case "$4" in
                                         data)
                                             #mkdir -p $DESTINATIONFOLDER;
                                             mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
                                             chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
-                                            mysqldump --databases $2 > $FILENAME;
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
                                             return 0
                                             ;;
                                         structure)
                                             #mkdir -p $DESTINATIONFOLDER;
                                             mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
                                             chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
-                                            mysqldump --databases $2 --compact --no-data > $FILENAME;
-                                            #mysqldump database_name --compact --no-data
-                                            tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                            dbCheckExportedBase $2 error_only $FILENAME.tar.gz
-                                            chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                            mysqldump --databases $2 --no-data > $FILENAME.sql;
+                                            #mysqldump database_name --no-data
+                                            tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
                                             return 0
                                             ;;
                                     	*)
-                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     	    return 7
                                     	    ;;
                                     esac
@@ -902,10 +917,10 @@ dbBackupBase() {
                                                     #mkdir -p $DESTINATIONFOLDER;
                                                     mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
                                                     chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
-                                                    mysqldump --databases $2 > $FILENAME;
-                                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                                    dbCheckExportedBase $2 full_info $FILENAME.tar.gz;
-                                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                                    mysqldump --databases $2 > $FILENAME.sql;
+                                                    tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz;
+                                                    dbCheckExportedBase $2 full_info $FILENAME.sql.tar.gz;
+                                                    chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
                                                     return 0;
                                                     break;;
                                                 n|N)
@@ -926,11 +941,11 @@ dbBackupBase() {
                                                     #mkdir -p $DESTINATIONFOLDER;
                                                     mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
                                                     chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
-                                                    mysqldump --databases $2 --compact --no-data > $FILENAME;
-                                                    #mysqldump database_name --compact --no-data
-                                                    tar_file_without_structure_remove $FILENAME $FILENAME.tar.gz;
-                                                    dbCheckExportedBase $2 full_info $FILENAME.tar.gz;
-                                                    chModAndOwnFile $FILENAME.tar.gz $1 www-data 644
+                                                    mysqldump --databases $2 --no-data > $FILENAME.sql;
+                                                    #mysqldump database_name --no-data
+                                                    tar_file_without_structure_remove $FILENAME.sql $FILENAME.sql.tar.gz;
+                                                    dbCheckExportedBase $2 full_info $FILENAME.sql.tar.gz;
+                                                    chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
                                                     return 0;
                                                     break;;
                                                 n|N)
@@ -940,14 +955,14 @@ dbBackupBase() {
                                             done
                                             ;;
                                     	*)
-                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     	    return 7
                                     	    ;;
                                     esac
                                     #параметр 4 - выгрузка базы с данными или только структуры (конец)
                                     ;;
                                 *)
-                                    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: full_info/error_only\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     return 5
                                     ;;
                             esac
