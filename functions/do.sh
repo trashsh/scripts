@@ -1,5 +1,8 @@
 #!/bin/bash
 
+############################backups######################
+declare -x -f dbBackupBase #Создание бэкапа указанной базы данных
+
 ############################users########################
 declare -x -f userAddSystem
 ############################ssh########################
@@ -10,6 +13,266 @@ declare -x -f sshKeyAddToUser
 
 declare -x -f tarFile ##архивация файла ($1-путь к исходному файлу ; $2-Путь к конечному архиву ; $3 - mode(str, str_rem, nostr, nostr_rem);  $4 - mode (full_info-папка не создается, но показывается и успешный результат,querry-запрашивается создание каталога,error_only-выводятся только ошибки,silent - создается папка); $5 - mode(rewrite/norewrite); $6-Необязательно:имя владельца ; $7-Необязательно:группа владельца ; $8-Необязательно:права доступа ;)
 declare -x -f tarFolder ##архивация каталога ($1-путь к исходному каталогу ; $2-Путь к конечному архиву ; $3 - mode(str, str_rem, nostr, nostr_rem);  $4 - mode (full_info-папка не создается, но показывается и успешный результат,querry-запрашивается создание каталога,error_only-выводятся только ошибки,silent - создается папка); $5 - mode(rewrite/norewrite); $6-Необязательно:имя владельца ; $7-Необязательно:группа владельца ; $8-Необязательно:права доступа ;)
+declare -x -f untarFile #разархивация архива по указанному пути: ($1-ссылка на архив ; $2-ссылка на каталог назначения ; $3-mode:rewrite/norewrite ; $4-mode: showinfo/silent; $5 - mode:createfolder/nocreatefolder/querrycreatefolder)
+
+
+
+############################backups######################
+#Полностью готово
+#Создание бэкапа указанной базы данных
+#$1-user,
+#$2-dbname ;
+#$3 - full_info/error_only - вывод сообщений о выполнении операции
+#$4 - mode - data/structure
+#$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+
+#return
+#0 - выполнено успешно,
+#1 - отсутствуют параметры,
+#2 - отсутствует база данных,
+#3 - отменено пользователем создание каталога
+#4 - ошибка при финальной проверке создания бэкапа,
+#5 - ошибка передачи параметра mode: full_info/error_only,
+#6 - не существует пользователь
+#7 - не передан параметр mode: data/structure
+dbBackupBase() {
+	#	d=`date +%Y.%m.%d`;
+    #	dt=`date +%Y.%m.%d_%H.%M.%S`;
+    date=$DATEFORMAT
+    datetime=$DATETIMEFORMAT
+
+    #Проверка на существование параметров запуска скрипта
+    if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+    then
+    #Параметры запуска существуют
+
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		    #Проверка существования базы данных "$2"
+            if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$2'" 2>&1`" ]];
+            	then
+            	#база $2 - существует
+
+                        #Пользователь mysql "$1" существует
+
+                        #извлечение названия базы данных (с учетом, что это может быть дополнительная база данных к сайту)
+                        dopdbname_trim_dbname=${2#$1_}
+                        #извлечение названия сайта из названия базы данных
+                        sitedomain_trim_dbname=${dopdbname_trim_dbname%_*}
+
+                        #Проверка на существование параметров запуска скрипта
+                        if [ -n "$5" ]
+                        then
+                        #Параметры запуска существуют
+                            DESTINATIONFOLDER=$5
+                        #Параметры запуска существуют (конец)
+                        else
+                        #Параметры запуска отсутствуют
+                            DESTINATIONFOLDER=$BACKUPFOLDER_DAYS/$1/$sitedomain_trim_dbname/$date
+                        #Параметры запуска отсутствуют (конец)
+                        fi
+                        #Конец проверки существования параметров запуска скрипта
+
+                        #пусть к файлу с бэкапом без расширения
+                        FILENAME=$DESTINATIONFOLDER/sql.$1-"$2"-$datetime
+
+                        #Проверка существования каталога "$DESTINATIONFOLDER"
+                        if [ -d $DESTINATIONFOLDER ] ; then
+
+                            #Каталог "$DESTINATIONFOLDER" существует
+                            case "$3" in
+                                error_only)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mysqldump --databases $2 > ${FILENAME}_structure.sql;
+                                            mysqldump --databases $2  --no-data > ${FILENAME}_structure.sql;
+                                            #mysqldump database_name  --no-data;
+                                            tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only ${FILENAME}_structure.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                full_info)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 full_info $FILENAME.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mysqldump --databases $2  --no-data > ${FILENAME}_structure.sql;
+                                            #mysqldump database_name  --no-data;
+                                            tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 full_info ${FILENAME}_structure.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                *)
+                                    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\" (error_only/full_info)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    return 6
+                                    ;;
+                            esac
+                            #Каталог "$DESTINATIONFOLDER" существует (конец)
+
+                        else
+                            #Каталог "$DESTINATIONFOLDER" не существует
+                            case "$3" in
+                                error_only)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            #mkdir -p $DESTINATIONFOLDER;
+                                            mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755;
+                                            chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R;
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz;
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644;
+                                            return 0
+                                            ;;
+                                        structure)
+                                            #mkdir -p $DESTINATIONFOLDER;
+                                            mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755;
+                                            chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R;
+                                            mysqldump --databases $2 --no-data > ${FILENAME}_structure.sql;
+                                            #mysqldump database_name --no-data;
+                                            tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only ${FILENAME}_structure.sql.tar.gz;
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                full_info)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}${COLOR_RED} не найден. Создать его? Функция ${COLOR_GREEN}\"dbBackupBase\".${COLOR_NC}"
+                                            echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                            while read
+                                            do
+                                            echo -n ": "
+                                                case "$REPLY" in
+                                                y|Y)
+                                                    #mkdir -p $DESTINATIONFOLDER;
+                                                    mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
+                                                    chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
+                                                    mysqldump --databases $2 > $FILENAME.sql;
+                                                    tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                                    dbCheckExportedBase $2 full_info $FILENAME.sql.tar.gz;
+                                                    chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644
+                                                    return 0;
+                                                    break;;
+                                                n|N)
+                                                    echo -e "${COLOR_RED}Операция по созданию базы данных ${COLOR_GREEN}\"$2\"${COLOR_RED} отменена пользователем.${COLOR_NC}"
+                                                    return 3;;
+                                                esac
+                                            done
+                                            ;;
+                                        structure)
+                                            echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}${COLOR_RED} не найден. Создать его? Функция ${COLOR_GREEN}\"dbBackupBase\".${COLOR_NC}"
+                                            echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$DESTINATIONFOLDER\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                            while read
+                                            do
+                                            echo -n ": "
+                                                case "$REPLY" in
+                                                y|Y)
+                                                    #mkdir -p $DESTINATIONFOLDER;
+                                                    mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755
+                                                    chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R
+                                                    mysqldump --databases $2 --no-data > ${FILENAME}_structure.sql;
+                                                    #mysqldump database_name --no-data
+                                                    tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                                    dbCheckExportedBase $2 full_info ${FILENAME}_structure.sql.tar.gz;
+                                                    chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644
+                                                    return 0;
+                                                    break;;
+                                                n|N)
+                                                    echo -e "${COLOR_RED}Операция по созданию базы данных ${COLOR_GREEN}\"$2\"${COLOR_RED} отменена пользователем.${COLOR_NC}"
+                                                    return 3;;
+                                                esac
+                                            done
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                *)
+                                    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (full_info/error_only)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    return 5
+                                    ;;
+                            esac
+                            #Каталог "$DESTINATIONFOLDER" не существует (конец)
+                        fi
+                        #Пользователь mysql "$1" существует (конец)
+
+            	#база $2 - существует (конец)
+            	else
+            	#база $2 - не существует
+            	     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBase\" ${COLOR_NC}"
+            	     return 2
+            	#база $2 - не существует (конец)
+            fi
+            #конец проверки существования базы данных $2
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}"
+                return 6
+
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+
+
+
+    #Параметры запуска существуют (конец)
+    else
+    #Параметры запуска отсутствуют
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbBackupBase\"${COLOR_RED} ${COLOR_NC}"
+        return 1
+    #Параметры запуска отсутствуют (конец)
+    fi
+    #Конец проверки существования параметров запуска скрипта
+}
 
 ############################users########################
 #Выполенние операций по созданию системного пользователя
@@ -149,12 +412,12 @@ userAddSystem()
 
 ############################ssh########################
 #Генерация ssh-ключа для пользователя
-#$1-user ; $2 - каталог пользователя
+#$1-user ; $2 - домашний каталог пользователя
 #return 0 - выполнено без ошибок, 1 - отсутствуют параметры запуска
-#2 - нет указанного пользователя, 3 - отсутствует каталог пользователя
+#2 - нет указанного пользователя
 sshKeyGenerateToUser() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
+	if [ -n "$1" ]
 	then
 	#Параметры запуска существуют
 
@@ -163,9 +426,6 @@ sshKeyGenerateToUser() {
 		if  [ $? -eq 0 ]
 		then
 		#Пользователь $1 существует
-                #Проверка существования каталога "$2"
-                if [ -d $2 ] ; then
-                    #Каталог "$2" существует
 
                         DATE=`date '+%Y-%m-%d__%H-%M-%S'`
                         DATE_TYPE2=$DATETIMESQLFORMAT
@@ -191,15 +451,6 @@ sshKeyGenerateToUser() {
                         #chModAndOwnFolderAndFiles $2/.ssh 700 600 $1 users
                         usermod -G ssh-access -a $1
                         return 0
-
-                    #Каталог "$2" существует (конец)
-                else
-                    #Каталог "$2" не существует
-                    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyGenerateToUser\"${COLOR_NC}"
-                    return 3
-                    #Каталог "$2" не существует (конец)
-                fi
-                #Конец проверки существования каталога "$2"
 
 		#Пользователь $1 существует (конец)
 		else
@@ -764,4 +1015,170 @@ tarFolder() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
+}
+
+#разархивация архива по указанному пути
+#$1-ссылка на архив ; $2-ссылка на каталог назначения ; $3-mode:rewrite/norewrite ; $4-mode: showinfo/silent ; $5 - mode:createfolder/nocreatefolder/querrycreatefolder; $6 - mode:structure/nostructure
+#return 0 - выполнено успешно, 1 - параметры не переданы, 2 - нет архива, 3 - ошибка параметра mode (createfolder/nocreatefolder/querrycreatefolder)
+#4 - каталог назначения не существует при параметре nocreatefolder, 5 - ошибка параметра mode (showinfo/silent),
+#6 - ошибка параметра mode (rewrite/norewrite), 7 - ошибка параметра mode (structure/nostructure), 8 - пользователем отменена операция создания каталога $2
+untarFile() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования файла "$1"
+		if [ -f $1 ] ; then
+		    #Файл "$1" существует
+		    case "$5" in
+		        createfolder)
+                    #Проверка существования каталога "$2"
+                    if ! [ -d $2 ] ; then
+                        #Каталог "$2" не существует
+                        mkdir -p $2
+                        #Каталог "$2" не существует (конец)
+                    fi
+                    #Конец проверки существования каталога "$2"
+		            ;;
+		        nocreatefolder)
+                    #Проверка существования каталога "$2"
+                    if ! [ -d $2 ] ; then
+                        #Каталог не "$2" существует
+                        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"untarFile\"${COLOR_NC}"
+                        #Каталог не "$2" существует (конец)
+                        return 4
+                    fi
+                    #Конец проверки существования каталога "$2"
+
+		            ;;
+		        querrycreatefolder)
+		            #Проверка существования каталога "$2"
+                    if ! [ -d $2 ] ; then
+                        echo -e "${COLOR_YELLOW}Каталог ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} не существует${COLOR_NC}"
+                        echo -n -e "${COLOR_YELLOW}Введите ${COLOR_BLUE}\"y\"${COLOR_NC}${COLOR_YELLOW} для создания каталога  ${COLOR_GREEN}\"$2\"${COLOR_NC}${COLOR_YELLOW}, для отмены операции - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                            while read
+                            do
+                                echo -n ": "
+                                case "$REPLY" in
+                                    y|Y)
+                                        mkdir -p $2;
+                                        break;;
+                                    n|N)
+                                        echo -e "${COLOR_RED}Создание каталога ${COLOR_GREEN}\"$2\"${COLOR_RED} отменено пользователем при распаковке архива ${COLOR_GREEN}\"$1\"${COLOR_NC}";
+                                        return 9;;
+                                esac
+                            done
+                    fi
+                    #Конец проверки существования каталога "$2"
+
+		            ;;
+		    	*)
+		    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (createfolder/nocreatefolder/querrycreatefolder)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+		    	    return 3
+		    	    ;;
+		    esac
+		    #Файл "$1" существует (конец)
+
+		    case "$6" in
+		        structure)
+                        case "$4" in
+                            showinfo)
+                                case "$3" in
+                                    rewrite)
+                                        tar -xzpf $1 -P -C $2 && echo -e "${COLOR_GREEN}Архив ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно распакован в каталог ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}";
+                                        return 0
+                                        ;;
+                                    norewrite)
+                                        tar -xzkpf $1 -P -C $2 && echo -e "${COLOR_GREEN}Архив ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно распакован в каталог ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}";
+                                        return 0
+                                        ;;
+                                    *)
+                                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (rewrite/norewrite)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                        return 6
+                                        ;;
+                                esac
+                                ;;
+                            silent)
+                                case "$3" in
+                                    rewrite)
+                                        tar -xzpf $1 -P -C $2;
+                                        return 0
+                                        ;;
+                                    norewrite)
+                                        tar -xzkpf $1 -P -C $2;
+                                        return 0
+                                        ;;
+                                    *)
+                                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (rewrite/norewrite)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                        return 6
+                                        ;;
+                                esac
+                                ;;
+                            *)
+                                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (showinfo/silent)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                return 5
+                                ;;
+                        esac
+		            ;;
+		        nostructure)
+                        case "$4" in
+                            showinfo)
+                                case "$3" in
+                                    rewrite)
+                                        tar -xpf $1 --strip-components 1 -P -C $2 && echo -e "${COLOR_GREEN}Архив ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно распакован в каталог ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}";
+                                        return 0
+                                        ;;
+                                    norewrite)
+                                        tar -xpkf $1 --strip-components 1 -P -C $2  && echo -e "${COLOR_GREEN}Архив ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно распакован в каталог ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}";
+                                        return 0
+                                        ;;
+                                    *)
+                                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (rewrite/norewrite)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                        return 6
+                                        ;;
+                                esac
+                                ;;
+                            silent)
+                                case "$3" in
+                                    rewrite)
+                                        tar -xpf $1 --strip-components 1 -P -C $2;
+                                        return 0
+                                        ;;
+                                    norewrite)
+                                        tar -xpkf $1 --strip-components 1 -P -C $2;
+                                        return 0
+                                        ;;
+                                    *)
+                                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (rewrite/norewrite)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                        return 6
+                                        ;;
+                                esac
+                                ;;
+                            *)
+                                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (showinfo/silent)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+                                return 5
+                                ;;
+                        esac
+		            ;;
+		    	*)
+		    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (structure/nosctucture)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"untarFile\"${COLOR_NC}";
+		    	    return 7
+		    	    ;;
+		    esac
+		else
+		    #Файл "$1" не существует
+		    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"untarFile\"${COLOR_NC}"
+		    return 2
+		    #Файл "$1" не существует (конец)
+		fi
+		#Конец проверки существования файла "$1"
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"untarFile\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
 }

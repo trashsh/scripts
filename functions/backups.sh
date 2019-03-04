@@ -396,16 +396,6 @@ echo $db
     #Конец проверки существования каталога "$DESTINATION"
 
 
-
-
-
-
-
-
-
-
-
-
 #            echo $user
            # echo $user
 			filename=mysql.$user-"$db"-$dt.sql
