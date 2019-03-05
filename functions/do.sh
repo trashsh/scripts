@@ -2,6 +2,10 @@
 
 ############################backups######################
 declare -x -f dbBackupBase #Создание бэкапа указанной базы данных
+declare -x -f dbBackupBases             #Создание бэкапа всех пользовательских баз данных mysql:
+                                        #$1-user ; $2-В параметре $2 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d ;
+                                        #return 0 - выполнено успешно, 1 - не переданы параметры, 2 - пользователь не существует, 3 - пользователь отменил создание папки
+declare -x -f dbBackupAllBases #создание бэкапа всех баз данных: ($1-user owner ; $2-owner group ; $3-разрешения на файл ; $4-mode:createfolder/nocreatefolder/querrycreatefolder ; $5-Каталог выгрузки (необязательный параметр) ;)
 
 ############################users########################
 declare -x -f userAddSystem
@@ -274,6 +278,242 @@ dbBackupBase() {
     #Конец проверки существования параметров запуска скрипта
 }
 
+
+#создание бэкапа всех баз данных
+#$1-user owner ; $2-owner group ; $3-разрешения на файл ; $4-mode:createfolder/nocreatefolder/querrycreatefolder ; $5-Каталог выгрузки ;
+#return 0 - выполнено успешно, 1 - отсутствуют параметры запуска, 2 - пользователь не существует, 3 - группа не существует
+#4 - проверка выгруженного файла завершилась с ошибкой
+
+dbBackupAllBases() {
+
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		#Проверка существования системной группы пользователей "$2"
+        		if grep -q $2 /etc/group
+        		    then
+        		        #Группа "$2" существует
+
+                        d=$DATEFORMAT;
+                        dt=$DATETIMEFORMAT;
+                        databases=`mysql -e "SHOW DATABASES;" | tr -d "| " | grep -v Database`
+
+
+                        #выгрузка баз данных
+                        for db in $databases; do
+                            if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
+                                #echo -e "---\nВыгрузка базы данных MYSQL: ${COLOR_YELLOW}$db${COLOR_NC}"
+                                echo db = $db
+                                user_fcut=${db%_*}
+                                user=${user_fcut%_*}
+
+                                echo user_fcut - $user_fcut
+                                echo user - $user
+
+                                domain_fcut=${db##$user_}
+                                echo domain_fcut - $domain_fcut
+                                domain=${domain_fcut%_*}
+                                echo domain - $domain
+
+                                #Проверка на существование параметров запуска скрипта
+                        if [ -n "$5" ]
+                        then
+                        #Параметры запуска существуют
+
+                            #Проверка существования каталога "$5"
+                            if ! [ -d $5 ] ; then
+                                #Каталог "$5" не существует
+                                echo -e "${COLOR_RED} Каталог \"$5\" не найден для создания бэкапа всех баз данных mysql. Создать его? Функция ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_NC}"
+                                echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$5\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                while read
+                                do
+                                echo -n ": "
+                                    case "$REPLY" in
+                                    y|Y)
+                                        mkdir -p "$5";
+                                        DESTINATION=$5
+                                        #echo $DESTINATION
+                                        break;;
+                                    n|N)
+                                         break;;
+                                    esac
+                                done
+                                #Каталог "$6" не существует (конец)
+                            else
+                                #Каталог "$5" существует
+                                DESTINATION=$5
+                                #Файл "$5" существует (конец)
+                            fi
+                            #Конец проверки существования каталога "$5"
+
+                        #Параметры запуска существуют (конец)
+                        else
+                        #Параметры запуска отсутствуют
+                            #каталог устанавливается по умолчанию
+                            DESTINATION=$BACKUPFOLDER_DAYS/$user/$domain/$d
+                        #Параметры запуска отсутствуют (конец)
+                        fi
+                        #Конец проверки существования параметров запуска скрипта
+
+
+                         #Проверка существования каталога "$DESTINATION"
+                        if ! [ -d $DESTINATION ] ; then
+                            #Каталог "$DESTINATION" не существует
+                            mkdir -p "$DESTINATION"
+                        fi
+                        #Конец проверки существования каталога "$DESTINATION"
+
+                                #echo $1
+                               # echo $user
+                                filename=mysql.$user-"$db"-$dt.sql
+                                mysqldump --databases $db > $DESTINATION/$filename
+                                #архивация выгруженной базы и удаление оригинального файла sql
+                                #tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
+                                tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
+                                #проверка на существование выгруженных и заархививанных баз данных
+                                chModAndOwnFile $DESTINATION/$filename.tar.gz $user www-data 644
+                                if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
+                                    echo -e "${COLOR_GREEN}Выгрузка базы данных MYSQL:${COLOR_NC} ${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_GREEN}успешно завершилась в файл${COLOR_NC}${COLOR_YELLOW} \"$DESTINATION/$filename.tar.gz\"${COLOR_NC}\n---"
+                                    #return 0
+                                else
+                                    echo -e "${COLOR_RED}Выгрузка базы данных: ${COLOR_NC}${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_RED}завершилась с ошибкой${COLOR_NC}\n---"
+                                    return 4
+                                fi
+                            fi
+                        done
+
+        		        #Группа "$2" существует (конец)
+        		    else
+        		        #Группа "$2" не существует
+        		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_NC}"
+        				return 3
+        				#Группа "$2" не существует (конец)
+        		    fi
+        		#Конец проверки существования системной группы пользователей $2
+
+
+
+
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_RED} ${COLOR_NC}"
+	    return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Создание бэкапа всех пользовательских баз данных mysql
+#$1-В параметре может быть указан путь к каталогу сохранения бэкапов.Если путь не указан, то выгрузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+#return - 0 - выполнено успешно;
+dbBackupBases() {
+	#d=`date +%Y.%m.%d`;
+	#dt=`date +%Y.%m.%d_%H.%M`;
+	d=$DATEFORMAT;
+    dt=$DATETIMEFORMAT;
+
+	databases=`mysql -e "SHOW DATABASES;" | tr -d "| " | grep -v Database`
+
+
+
+#выгрузка баз данных
+	for db in $databases; do
+		if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
+			#echo -e "---\nВыгрузка базы данных MYSQL: ${COLOR_YELLOW}$db${COLOR_NC}"
+
+            user_fcut=${db%_*}
+            user=${user_fcut%_*}
+
+            #echo $db
+
+            domain_fcut=${db%_}
+            #domain=${domain_fcut##_*}
+
+            #echo $domain_fcut
+
+            #Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+
+	    #Проверка существования файла "$1"
+	    if ! [ -d $1 ] ; then
+	        #Файл "$1" не существует
+	        echo -e "${COLOR_RED} Каталог \"$1\" не найден для создания бэкапа всех баз данных mysql. Создать его? Функция ${COLOR_GREEN}\"dbBackupBases\"${COLOR_NC}"
+			echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$1\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+			while read
+			do
+			echo -n ": "
+				case "$REPLY" in
+				y|Y)
+					mkdir -p "$1";
+				DESTINATION=$1
+				echo $DESTINATION
+					break;;
+				n|N)
+					 break;;
+				esac
+			done
+	        #Файл "$1" не существует (конец)
+	    else
+	        #Файл "$1" существует
+			DESTINATION=$1
+	        #Файл "$1" существует (конец)
+	    fi
+	    #Конец проверки существования файла "$1"
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		#каталог устанавливается по умолчанию
+		DESTINATION=$BACKUPFOLDER_DAYS/$user/$domain/$d
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+
+     #Проверка существования каталога "$DESTINATION"
+    if ! [ -d $DESTINATION ] ; then
+        #Каталог "$DESTINATION" не существует
+        mkdir -p "$DESTINATION"
+    fi
+    #Конец проверки существования каталога "$DESTINATION"
+
+#            echo $user
+           # echo $user
+			filename=mysql.$user-"$db"-$dt.sql
+			mysqldump --databases $db > $DESTINATION/$filename
+#архивация выгруженной базы и удаление оригинального файла sql
+			#tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
+			tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
+#проверка на существование выгруженных и заархививанных баз данных
+            chModAndOwnFile $DESTINATION/$filename.tar.gz $user www-data 644
+			if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
+				echo -e "${COLOR_GREEN}Выгрузка базы данных MYSQL:${COLOR_NC} ${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_GREEN}успешно завершилась в файл${COLOR_NC}${COLOR_YELLOW} \"$DESTINATION/$filename.tar.gz\"${COLOR_NC}\n---"
+			else
+				echo -e "${COLOR_RED}Выгрузка базы данных: ${COLOR_NC}${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_RED}завершилась с ошибкой${COLOR_NC}\n---"
+			fi
+	    fi
+    done
+    return 0
+}
 ############################users########################
 #Выполенние операций по созданию системного пользователя
 #$1-username ; $2-homedir ; $3-путь к интерпритатору команд ; $4 - основная группа пользователей; $5 - type (ssh/ftp), $6 - password, $7 системный пользователь, который выполняет команду

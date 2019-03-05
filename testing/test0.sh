@@ -24,5 +24,27 @@ source $SCRIPTS/include/include.sh
 #tarFolder $1 $2 $3 $4 $5 $6 $7 $8
 #echo $?
 
-dbBackupBase  $1 $2 $3 $4 $5 $6 $7 $8
-echo $?
+#dbBackupAllBases  $1 $2 $3 $4 $5 $6 $7 $8
+#echo $?
+
+
+echo input - $1
+#lamer_alixi.ru
+#lamer_alixi.ru_dop2
+
+
+s1=${1%_*}
+echo s1 - $s1
+s2=${s1%-*}
+echo s2 - $s2
+
+
+s3=${1#$s2}
+echo s3 - $s3
+
+                                #user_fcut=${db%_*}
+                                #user=${user_fcut%_*}
+
+                                #domain_fcut=${db##$user_}
+
+                                #domain=${domain_fcut%_*}

@@ -322,8 +322,10 @@ fi
 #$1-В параметре может быть указан путь к каталогу сохранения бэкапов.Если путь не указан, то выгрузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
 #return - 0 - выполнено успешно;
 dbBackupBases() {
-	d=`date +%Y.%m.%d`;
-	dt=`date +%Y.%m.%d_%H.%M`;
+	#d=`date +%Y.%m.%d`;
+	#dt=`date +%Y.%m.%d_%H.%M`;
+	d=$DATEFORMAT;
+    dt=$DATETIMEFORMAT;
 
 	databases=`mysql -e "SHOW DATABASES;" | tr -d "| " | grep -v Database`
 
@@ -332,19 +334,17 @@ dbBackupBases() {
 #выгрузка баз данных
 	for db in $databases; do
 		if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
-			echo -e "---\nВыгрузка базы данных MYSQL: ${COLOR_YELLOW}$db${COLOR_NC}"
+			#echo -e "---\nВыгрузка базы данных MYSQL: ${COLOR_YELLOW}$db${COLOR_NC}"
 
             user_fcut=${db%_*}
             user=${user_fcut%_*}
 
-echo $db
+            #echo $db
 
             domain_fcut=${db%_}
             #domain=${domain_fcut##_*}
 
-
-            echo $domain_fcut
-
+            #echo $domain_fcut
 
             #Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
@@ -395,13 +395,13 @@ echo $db
     fi
     #Конец проверки существования каталога "$DESTINATION"
 
-
 #            echo $user
            # echo $user
 			filename=mysql.$user-"$db"-$dt.sql
 			mysqldump --databases $db > $DESTINATION/$filename
 #архивация выгруженной базы и удаление оригинального файла sql
-			tar_file_without_structure_remove	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
+			#tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
+			tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
 #проверка на существование выгруженных и заархививанных баз данных
             chModAndOwnFile $DESTINATION/$filename.tar.gz $user www-data 644
 			if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
