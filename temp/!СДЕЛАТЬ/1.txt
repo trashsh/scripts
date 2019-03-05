@@ -1,0 +1,5 @@
+включение сайта nginx
+sudo ln -s /etc/nginx/sites-available/example /etc/nginx/sites-enabled/example
+
+включение сайта апач
+sudo a2ensite example

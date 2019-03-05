@@ -36,3 +36,9 @@ sed -i -e "s/Port\t\t\t\t21/Port\t\t\t\t10081/" /etc/proftpd/proftpd.conf
 echo '/bin/false' >> /etc/shells
 #AuthUserFile /etc/proftpd/ftpd.passwd
 service proftpd restart
+
+
+
+
+sudo rm /etc/nginx/sites-enabled/default
+nano /etc/nginx/sites-available/test1.alixi.ru.conf
