@@ -14,19 +14,7 @@ declare -x -f dbCreateBase          #Создание базы данных $1:
                                     #3 - ошибка при проверке наличия базы после ее создания,
                                     #4 - ошибка в параметре mode - silent/normal
 
-declare -x -f dbUseradd             #Добавление пользователя mysql
-                                    #$1-user ;
-                                    #$2-password ;
-                                    #$3-host ;
-                                    #$4-autentification_type {pass,sha,socket}  ;
-                                    #$5-usertype ; {user, admin, adminGrant}
 
-                                    #return 0 - выполнено успешно,
-                                    # 1 - отсутствуют параметры запуска
-                                    # 2 - неверный параметр usertype,
-                                    # 3 - пользователь уже существует,
-                                    # 4 - ошибка после выполнения команды на создание пользователя,
-                                    # 5 - неверный параметр autentification_type
 
 declare -x -f dbCheckExportedBase
                                     #Проверка успешности выгрузки базы данных mysql $1 в архив $3
@@ -194,95 +182,6 @@ dbCreateBase() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Добавление пользователя mysql
-#$1-user ;
-#$2-password ;
-#$3-host ;
-#$4-autentification_type {pass,sha,socket}  ;
-#$5-usertype ; {user, admin, adminGrant}
-#return 0 - выполнено успешно,
-# 1 - отсутствуют параметры запуска
-# 2 - неверный параметр usertype,
-# 3 - пользователь уже существует,
-# 4 - ошибка после выполнения команды на создание пользователя,
-# 5 - неверный параметр autentification_type
-dbUseradd() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-    #Проверка существования пользователя mysql $1
-
-        #Проверка на существование пользователя mysql "$1"
-        if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
-        then
-        #Пользователь mysql "$1" существует
-            echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_NC}"
-            return 3
-        #Пользователь mysql "$1" существует (конец)
-        else
-        #Пользователь mysql "$1" не существует
-            #Проверка правильности параметра $4-autentification_type
-            case "$4" in
-                        "pass")
-                            auth="mysql_native_password";;
-                        "sha")
-                            auth="sha256_password";;
-                        "socket")
-                            auth="auth_socket";;
-                        *)
-                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-autentification_type\"${COLOR_NC}";
-                            return 5;;
-                    esac
-
-                #Проверка правильности параметра $4-autentification_type (конец)
-                    #Проверка правильности параметра $5 - тип пользователя
-                    case "$5" in
-                        "user")  #обычный пользователь
-                            mysql -e "CREATE USER '$1'@'$3' IDENTIFIED BY '$2'; GRANT USAGE ON *.* TO '$1'@'$3' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
-                            mysql -e "FLUSH PRIVILEGES;"
-                            ;;
-                        "admin")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$3' IDENTIFIED BY '$2';";
-                            mysql -e "FLUSH PRIVILEGES;";
-                            ;;
-                        "adminGrant")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$3' IDENTIFIED BY '$2' WITH GRANT OPTION;";
-                            mysql -e "FLUSH PRIVILEGES;";
-                            ;;
-                        *)
-                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-usertype\"${COLOR_NC}";
-                            return 2;;
-                    esac
-                    #Проверка правильности параметра $5 - тип пользователя(конец)
-
-                    #Проверка на существование пользователя mysql "$1" после выполнения всех действий
-                    if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
-                    then
-                    #Пользователь mysql "$1" существует
-                        echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
-                        return 0
-                    #Пользователь mysql "$1" существует (конец)
-                    else
-                    #Пользователь mysql "$1" не существует
-                        echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не был создан. Произошла ошибка. ${COLOR_NC}"
-                        return 4
-                    #Пользователь mysql "$1" не существует (конец)
-                    fi
-                    #Конец проверки на существование пользователя mysql "$1"
-                #Пользователь mysql - $1 не существует (конец)
-        #Пользователь mysql "$1" не существует (конец)
-        fi
-        #Конец проверки на существование пользователя mysql "$1"
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 ###НЕ ТРОГАТЬ

@@ -1,12 +1,12 @@
 #!/bin/bash
 #запрос на добавление сайта laravel
 declare -x -f inputSite_Laravel
-declare -x -f userAddSystem
 
 
+declare -x -f userAddSystem_req
 
 
-userAddSystem() {
+userAddSystem_req() {
     echo -e "${COLOR_YELLOW}"Список имеющихся пользователей системы:"${COLOR_NC}"
 	viewGroupUsersAccessAll
 	#Проверка на существование параметров запуска скрипта

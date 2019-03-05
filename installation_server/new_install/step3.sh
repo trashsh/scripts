@@ -1,3 +1,16 @@
+mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
+cp /my/scripts/.config/templates/nginx/nginx_default_site /etc/nginx/sites-available/default
+/etc/init.d/nginx restart
+
+
+
+
+
+sudo rm /etc/nginx/sites-enabled/default
+nano /etc/nginx/sites-available/test1.alixi.ru.conf
+userAddSystem $USERLAMER
+
+
 
 echo "ufw settings"
 ufw enable

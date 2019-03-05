@@ -48,4 +48,5 @@ source $SCRIPTS/include/include.sh
                                 #domain_fcut=${db##$user_}
 
                                 #domain=${domain_fcut%_*}
-dbBackupBasesOneUser $1 $2 $3 $4 $5 $6 $7 $8
+ufwAddPort $1 $2 $3 $4 $5 $6 $7 $8
+echo $?
