@@ -745,7 +745,8 @@ sshKeyGenerateToUser() {
 		#Пользователь $1 существует
 
                         DATE=`date '+%Y-%m-%d__%H-%M-%S'`
-                        DATE_TYPE2=$DATETIMESQLFORMAT
+                        #DATE_TYPE2=$DATETIMESQLFORMAT
+						DATE_TYPE2=$DATETIMEFORMAT
                     #Проверка существования каталога "$2/.ssh"
                         if [ -d $2/.ssh ] ; then
                             #Каталог "$2/.ssh" существует

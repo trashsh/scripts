@@ -208,7 +208,6 @@ viewBackupsToday(){
 		echo -e "${COLOR_RED}Бэкапы mysql за $(date --date today "+%Y.%m.%d") отсутствуют${COLOR_NC}"
 		return 1
 	fi
-
 }
 
 #Вывод бэкапов за вчерашний день
