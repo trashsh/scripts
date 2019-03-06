@@ -108,7 +108,7 @@ else
     echo "--------------------------------------"
     echo "Параметры запуска не найдены. Необходимы параметры: домен, имя пользователя,путь к папке с сайтом,название шаблона apache,название шаблона nginx."
     echo "Например $0 domain.ru user /home/webusers/domain.ru php.conf php.conf"
-    FileParamsNotFound "$2" "Для запуска главного введите" "$SCRIPTS/menu"
+    echo -n -e "${COLOR_YELLOW}Для запуска главного введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для выхода введите ${COLOR_BLUE}\"n\"${COLOR_NC}:"
 fi
 
 	#Конец проверки существования параметров запуска скрипта

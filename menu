@@ -181,4 +181,68 @@ menuGit_remotePush() {
     menuGit $1
 }
 
+
+# просмотр удаленных репозитариев
+menuGit_remoteView() {
+        echo $1
+		cd $SCRIPTS
+		echo -e "\n${COLOR_YELLOW}Список удаленных репозиториев:${COLOR_NC}"
+		git remote -v
+		menuGit $1
+}
+
+#Меню пользователей
+menuUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление пользователями===${COLOR_NC}"
+
+                echo '1: Добавить пользователя ssh'
+                echo '2: Удаление пользователя'
+                echo '3: Список пользователей'
+
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  userAddSystem_input; break;;
+                        "2")  userDelSystem_input $1; break;;
+                        "3")  $MENU/submenu/users_info.sh $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+}
+
+
 menuMain
