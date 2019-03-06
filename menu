@@ -158,7 +158,6 @@ menuGit_commit() {
                                 dt=$(date '+%d/%m/%Y %H:%M:%S')
                                 sudo git add .
                                 sudo git commit -m "$dt"
-                                menuGit $1
                                 break;;
                             esac
                         done
@@ -172,6 +171,7 @@ menuGit_commit() {
             *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
             esac
         done
+        menuGit $1
 }
 
 #публикация проекта во внешнем репозитарии
