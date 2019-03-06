@@ -1,11 +1,12 @@
 
 #!/bin/bash
 source /etc/profile
-#source $SCRIPTS/include/include.sh
-source $SCRIPTS/functions/do.sh
-
-
 source ~/.bashrc
+#source $SCRIPTS/include/include.sh
+source /my/scripts/functions/do.sh
+source /my/scripts/functions/input_functions.sh
+
+
 
 declare -x -f menuMain #Вывод главного меню: ($1-username ;)
 
@@ -238,7 +239,7 @@ menuUser() {
                 while read
                     do
                         case "$REPLY" in
-                        "1")  userAddSystem_input; break;;
+                        "1")  sudo bash -c "userAddSystem_input"; break;;
                         "2")  userDelSystem_input $1; break;;
                         "3")  $MENU/submenu/users_info.sh $1; break;;
                         "0")  menuMain $1;  break;;

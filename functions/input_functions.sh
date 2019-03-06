@@ -1,6 +1,7 @@
 #!/bin/bash
-source $SCRIPTS/include/include.sh
-source $SCRIPTS/menu
+#source $SCRIPTS/include/include.sh
+#source $SCRIPTS/menu
+source $SCRIPTS/functions/do.sh
 
 declare -x -f userAddSystem_input
 
@@ -46,30 +47,7 @@ userAddSystem_input() {
                                 #переменная имеет пустое значение (конец)
                             else
                                 #переменная имеет не пустое значение
-                                useradd -N -g users -G ftp-access -d $HOMEPATHWEBUSERS/$username -s /bin/bash $username
-                                mkdirWithOwner $HOMEPATHWEBUSERS/$username $username users 755
-                                mkdirWithOwner $HOMEPATHWEBUSERS/$username $username users 755
-                                #mkdir -p $HOMEFPATHWEBUSERS/$username/.backups
-                                mkdirWithOwner $HOMEPATHWEBUSERS/$username/.backups $username users 755
-                                echo "source /etc/profile" >> $HOMEPATHWEBUSERS/$username/.bashrc
-                                sed -i '$ a source $SCRIPTS/include/include.sh'  $HOMEPATHWEBUSERS/$username/.bashrc
-                                #Проверка на успешность выполнения предыдущей команды
-                                echo "$username:$password" | chpasswd
-                                chModAndOwnFolderAndFiles $HOMEPATHWEBUSERS/$username 755 644 $username users
-                                touchFileWithOwner $HOMEPATHWEBUSERS/$username/.bashrc $username users 644
-                                #touch $HOMEPATHWEBUSERS/$username/.bashrc
-                                #touch $HOMEPATHWEBUSERS/$username/.sudo_as_admin_successful
-                                touchFileWithOwner $HOMEPATHWEBUSERS/$username/.sudo_as_admin_successful $username users 644
-                                dbSetMyCnfFile $username $password
-
-
-                                sshKeyAddToUser $username 0 $SETTINGS/ssh/keys/lamer
-                                echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN} ${COLOR_NC}"
-
-                                #добавление в группу sudo
-                                #userAddToGroup $username sudo 1
-
-                                showUserFullInfo $username
+                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $(whoami)
                             fi
                             #Проверка на пустое значение переменной (конец)
 
