@@ -1,5 +1,5 @@
 #!/bin/bash
-
+source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh
 ############################mysql########################
 declare -x -f dbUseradd             #Добавление пользователя mysql
                                     #$1-user ;
@@ -901,6 +901,8 @@ userAddSystem_input() {
 	    username=$1
 
 	else
+	    echo -e "${COLOR_YELLOW}Список имеющихся системных пользователей:${COLOR_NC}"
+	    viewGroupUsersAccessAll
 	    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
 		read username
 	fi
@@ -4328,6 +4330,7 @@ declare -x -f dbDeleteRecordFromDb  #удаление записи из табл
                                     #5 - запись отсутствует
                                     #6  - отсутствует подтверждение
 declare -x -f dbUpdateRecordToDb    #обновление записи в таблице
+
                                     #$1-dbname ;
                                     #$2-table;
                                     #$3 - столбец для поиска;

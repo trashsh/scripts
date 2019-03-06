@@ -2,9 +2,8 @@
 #!/bin/bash
 source /etc/profile
 #source $SCRIPTS/include/include.sh
-source $SCRIPTS/functions/users.sh
 source $SCRIPTS/functions/do.sh
-source $SCRIPTS/functions/all_functions.sh
+
 
 source ~/.bashrc
 
