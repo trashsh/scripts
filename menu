@@ -3,35 +3,170 @@ source /etc/profile
 source $SCRIPTS/include/include.sh
 source ~/.bashrc
 
-USERNAME=$(whoami)
-echo $1
+declare -x -f menuMain #Вывод главного меню: ($1-username ;)
 
-#if [[ $EUID -ne 0 ]]; then
-    echo ''
-	echo -e "${COLOR_GREEN} ====Главное меню==== ${COLOR_NC}"
+declare -x -f menuGit #Вывод главного меню: ($1-username ;)
+declare -x -f menuGit_commit #создание коммита
+declare -x -f menuGit_remotePush #выгрузка в удаленный репозитарий
+declare -x -f menuGit_remoteView #просмотр удаленных репозитариев
 
-	echo '1: Управление сайтами'
-	echo '2: Управление пользователями'
-	echo '3: Управление базами данных'
-	echo '4: Управление бэкапами'
-	echo '5: Git'
-	echo '8: Testing'
-	echo '9: Сервер'
-	echo 'q: Выход'
-	echo ''
-	echo -n 'Выберите пункт меню:'
-		
-	while read
+#Вывод главного меню
+#$1-username ;
+#return 0 - выполнено успешно, 2 - нет пользователя
+menuMain() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ====Главное меню==== ${COLOR_NC}"
+
+                echo '1: Управление сайтами'
+                echo '2: Управление пользователями'
+                echo '3: Управление базами данных'
+                echo '4: Управление бэкапами'
+                echo '5: Git'
+                echo '8: Testing'
+                echo '9: Сервер'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                do
+                    case "$REPLY" in
+                    "1")  menuSite $USERNAME;  break;;
+                    "2")  menuUser $USERNAME;  break;;
+                    "3")  menuMysql $USERNAME;  break;;
+                    "4")  menyBackup $USERNAME;  break;;
+                    "5")  menuGit $USERNAME;  break;;
+                    "8")  menuTesting $USERNAME;  break;;
+                    "9")  menuServer $USERNAME;  break;;
+                    "q"|"Q")  exit 0;;
+                     *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                    esac
+                done
+                return 0
+}
+
+
+#Вывод меню git
+#$1-username ;
+#return 0 - выполнено успешно, 2 - нет пользователя
+menuGit() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление Git===${COLOR_NC}"
+
+                echo '1: Git commit'
+                echo '2: Push remote'
+                echo '3: Git remote view'
+
+
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  menuGit_commit $1; break;;
+                        "2")  menuGit_remotePush $1; break;;
+                        "3")  menuGit_remoteView $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+                    return 0
+}
+
+
+#Создание коммита
+menuGit_commit() {
+    echo -n -e "Для создания коммита репозитария ${COLOR_YELLOW}\""$SCRIPTS"\"${COLOR_NC} введите ${COLOR_BLUE}\"y\"${COLOR_NC}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+while read
     do
         case "$REPLY" in
-        "1")  $MENU/site.sh $USERNAME;  break;;
-        "2")  $MENU/user.sh $USERNAME;  break;;
-		"3")  $MENU/sql.sh $USERNAME;  break;;
-		"4")  $MENU/backup.sh $USERNAME;  break;;
-		"5")  $MENU/git.sh $USERNAME;  break;;
-		"8")  $MENU/testing.sh $USERNAME;  break;;
-		"9")  $MENU/server.sh $USERNAME;  break;;
-        "q"|"Q")  exit 0;; 
-         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+        "y"|"Y")
+			echo -n -e "Для задания имени коммита введите ${COLOR_BLUE}\"y\"${COLOR_NC}, задания вместо имени даты-времени - введите ${COLOR_BLUE}\"любой символ\"${COLOR_NC}: "
+				while read
+					do
+						case "$REPLY" in
+						"y"|"Y")
+							echo -n -e "${COLOR_BLUE}Введите комментарий коммита${COLOR_NC}"
+							read -p ": " comment
+							dt=$(date '+%d/%m/%Y %H:%M:%S')
+							sudo git add .
+							sudo git commit -m "$dt - $comment"
+							break
+							;;
+						*)
+							dt=$(date '+%d/%m/%Y %H:%M:%S')
+							sudo git add .
+							sudo git commit -m "$dt"
+							$SCRIPTS/.menu/git.sh $1
+							break;;
+						esac
+					done
+			break
+			;;
+        "n"|"N")
+			echo 'Отмена создания коммита'
+				$SCRIPTS/.menu/git.sh $1
+			break;;
+
+        *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
         esac
     done
+}
+
+menuMain
