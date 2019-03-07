@@ -1,3 +1,9 @@
+
+
+bash -c "source $SCRIPTS/include/inc.sh; dbUseradd lamer lamer % pass adminGrant";
+
+
+
 mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
 cp /my/scripts/.config/templates/nginx/nginx_default_site /etc/nginx/sites-available/default
 /etc/init.d/nginx restart

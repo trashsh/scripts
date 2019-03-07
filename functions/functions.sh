@@ -41,7 +41,8 @@ declare -x -f userExistInGroup
 
 ####################################mysql########################
 declare -x -f dbSetMyCnfFile
-
+declare -x -f dbUseradd
+declare -x -f dbUseradd_input
 
 ####################################Архивация########################
 declare -x -f tarFile
@@ -54,64 +55,61 @@ declare -x -f tarFile
 ###return:
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
-#2 - пользователь $1 уже существует
-#3 - добавляющий пользователь не существует
+#2 - добавляющий пользователь $1 не существует
+#3 - добавляемый пользователь $2 уже существует
 #4 - пользователь отменил создание пользователя $1
+#5 - пользователь не создан. Ошибка выполнения функции
 userAddSystem_input() {
     #Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	    #Проверка существования системного пользователя "$1"
-	    	grep "^$1:" /etc/passwd >/dev/null
-	    	if  [ $? -eq 0 ]
-	    	then
-	    	#Пользователь $1 существует
-	    		echo -e "${COLOR_RED}Добавляемый пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} Уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\" ${COLOR_NC}"
-	    		return 2
-	    	#Пользователь $1 существует (конец)
-	    	else
-	    	#Пользователь $1 не существует
-	    	    #Проверка существования системного пользователя "$2"
-	    	    	grep "^$2:" /etc/passwd >/dev/null
-	    	    	if  [ $? -eq 0 ]
-	    	    	then
-	    	    	#Пользователь $2 существует
-	    	    		username=$1
-	    	    	#Пользователь $2 существует (конец)
-	    	    	else
-	    	    	#Пользователь $2 не существует
-	    	    	    echo -e "${COLOR_RED}Добавляющий пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_NC}"
-	    	    		return 3
-	    	    	#Пользователь $2 не существует (конец)
-	    	    	fi
-	    	    #Конец проверки существования системного пользователя $2
+    if [ -n "$1" ]
+    then
+    #Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		#Проверка на существование параметров запуска скрипта
+        		if [ -n "$2" ]
+        		then
+        		#Параметры запуска существуют
+                    #Проверка существования системного пользователя "$2"
+                    	grep "^$2:" /etc/passwd >/dev/null
+                    	if  [ $? -eq 0 ]
+                    	then
+                    	#Пользователь $2 существует
+                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_YELLOW}  ${COLOR_NC}"
+                    		return 3
+                    	#Пользователь $2 существует (конец)
+                    	else
+                    	#Пользователь $2 не существует
+                    	    username=$2
+                    	#Пользователь $2 не существует (конец)
+                    	fi
+                    #Конец проверки существования системного пользователя $2
+        		#Параметры запуска существуют (конец)
+        		else
+        		#Параметры запуска отсутствуют
+        		    #Если запуск функции происходит без передачи параметров
+                    echo -e "${COLOR_YELLOW}Список имеющихся системных пользователей:${COLOR_NC}"
+                    viewGroupUsersAccessAll
+                    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
+                    read username
+                    #Проверка существования системного пользователя "$username"
+                    	grep "^$username:" /etc/passwd >/dev/null
+                    	if  [ $? -eq 0 ]
+                    	then
+                    	#Пользователь $username существует
+                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_YELLOW}  ${COLOR_NC}"
+                    		return 3
+                    	#Пользователь $username существует (конец)
+                    	fi
+                    #Конец проверки существования системного пользователя $username
+        		#Параметры запуска отсутствуют (конец)
+        		fi
+        		#Конец проверки существования параметров запуска скрипта
 
-	    	#Пользователь $1 не существует (конец)
-	    	fi
-	    #Конец проверки существования системного пользователя $1
-
-
-	else
-	    #Если запуск функции происходит без передачи параметров
-	    echo -e "${COLOR_YELLOW}Список имеющихся системных пользователей:${COLOR_NC}"
-	    viewGroupUsersAccessAll
-	    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
-		read username
-		#Если запуск функции происходит без передачи параметров (конец)
-	fi
-	    grep "^$username:" /etc/passwd >/dev/null
-
-	    #Проверка на успешность выполнения предыдущей команды
-	    if [ $? -eq 0 ]
-	    	then
-	    		#Пользователь уже существует
-	    		echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} уже существует${COLOR_NC}"
-	    		menuMain $(whoami)
-	    		return 2
-	    		#Пользователь уже существует (конец)
-	    else
-                #Пользователь не существует и будет добавлен
-                echo -n -e "${COLOR_YELLOW}Подтвердите добавление пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введя ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, или для отмены операции ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+        		echo -n -e "${COLOR_YELLOW}Подтвердите добавление пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введя ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, или для отмены операции ${COLOR_BLUE}\"n\"${COLOR_NC}: "
                 while read
                 do
                     case "$REPLY" in
@@ -127,7 +125,7 @@ userAddSystem_input() {
                                 #переменная имеет пустое значение (конец)
                             else
                                 #переменная имеет не пустое значение
-                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $2
+                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $1
                             fi
                             #Проверка на пустое значение переменной (конец)
 
@@ -143,12 +141,39 @@ userAddSystem_input() {
                     esac
                 done
 
-	##Здесь описать порядок действий при создании пользователя
-	return 0
-                #Пользователь не существует и будет добавлен (конец)
-	    fi
-	    #Конец проверки на успешность выполнения предыдущей команды
-	#Параметры запуска существуют (конец)
+                #Проверка существования системного пользователя "$username"
+                	grep "^$username:" /etc/passwd >/dev/null
+                	if  [ $? -eq 0 ]
+                	then
+                	#Пользователь $username существует
+                		echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} создан успешно.${COLOR_NC}"
+                		return 0
+                	#Пользователь $username существует (конец)
+                	else
+                	#Пользователь $username не существует
+                	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не создан. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_NC}"
+                		return 5
+                	#Пользователь $username не существует (конец)
+                	fi
+                #Конец проверки существования системного пользователя $username
+
+
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+    #Параметры запуска существуют (конец)
+    else
+    #Параметры запуска отсутствуют
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"\"${COLOR_RED} ${COLOR_NC}"
+        return 1
+    #Параметры запуска отсутствуют (конец)
+    fi
+    #Конец проверки существования параметров запуска скрипта
 }
 
 #Выполенние операций по созданию системного пользователя
@@ -216,7 +241,7 @@ userAddSystem()
                                          chmod 777 $2
 
 
-                                         echo "$1:$6" | -s chpasswd
+                                        echo "$1:$6" | chpasswd
 
                                         dbSetMyCnfFile $1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777
@@ -239,7 +264,7 @@ userAddSystem()
                                                     touchFileWithModAndOwn $2/.sudo_as_admin_successful $1 $4 644
                                                     echo "source /etc/profile" >> $2/.bashrc
                                                     sudo chmod 644 $2/.bashrc
-                                                    sed -i '$ a source $SCRIPTS/include/include.sh'  $2/.bashrc
+                                                    #sed -i '$ a source $SCRIPTS/include/include.sh'  $2/.bashrc
                                                    # sed -i '$ a $SCRIPTS/menu'  $2/.bashrc
                                                     ;;
                                                 ftp)
@@ -519,6 +544,201 @@ userExistInGroup() {
 
 
 #############################################MYSQL###############################################
+#Добавление пользователя mysql
+#$1-user ;
+#$2-password ;
+#$3-host ;
+#$4-autentification_type {pass,sha,socket}  ;
+#$5-usertype ; {user, admin, adminGrant}
+#return 0 - выполнено успешно,
+# 1 - отсутствуют параметры запуска
+# 2 - неверный параметр usertype,
+# 3 - пользователь уже существует,
+# 4 - ошибка после выполнения команды на создание пользователя,
+# 5 - неверный параметр autentification_type
+dbUseradd() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+    #Проверка существования пользователя mysql $1
+
+        #Проверка на существование пользователя mysql "$1"
+        if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+        then
+        #Пользователь mysql "$1" существует
+            echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_NC}"
+            return 3
+        #Пользователь mysql "$1" существует (конец)
+        else
+        #Пользователь mysql "$1" не существует
+            #Проверка правильности параметра $4-autentification_type
+            case "$4" in
+                        "pass")
+                            auth="mysql_native_password";;
+                        "sha")
+                            auth="sha256_password";;
+                        "socket")
+                            auth="auth_socket";;
+                        *)
+                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-autentification_type\"${COLOR_NC}";
+                            return 5;;
+                    esac
+
+                #Проверка правильности параметра $4-autentification_type (конец)
+                    #Проверка правильности параметра $5 - тип пользователя
+                    case "$5" in
+                        "user")  #обычный пользователь
+                            mysql -e "CREATE USER '$1'@'$3' IDENTIFIED BY '$2'; GRANT USAGE ON *.* TO '$1'@'$3' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+                            mysql -e "FLUSH PRIVILEGES;"
+                            ;;
+                        "admin")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$3' IDENTIFIED BY '$2';";
+                            mysql -e "FLUSH PRIVILEGES;";
+                            ;;
+                        "adminGrant")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$3' IDENTIFIED BY '$2' WITH GRANT OPTION;";
+                            mysql -e "FLUSH PRIVILEGES;";
+                            ;;
+                        *)
+                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-usertype\"${COLOR_NC}";
+                            return 2;;
+                    esac
+                    #Проверка правильности параметра $5 - тип пользователя(конец)
+
+                    #Проверка на существование пользователя mysql "$1" после выполнения всех действий
+                    if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+                    then
+                    #Пользователь mysql "$1" существует
+                        echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
+                        return 0
+                    #Пользователь mysql "$1" существует (конец)
+                    else
+                    #Пользователь mysql "$1" не существует
+                        echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не был создан. Произошла ошибка. ${COLOR_NC}"
+                        return 4
+                    #Пользователь mysql "$1" не существует (конец)
+                    fi
+                    #Конец проверки на существование пользователя mysql "$1"
+                #Пользователь mysql - $1 не существует (конец)
+        #Пользователь mysql "$1" не существует (конец)
+        fi
+        #Конец проверки на существование пользователя mysql "$1"
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Добавление пользователя mysql - форма ввода
+###Полностью готово. Не трогать. 07.03.2019 г.
+#$1 - какому системному пользователю принадлежит данная учетка mysql
+#$2 - кто запускает выполнение данной функции
+###return:
+#0 - выполнено успешно
+#1 - отсутствуют необходимые параметры
+#2 - нет пользователя $1 в системе
+#3 - нет пользователя $2 в системе
+#4 - пользователь mysql уже существует
+#5 - пустой пароль пользователя mysql
+
+dbUseradd_input() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		#Проверка существования системного пользователя "$2"
+        			grep "^$2:" /etc/passwd >/dev/null
+        			if  [ $? -eq 0 ]
+        			then
+        			#Пользователь $2 существует
+                        read -p "Введите имя нового пользователя mysql: " username
+                        #Проверка на существование пользователя mysql "$1\_$username"
+                        if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1_$username'" 2>&1`" ]];
+                        then
+                        #Пользователь mysql "$1\_$username" существует
+                            echo -e "${COLOR_YELLOW}Пользователь mysql ${COLOR_GREEN}\"$1_$username\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUseradd_input\"${COLOR_YELLOW}  ${COLOR_NC}"
+                            return 4
+                        #Пользователь mysql "$1\_$username" существует (конец)
+                        else
+                        #Пользователь mysql "$1\_$username" не существует
+                            #TODO сделать проверку пароля в цикле while
+                            #mysql user/passwd
+                            echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $1_$username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                            while read
+                            do
+                                case "$REPLY" in
+                                y|Y) password="$(openssl rand -base64 14)";
+                                    # echo -e "${COLOR_GREEN}Пароль для пользователя mysql ${COLOR_YELLOW}$1_$username: ${COLOR_YELLOW}$password${COLOR_GREEN}  ${COLOR_NC}"
+                                     break;;
+                                n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$1_$username\":${COLOR_NC}";
+                                     read password;
+                                     if [[ -z "$password" ]]; then
+                                        #переменная имеет пустое значение
+                                        echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\_$username\""${COLOR_NC}"
+                                        return 5
+                                     fi
+                                     break;;
+                                esac
+                            done
+
+                            echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
+                            	while read
+                            	do
+                                	echo -n ": "
+                                	case "$REPLY" in
+                            	    	localhost)
+                                            host=localhost;
+                            		    	break;;
+                            		    %)
+                                            host="%";
+                            			    break;;
+                            			*)
+                            			     echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"dbUseradd_input\"${COLOR_YELLOW}Повторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
+                            	    esac
+                            	done
+
+                            	dbUseradd $1\_$username $password $host pass user $2
+
+
+                        #Пользователь mysql "$1\_$username" не существует (конец) 
+                        fi
+                        #Конец проверки на существование пользователя mysql "$1\_$username"
+        			#Пользователь $2 существует (конец)
+        			else
+        			#Пользователь $2 не существует
+        			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED}, от чьего имени запускается функция ${COLOR_GREEN}\"dbUseradd_input\" не существует${COLOR_NC}"
+                		return 3
+        			#Пользователь $2 не существует (конец)
+        			fi
+        		#Конец проверки существования системного пользователя $2
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUseradd_input\"${COLOR_NC}"
+			    return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUseradd_input\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 #Смена пароля и создание файла ~/.my.cnf (только файл)
 ###input:
 #$1-system user ;
