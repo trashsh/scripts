@@ -526,10 +526,10 @@ userExistInGroup() {
 #$3-mysql password ;
 #return:
 #0 - выполнено успешно,
-#1 - отсутствуют параметры,
-#2 - пользователь не существует
+ #1 - отсутствуют параметры,
+ #2 - пользователь не существует
 #3 - после выполнения функции файл my.cnf не найден
-#4 - пользователь mysql $2 - не существует
+ #4 - пользователь mysql $2 - не существует
 dbSetMyCnfFile() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
@@ -537,19 +537,21 @@ dbSetMyCnfFile() {
 	#Параметры запуска существуют
 		#Проверка существования системного пользователя "$1"
 			grep "^$1:" /etc/passwd >/dev/null
-			if [ $? -eq 0 ]
+			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
-                #Проверка на существование пользователя mysql "$2"
-                if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$2'" 2>&1`" ]];
-                then
-                #Пользователь mysql "$2" существует
-                        #если файл для бэкапа существует
-                        if [ -f "$HOMEPATHWEBUSERS"/"$1"/"my.cnf" ] ; then
-                                backupImportantFile $1 "my.cnf"  $HOMEPATHWEBUSERS/$1/.my.cnf
-                                sudo sed -i "s/.*password=.*/password=$3/" $HOMEPATHWEBUSERS/$1/.my.cnf
-                        #если файл для бэкапа не существует
-                        else
+				#Проверка на существование пользователя mysql "$2"
+				if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$2'" 2>&1`" ]];
+				then
+				#Пользователь mysql "$2" существует
+                    #Проверка существования файла ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf""
+                    if [ -f "$HOMEPATHWEBUSERS"/"$1"/"my.cnf" ] ; then
+                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" существует    
+                             backupImportantFile $1 "my.cnf"  $HOMEPATHWEBUSERS/$1/.my.cnf
+                             sudo sed -i "s/.*password=.*/password=$3/" $HOMEPATHWEBUSERS/$1/.my.cnf
+                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" существует (конец)
+                    else
+                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" не существует
                             sudo touch $HOMEPATHWEBUSERS/$1/.my.cnf
                             sudo chmod 666 $HOMEPATHWEBUSERS/$1/.my.cnf
                             sudo cat $HOMEPATHWEBUSERS/$1/.my.cnf | sudo grep $HOMEPATHWEBUSERS
@@ -564,10 +566,10 @@ dbSetMyCnfFile() {
                                         echo 'user='$2
                                         echo 'password='$3
                                         } > $HOMEPATHWEBUSERS/$1/.my.cnf
-                                        sudo chmod 600 $HOMEPATHWEBUSERS/$1/.my.cnf
-                                        sudo chown $1:users $HOMEPATHWEBUSERS/$1/.my.cnf
+                            sudo chmod 600 $HOMEPATHWEBUSERS/$1/.my.cnf
+                            sudo chown $1:users $HOMEPATHWEBUSERS/$1/.my.cnf
 
-                                        backupImportantFile $1 "my.cnf"  $HOMEPATHWEBUSERS/$1/.my.cnf
+                            backupImportantFile $1 "my.cnf"  $HOMEPATHWEBUSERS/$1/.my.cnf
 
                             #Финальная проверка существования файла "$HOMEPATHWEBUSERS/$1/.my.cnf"
                             if [ -f $HOMEPATHWEBUSERS/$1/.my.cnf ] ; then
@@ -581,21 +583,23 @@ dbSetMyCnfFile() {
                                 #Файл "$HOMEPATHWEBUSERS/$1/.my.cnf" не существует (конец)
                             fi
                             #Финальная проверка существования файла "$HOMEPATHWEBUSERS/$1/.my.cnf" (конец)
-                        fi
-                #Пользователь mysql "$2" существует (конец)
-                else
-                #Пользователь mysql "$2" не существует
-                    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbSetMyCnfFile\" ${COLOR_NC}"
-                    return 4
-                #Пользователь mysql "$2" не существует (конец)
-                fi
-                #Конец проверки на существование пользователя mysql "$2"
 
-
+                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" не существует (конец)
+                    fi
+                    #Конец проверки существования файла ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf""
+                    
+				#Пользователь mysql "$2" существует (конец)
+				else
+				#Пользователь mysql "$2" не существует
+				    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbSetMyCnfFile\" ${COLOR_NC}"
+				    return 4
+				#Пользователь mysql "$2" не существует (конец)
+				fi
+				#Конец проверки на существование пользователя mysql "$2"
 			#Пользователь $1 существует (конец)
 			else
 			#Пользователь $1 не существует
-				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения скрипта dbSetMyCnfFile${COLOR_NC}".
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbSetMyCnfFile\"${COLOR_NC}"
 				return 2
 			#Пользователь $1 не существует (конец)
 			fi
