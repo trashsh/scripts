@@ -1,5 +1,5 @@
 
-
+bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input";
 bash -c "source $SCRIPTS/include/inc.sh; dbUseradd lamer lamer % pass adminGrant";
 
 
