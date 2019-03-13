@@ -12,12 +12,9 @@ declare -x -f dbBackupBasesOneUser #Создание бэкапа все баз 
                                     #return 0 - выполнено успешно, 1 - не переданы параметры, 2 - пользователь не существует, 3 - пользователь отменил создание папки
 
 ############################site#########################
-declare -x -f viewFtpAccess				#отобразить реквизиты доступа к серверу FTP
-                                        #$1 - user; $2 - password
+
                                         #return 0 - выполнено успешно, 1 - не переданы параметры
-declare -x -f viewSshAccess				#отобразить реквизиты доступа к серверу SSH
-                                        #$1 - user
-                                        #return 0 - выполнено успешно, 1 - отсутствуеют параметры
+
 declare -x -f viewMysqlAccess			#отобразить реквизиты доступа к серверу MYSQL
                                         #$1 - user
                                         #return 0 - выполнено успешно, 1 - не переданы параметры, 2 - файл my.cnf не найден
@@ -45,38 +42,6 @@ declare -x -f sshKeyAddToUser
 
 
 declare -x -f untarFile #разархивация архива по указанному пути: ($1-ссылка на архив ; $2-ссылка на каталог назначения ; $3-mode:rewrite/norewrite ; $4-mode: showinfo/silent; $5 - mode:createfolder/nocreatefolder/querrycreatefolder)
-
-
-############################ufw#############################
-declare -x -f ufwAddPort            #Добавление порта с исключением в firewall ufw: ($1-port ; $2-protocol ; $3-комментарий ;)
-                                    #return 0 - выполнено успешно, 1 - не переданы параметры
-
-
-
-############################разное##########################
-declare -x -f ufwOpenPorts          #Вывод открытых портов ufw
-declare -x -f viewPHPVersion        #вывод информации о версии PHP
-
-
-declare -x -f folderExistWithInfo   #проверка существования папки с выводом информации о ее существовании: ($1-path ; $2-type (create/exist))
-                                    #return 0 - выполнено успешно, 1 - не переданы параметры,2 - ошибка передачи параметров
-                                    #3 - каталог не создан, 4 -каталог создан, 5 - каталог не существует, 6 - каталог существует
-declare -x -f fileExistWithInfo	    #проверка существования файла с выводом информации о ее существовании: ($1-path ; $2-type (create/exist))
-                                    #return 0 - выполнено успешно, 1 - не переданы параметры,2 - ошибка передачи параметров
-                                    #3 - файл не создан, 4 -файл создан, 5 - файл не существует, 6 - файл существует
-						   
-
-
-
-
-
-
-
-
-
-
-
-
 
 #################################################################################################
 #################################################################################################
@@ -135,8 +100,7 @@ declare -x -f inputSite_Laravel
 
 
 #####################ПОЛНОСТЬЮ ГОТОВО
-declare -x -f dbViewUserInfo #Вывести информацию о пользователе mysql. #$1-user ;
-                             #return 0 - пользователь существует, 1 - пользователь не существует;
+
 
 #mysql
 
@@ -840,42 +804,9 @@ dbBackupBasesOneUser() {
 
 
 ############################site#########################
-#отобразить реквизиты доступа к серверу FTP
-#$1 - user; $2 - password, $3 - port, $4 - сервер
-#return 0 - выполнено успешно, 1 - не переданы параметры
-viewFtpAccess(){
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-	then
-		echo -e "${COLOR_YELLOW}"Реквизиты FTP-Доступа" ${COLOR_NC}"
-		echo -e "Сервер: ${COLOR_YELLOW}" $4 "${COLOR_NC}"
-		echo -e "Порт ${COLOR_YELLOW}" $3 "${COLOR_NC}"
-		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
-		echo -e "Пароль: ${COLOR_YELLOW}" $2 "${COLOR_NC}"
-		echo $LINE
-		return 0
-	else
-		echo -e "${COLOR_RED}Не переданы параметры в функцию ${COLOR_GREEN}\"viewFtpAccess\"${COLOR_RED}. Выполнение скрипта аварийно завершено ${COLOR_NC}"
-		return 1
-	fi
-}
 
-#отобразить реквизиты доступа к серверу SSH
-#$1 - user
-#return 0 - выполнено успешно, 1 - отсутствуеют параметры
-viewSshAccess(){
-	if [ -n "$1" ]
-	then
-		echo -e "${COLOR_YELLOW}"Реквизиты SSH-Доступа" ${COLOR_NC}"
-		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
-		echo -e "Сервер: ${COLOR_YELLOW}" $MYSERVER "${COLOR_NC}"
-		echo -e "Порт ${COLOR_YELLOW}" $SSHPORT "${COLOR_NC}"
-		echo $LINE
-		return 0
-	else
-		echo -e "${COLOR_LIGHT_RED}Не передан параметр в функцию viewSshAccess в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
-		return 1
-	fi
-}
+
+
 
 #отобразить реквизиты доступа к серверу MYSQL
 #$1 - user
@@ -1293,131 +1224,13 @@ untarFile() {
 }
 
 
-############################ufw########################################
-#Добавление порта с исключением в firewall ufw
-#$1-port ; $2-protocol ; $3-комментарий ;
-#return 0 - выполнено успешно, 1 - не переданы параметры, 2 - ошибка добавления правила
-ufwAddPort() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-		ufw allow $1/$2 comment $3 && return 0 || return 2
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"ufwAddPort\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
-
-############################разное#####################################
-#Вывод открытых портов ufw
-ufwOpenPorts() {
-    netstat -ntulp
-}
-
-
-
-#вывод информации о версии PHP
-viewPHPVersion(){
-	echo ""
-	echo "Версия PHP:"
-	php -v
-	echo ""
-}
 
 
 
 
-#проверка существования папки с выводом информации о ее существовании
-#$1-path ; $2-type (create/exist)
-#return 1 - не переданы параметры,2 - ошибка передачи параметров
-#3 - каталог не создан, 4 -каталог создан, 5 - каталог не существует, 6 - каталог существует
-folderExistWithInfo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		case "$2" in
-				"create")
-					if ! [ -d $1 ] ; then
-						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
-						return 3
-					else
-						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
-						return 4
-					fi
-						;;
-				"exist")
-					if ! [ -d $1 ] ; then
-						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
-						return 5
-					else
-						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
-						return 6
-					fi
-					;;
-				*)
-					echo -e "${COLOR_GREEN}Ошибка параметров в функции ${COLOR_YELLOW}\"folderExistWithInfo\"${COLOR_NC}"
-					return 2;;
-				esac
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
-#проверка существования файла с выводом информации.
-#$1-path, $2-type (create/exist)
-#return 0 - выполнено успешно, 1 - не переданы параметры,2 - ошибка передачи параметров
-#3 - файл не создан, 4 -файл создан, 5 - файл не существует, 6 - файл существует
-fileExistWithInfo(){
 
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-	    case "$2" in
-				"create")
-					if ! [ -f $1 ] ; then
-						echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
-						return 3
-					else
-						echo -e "${COLOR_GREEN}Файл ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
-						return 4
-					fi
-						;;
-				"exist")
-					if ! [ -f $1 ] ; then
-						echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
-						return 5
-					else
-						echo -e "${COLOR_GREEN}Файл ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
-						return 6
-					fi
-					;;
-				*)
-					echo -e "${COLOR_GREEN}Ошибка параметров в функции ${COLOR_YELLOW}\"folderExistWithInfo\"${COLOR_NC}"
-					return 2;;
-	esac
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"fileExistWithInfo\"${COLOR_RED} ${COLOR_NC}"
-	    return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
+
 
 
 
@@ -1523,24 +1336,9 @@ userDeleteFromGroup() {
 
 
 
-#Вывод всех пользователей группы admin-access
-viewGroupAdminAccessAll(){
-	echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access:\":${COLOR_NC}"
-	more /etc/group | grep admin-access: | highlight magenta "admin-access"
-}
 
-#Вывод всех пользователей группы admin-access с указанием части имени пользователя
-# $1 - имя пользователя
-viewGroupAdminAccessByName(){
-	if [ -n "$1" ]
-	then
-		echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access\", содержащих в имени \"$1\"${COLOR_NC}"
-		more /etc/group | grep -E "admin.*$1" | highlight green "$1" | highlight magenta "admin-access"
-	else
-		echo -e "${COLOR_LIGHT_RED}Не передан параметр в функцию viewGroupAdminAccessByName в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
-		exit 1
-	fi
-}
+
+
 
 #Вывод всех пользователей группы sudo
 viewGroupSudoAccessAll(){
@@ -1969,53 +1767,6 @@ siteAdd_php() {
 
 ########################################################################################################################
 
-#Полностью готово
-#Вывести информацию о пользователе mysql $1. Проверка существования пользователя
-#$1-user ;$2 (необязательный) - если в параметре значение "0", то результат не выводится, если "1" - результат выводится
-#return 0 - пользователь существует, 1 - пользователь не существует;
-dbViewUserInfo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		#проверка на пустой результат
-				if [[ $(mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv, Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '$1' ORDER BY User ASC") ]]; then
-					#непустой результат
-                    #выводим или нет информацию о выполнении команды
-			        case "$2" in
-			        	0)  return 0
-			        		;;
-			        	1)
-			        		echo -e "${COLOR_YELLOW}Информация о пользователе MYSQL ${COLOR_GREEN}\"$1\" ${COLOR_NC}";
-			                mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv, Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '$1' ORDER BY User ASC";
-			                return 0;;
-			        	*)
-			        		echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbViewUserInfo\"${COLOR_NC}";;
-			        esac
-                    #выводим или нет информацию о выполнении команды (конец)
-					#непустой результат (конец)
-				else
-				    #пустой результат
-				    case "$2" in
-				    	0)  return 1
-				    		;;
-				    	1)
-				    		echo -e "${COLOR_LIGHT_RED}Пользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_LIGHT_RED} не существует ${COLOR_NC}";
-					        return 1;;
-				    	*)
-				    		echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_RED}\"dbViewUserInfo\"${COLOR_NC}";;
-				    esac
-					#пустой результат (конец)
-				fi
-		#Конец проверки на пустой результат
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewUserInfo\"${COLOR_RED} ${COLOR_NC}"
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 

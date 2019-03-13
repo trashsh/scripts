@@ -13,6 +13,14 @@ declare -x -f userExistInGroup
 
 declare -x -f existGroup
 declare -x -f viewUsersInGroupByPartName
+declare -x -f viewGroupAdminAccessAll
+declare -x -f viewGroupAdminAccessByName
+declare -x -f viewGroupSudoAccessAll
+declare -x -f viewGroupSudoAccessByName
+declare -x -f viewUserInGroupUsersByPartName
+declare -x -f viewUserInGroupByName
+declare -x -f viewUsersInGroup
+declare -x -f userAddToGroup
 
 ####################################mysql########################
 declare -x -f dbSetMyCnfFile
@@ -27,7 +35,8 @@ declare -x -f dbViewAllUsers
 declare -x -f dbViewAllBases
 declare -x -f dbViewBasesByTextContain
 declare -x -f dbViewAllUsersByContainName
-
+declare -x -f dbViewUserInfo
+declare -x -f viewMysqlAccess
 
 ####################################Архивация########################
 declare -x -f tarFile
@@ -40,9 +49,20 @@ declare -x -f chModAndOwnFile
 declare -x -f chOwnFolderAndFiles
 declare -x -f chModAndOwnFolderAndFiles
 declare -x -f touchFileWithModAndOwn
+declare -x -f folderExistWithInfo
+declare -x -f fileExistWithInfo
 
-####################################Разное################################
+####################################webserver################################
 declare -x -f webserverRestart      #Перезапуск Веб-сервера
+declare -x -f viewPHPVersion        #вывод информации о версии PHP
+
+####################################site#####################################
+declare -x -f viewFtpAccess
+declare -x -f viewSshAccess
+
+############################ufw#############################
+declare -x -f ufwAddPort
+declare -x -f ufwOpenPorts
 
 
 #######################################USERS##########################################
@@ -586,7 +606,260 @@ existGroup() {
 }
 
 
+#Вывод всех пользователей группы admin-access
+viewGroupAdminAccessAll(){
+	echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access:\":${COLOR_NC}"
+	more /etc/group | grep admin-access: | highlight magenta "admin-access"
+}
 
+
+#Вывод всех пользователей группы admin-access с указанием части имени пользователя
+#Полностью готово. 13.03.2019
+###input
+#$1 - имя пользователя
+###return
+#1 - не переданы параметры
+viewGroupAdminAccessByName(){
+	if [ -n "$1" ]
+	then
+		echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access\", содержащих в имени ${COLOR_GREEN}\"$1\"${COLOR_NC}"
+		more /etc/group | grep -E "admin.*$1" | highlight green "$1" | highlight magenta "admin-access"
+	else
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewGroupAdminAccessByName\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	fi
+}
+
+#Вывод всех пользователей группы sudo
+#Полностью готово. 13.03.2019 г.
+viewGroupSudoAccessAll(){
+		echo -e "\n${COLOR_YELLOW}Список пользователей группы \"sudo\":${COLOR_NC}"
+		more /etc/group | grep sudo: | highlight magenta "sudo"
+}
+
+
+#Вывод пользователей группы sudo с указанием части имени пользователя
+#Полностью готово. 13.03.2019 г.
+###input
+#$1 - имя пользователя
+###return
+#1 - не переданы параметры в функцию
+viewGroupSudoAccessByName(){
+	if [ -n "$1" ]
+	then
+		echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"sudo\"${COLOR_YELLOW}, содержащих в названии ${COLOR_GREEN}\"$1\"${COLOR_NC}:${COLOR_NC}"
+		more /etc/group | grep sudo: | highlight green "$1" | highlight magenta "sudo"
+	else
+		echo -e "${COLOR_RED}Не передан параметр в функцию ${COLOR_GREEN}\"viewGroupSudoAccessByName\"${COLOR_RED} в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
+		return 1
+	fi
+}
+
+
+#Вывод списка пользователей, входящих в группу users по части имени пользователя $1
+#Полностью готово. 13.03.2019
+###input
+#$1-часть имени
+###return
+#0 - выполнено успешно,
+#1- отсутствуют параметры,
+#2 - группа не существует
+viewUserInGroupUsersByPartName() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+
+		#Проверка существования системной группы пользователей "$1"
+		if grep -q users: /etc/group
+		    then
+		        #Группа "$2" существует
+		         echo -e "\n${COLOR_YELLOW}Список пользователей группы \"users\", содержащих в имени \"$1\"${COLOR_NC}"
+		            more /etc/passwd | grep -E ":100::.*$1" | highlight green "$1"
+	             return 0
+		        #Группа "$2" существует (конец)
+		    else
+		        #Группа "$2" не существует
+		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует${COLOR_NC}"
+				return 2
+				#Группа "$2" не существует (конец)
+		    fi
+		#Конец проверки существования системного пользователя $1
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUserInGroupUsersByPartName\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Вывод групп, в которых состоит указанный пользователь
+# $1 - имя пользователя
+#return 0 - выполнено успешно, 1 - не передан параметр
+viewUserInGroupByName(){
+	if [ -n "$1" ]
+		then
+			cat /etc/group | grep -P $1 | highlight green $1 | highlight magenta "ssh-access" | highlight magenta "ftp-access" | highlight magenta "sudo" | highlight magenta "admin-access"
+		else
+			echo -e "${COLOR_LIGHT_RED}Не передан параметр в функцию viewUserInGroupByName в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
+			return 1
+		fi
+}
+
+#Вывод списка пользователей, входящих в группу $1
+#Проверено полностью. 13.03.2019 г.
+###input:
+#$1-группа ;
+#return
+#0 - выполнено успешно,
+#1- отсутствуют параметры,
+#2 - группа не существует
+viewUsersInGroup() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системной группы пользователей "$1"
+		if grep -q $1 /etc/group
+		    then
+		        #Группа "$1" существует
+		         echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"$1\":${COLOR_NC}"
+	             more /etc/group | grep "$1:" | highlight magenta "$1"
+	             return 0
+		        #Группа "$1" существует (конец)
+		    else
+		        #Группа "$1" не существует
+		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
+				return 2
+				#Группа "$1" не существует (конец)
+		    fi
+		#Конец проверки существования системного пользователя $1
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUsersInGroup\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Добавить пользователя в группу
+#Проверно полностью. 13.03.2019
+###input:
+#$1-user ;
+#$2-группа;
+#$3 - Если есть параметр 3, равный 1, то добавление происходит с запросом подтверждения, 0 - в тихом режиме
+###return
+#0 - успешно выполнено;
+#1 - отсутствуют параметры,
+#2 - не существует пользователь;
+#3 - отмена пользователем
+#4 - пользователь уже присутствует в группе $1,
+#5 - ошибка в параметре функции,
+#6 - не существует группа
+userAddToGroup() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]  && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+
+	#Проверка существования системного пользователя "$1"
+		grep "^$1:" /etc/passwd >/dev/null
+		if  [ $? -eq 0 ]
+		then
+		#Пользователь $1 существует
+            #Проверка существования группы $2
+		    existGroup $2
+		    #Проверка на успешность выполнения предыдущей команды
+		    if [ $? -eq 0 ]
+		    	then
+		    		#если группа $1 существует
+		    		#проверка на наличие пользователя в группе $2
+                    userExistInGroup $1 $2
+                    #Проверка на успешность выполнения предыдущей команды (наличие пользователя в группе)
+                    if [ $? -eq 0 ]
+                        then
+                            #предыдущая команда завершилась успешно
+                            echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже присутствует в группе ${COLOR_GREEN}\"$2\"${COLOR_NC}"
+                            return 4
+                            #предыдущая команда завершилась успешно (конец)
+                        else
+                            #предыдущая команда завершилась с ошибкой
+
+                            #Проверка наличия параметра $3, равного 1
+                            if [ "$3" == "1" ]
+                            then
+                                    #Присутстует параметр $3, равный 1
+                                    echo -e "${COLOR_YELLOW}Добавить пользователя ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} в группу ${COLOR_GREEN}\"$2\"${COLOR_YELLOW}? ${COLOR_NC}"
+                                    echo -n -e "${COLOR_YELLOW}Введите ${COLOR_GREEN}\"y\"${COLOR_YELLOW} для подтверждения или ${COLOR_GREEN}\"n\"${COLOR_YELLOW} - для отмены: ${COLOR_NC}: "
+                                    while read
+                                    do
+                                        case "$REPLY" in
+                                            y|Y)
+                                                adduser $1 $2;
+                                                echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно добавлен в группу ${COLOR_YELLOW}\"$2\"${COLOR_NC}"
+                                                return 0
+                                                #break
+                                                ;;
+                                            n|N)
+                                                return 3
+                                                #break
+                                                ;;
+                                            *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+                                               ;;
+                                        esac
+                                    done
+                                 #Присутствует параметр $3, равный 1 (конец)
+                            else
+                                if [ "$3" == "0" ]
+                                then
+                                    #Отсутствует параметр $3, равный 1
+                                    adduser $1 $2
+                                    echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно добавлен в группу ${COLOR_YELLOW}\"$2\"${COLOR_NC}"
+                                    return 0
+                                    #Отсутствует параметр $3, равный 1 (конец)
+                                else
+                                    echo -e "${COLOR_RED}Ошибка в параметре в функции ${COLOR_GREEN}\"userAddToGroup\"${COLOR_NC}"
+                                    return 5
+                                fi
+                            fi
+                            #Проверка наличия параметра $3, равного 1 (конец)
+
+                            #предыдущая команда завершилась с ошибкой (конец)
+                            fi
+                            #Конец проверки на успешность выполнения предыдущей команды
+                    #проверка на наличие пользователя в группе sudo (конец)
+                #если группа $1 существует (конец)
+		    	else
+		    		#если группа $1 не существует
+		    		echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_YELLOW}\"userAddToGroup\"${COLOR_NC}"
+		    		return 6
+		    		#если группа $1 не существует (конец)
+		    fi
+		    #Конец проверки на успешность выполнения предыдущей команды
+		#Пользователь $1 существует (конец)
+		else
+		#Пользователь $1 не существует
+		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_YELLOW}\"userAddToGroup\"${COLOR_NC}"
+            return 2
+		#Пользователь $1 не существует (конец)
+		fi
+	#Конец проверки существования системного пользователя $1
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddToGroup\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 
 #############################################MYSQL###############################################
@@ -1232,6 +1505,61 @@ dbViewAllUsersByContainName() {
 		fi
 		#Конец проверки существования параметров запуска скрипта
 }
+
+#Вывести информацию о пользователе mysql $1. Проверка существования пользователя
+#Полностью готово. 13.03.2019
+###input
+#$1-user ;
+#$2-если в параметре значение "0", то результат не выводится, если "1" - результат выводится
+###return
+#0 - пользователь существует,
+#1 - параметры не переданы
+#2 - пользователь не существует;
+dbViewUserInfo() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		#проверка на пустой результат
+				if [[ $(mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv, Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '$1' ORDER BY User ASC") ]]; then
+					#непустой результат
+                    #выводим или нет информацию о выполнении команды
+			        case "$2" in
+			        	0)  return 0
+			        		;;
+			        	1)
+			        		echo -e "${COLOR_YELLOW}Информация о пользователе MYSQL ${COLOR_GREEN}\"$1\" ${COLOR_NC}";
+			                mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv, Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '$1' ORDER BY User ASC";
+			                return 0;;
+			        	*)
+			        		echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbViewUserInfo\"${COLOR_NC}";;
+			        esac
+                    #выводим или нет информацию о выполнении команды (конец)
+					#непустой результат (конец)
+				else
+				    #пустой результат
+				    case "$2" in
+				    	0)  return 2
+				    		;;
+				    	1)
+				    		echo -e "${COLOR_LIGHT_RED}Пользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_LIGHT_RED} не существует ${COLOR_NC}";
+					        return 2;;
+				    	*)
+				    		echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_RED}\"dbViewUserInfo\"${COLOR_NC}";;
+				    esac
+					#пустой результат (конец)
+				fi
+		#Конец проверки на пустой результат
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewUserInfo\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 
 
 
@@ -1971,7 +2299,7 @@ chOwnFolderAndFiles() {
 
 
 #создание файла и применение прав к нему и владельца
-#input
+###input
 #$1-путь к файлу ;
 #$2-user ;
 #$3-group ;
@@ -2040,12 +2368,205 @@ touchFileWithModAndOwn() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-##########################################разное#######################################################
+
+#проверка существования папки с выводом информации о ее существовании
+###Полностью готово. 13.03.2019
+###input
+#$1-path ;
+#$2-type (create/exist)
+###return
+#1 - не переданы параметры,
+#2 - ошибка передачи параметров
+#3 - каталог не создан,
+#4 -каталог создан,
+#5 - каталог не существует,
+#6 - каталог существует
+folderExistWithInfo() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		case "$2" in
+				"create")
+					if ! [ -d $1 ] ; then
+						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
+						return 3
+					else
+						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
+						return 4
+					fi
+						;;
+				"exist")
+					if ! [ -d $1 ] ; then
+						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
+						return 5
+					else
+						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
+						return 6
+					fi
+					;;
+				*)
+					echo -e "${COLOR_GREEN}Ошибка параметров в функции ${COLOR_YELLOW}\"folderExistWithInfo\"${COLOR_NC}"
+					return 2;;
+				esac
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#проверка существования файла с выводом информации.
+###Полностью готово. 13.03.2019
+#$1-path,
+#$2-type (create/exist)
+#return
+#1 - не переданы параметры,
+#2 - ошибка передачи параметров
+#3 - файл не создан,
+#4 -файл создан,
+#5 - файл не существует,
+#6 - файл существует
+fileExistWithInfo(){
+
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+	    case "$2" in
+				"create")
+					if ! [ -f $1 ] ; then
+						echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
+						return 3
+					else
+						echo -e "${COLOR_GREEN}Файл ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
+						return 4
+					fi
+						;;
+				"exist")
+					if ! [ -f $1 ] ; then
+						echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
+						return 5
+					else
+						echo -e "${COLOR_GREEN}Файл ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
+						return 6
+					fi
+					;;
+				*)
+					echo -e "${COLOR_GREEN}Ошибка параметров в функции ${COLOR_YELLOW}\"folderExistWithInfo\"${COLOR_NC}"
+					return 2;;
+	esac
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"fileExistWithInfo\"${COLOR_RED} ${COLOR_NC}"
+	    return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+##########################################site##########################################################
+#отобразить реквизиты доступа к серверу FTP
+#Полностью готово. 13.03.2019 г.
+###input
+#$1 - user;
+#$2 - password,
+#$3 - port,
+#$4 - сервер
+###return
+#0 - выполнено успешно,
+#1 - не переданы параметры
+viewFtpAccess(){
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+		echo -e "${COLOR_YELLOW}"Реквизиты FTP-Доступа" ${COLOR_NC}"
+		echo -e "Сервер: ${COLOR_YELLOW}" $4 "${COLOR_NC}"
+		echo -e "Порт ${COLOR_YELLOW}" $3 "${COLOR_NC}"
+		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
+		echo -e "Пароль: ${COLOR_YELLOW}" $2 "${COLOR_NC}"
+		echo $LINE
+		return 0
+	else
+		echo -e "${COLOR_RED}Не переданы параметры в функцию ${COLOR_GREEN}\"viewFtpAccess\"${COLOR_RED}. Выполнение скрипта аварийно завершено ${COLOR_NC}"
+		return 1
+	fi
+}
+
+#отобразить реквизиты доступа к серверу SSH
+###input
+#$1 - user
+#$2 - сервер
+#$3 - порт
+###return
+#0 - выполнено успешно,
+#1 - отсутствуеют параметры
+viewSshAccess(){
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+		echo -e "${COLOR_YELLOW}"Реквизиты SSH-Доступа" ${COLOR_NC}"
+		echo -e "Сервер: ${COLOR_YELLOW}" $2 "${COLOR_NC}"
+		echo -e "Порт ${COLOR_YELLOW}" $3 "${COLOR_NC}"
+		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
+		echo $LINE
+		return 0
+	else
+		echo -e "${COLOR_LIGHT_RED}Не передан параметр в функцию ${COLOR_GREEN}\"viewSshAccess\"${COLOR_NC}"
+		return 1
+	fi
+}
+
+##########################################webserver#######################################################
 #Перезапуск Веб-сервера
+#Полностью готово. 13.03.2019
 webserverRestart() {
     /etc/init.d/apache2 restart
     /etc/init.d/nginx restart
 }
+
+#вывод информации о версии PHP
+viewPHPVersion(){
+	echo ""
+	echo "Версия PHP:"
+	php -v
+	echo ""
+}
+
+############################ufw########################################
+#Добавление порта с исключением в firewall ufw
+###input
+#$1-port ;
+#$2-protocol ;
+#$3-комментарий ;
+###return
+#0 - выполнено успешно,
+#1 - не переданы параметры,
+#2 - ошибка добавления правила
+ufwAddPort() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		ufw allow $1/$2 comment $3 && return 0 || return 2
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"ufwAddPort\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+#Вывод открытых портов ufw
+ufwOpenPorts() {
+    netstat -ntulp
+}
+
 
 
 
@@ -2090,4 +2611,33 @@ viewUsersInGroupByPartName() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
+}
+
+#отобразить реквизиты доступа к серверу MYSQL
+###input
+#$1 - user
+###return
+#0 - выполнено успешно,
+#1 - не переданы параметры,
+#2 - файл my.cnf не найден
+viewMysqlAccess(){
+	if [ -n "$1" ]
+	then
+		echo -e "${COLOR_YELLOW}"Реквизиты PHPMYADMIN" ${COLOR_NC}"
+		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
+		echo -e "Сервер: ${COLOR_YELLOW}" http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER "${COLOR_NC}"
+		echo -e "\n${COLOR_YELLOW}Пользователь MySQL:${COLOR_NC}"
+		if [ -f $HOMEPATHWEBUSERS/$1/.my.cnf ] ;  then
+            cat $HOMEPATHWEBUSERS/$1/.my.cnf
+            return 0
+		else
+		    echo -e "${COLOR_RED}Файл $HOMEPATHWEBUSERS/$1/.my.cnf не существует${COLOR_NC}"
+		    return 2
+        fi
+		echo $LINE
+
+	else
+		echo -e "${COLOR_RED}Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewMysqlAccess\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	fi
 }
