@@ -107,3 +107,7 @@ sed -i "$ a source $SCRIPTS/include/include.sh"  /etc/profile
 usermod -G admin-access -a $USERLAMER
 
 dbUpdateRecordToDb $WEBSERVER_DB users username $username isAdminAccess 1 update
+
+
+
+#bash -c "source $SCRIPTS/include/inc.sh; dbChangeUserPassword lamer_user2 % lamer_user2 mysql_native_password lamer2" ; echo $?;
