@@ -12,7 +12,7 @@ declare -x -f viewUserGroups
 declare -x -f userExistInGroup
 
 declare -x -f existGroup
-declare -x -f viewUsersInGroupByPartName
+
 declare -x -f viewGroupAdminAccessAll
 declare -x -f viewGroupAdminAccessByName
 declare -x -f viewGroupSudoAccessAll
@@ -39,7 +39,6 @@ declare -x -f dbViewAllBases
 declare -x -f dbViewBasesByTextContain
 declare -x -f dbViewAllUsersByContainName
 declare -x -f dbViewUserInfo
-declare -x -f viewMysqlAccess
 declare -x -f dbViewBasesByUsername
 declare -x -f dbAddRecordToDb
 declare -x -f dbDeleteRecordFromDb
@@ -69,6 +68,7 @@ declare -x -f viewSiteFoldersByName
 ####################################site#####################################
 declare -x -f viewFtpAccess
 declare -x -f viewSshAccess
+declare -x -f siteAdd_php_input
 
 ############################ufw#############################
 declare -x -f ufwAddPort
@@ -4311,6 +4311,81 @@ sshKeyAddToUser()
 }
 
 
+
+#Форма ввода для добавления сайта php
+###input
+#$1-username
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры
+#2 - не существует пользователь
+siteAdd_php_input() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+                	echo "--------------------------------------"
+                    echo "Добавление виртуального хоста."
+                    if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
+                        sudo mkdir -p $HOMEPATHWEBUSERS/$1
+                    fi
+
+                    echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
+
+                    ls $HOMEPATHWEBUSERS/$1
+                    echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
+                    read domain
+                    site_path=$HOMEPATHWEBUSERS/$1/$domain
+                    echo ''
+                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+                    ls $TEMPLATES/apache2/
+                    echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+                    echo -n ": "
+                    read apache_config
+                    echo ''
+                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+                    ls $TEMPLATES/nginx/
+                    echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+                    echo -n ": "
+                    read nginx_config
+                    echo ''
+                    echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+                    echo -n ": "
+                    read item
+                    case "$item" in
+                        y|Y) echo
+                            #
+                            bash -c "source $SCRIPTS/include/inc.sh; addSite_php $1 $domain $1 $site_path $apache_config $nginx_config" ; echo $?;
+                            exit 0
+                            ;;
+                        *) echo "Выход..."
+                            exit 0
+                            ;;
+                    esac
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
+}
+
 ##########################################webserver#######################################################
 #Перезапуск Веб-сервера
 #Полностью готово. 13.03.2019
@@ -4425,72 +4500,6 @@ ufwOpenPorts() {
 
 
 
-
-
-######################################разобраться потом
-#Вывод списка пользователей, входящих в группу $2 по части имени пользователя $1
-#$1-часть имени ; $2 - название группы
-#return 0 - выполнено успешно,  1- отсутствуют параметры, 2 - группа не существует
-viewUsersInGroupByPartName() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-
-		#Проверка существования системной группы пользователей "$2"
-		if grep -q $2: /etc/group
-		    then
-		        #Группа "$2" существует
-		         echo -e "\n${COLOR_YELLOW}Список пользователей группы \"$2\", содержащих в имени \"$1\"${COLOR_NC}"
-		         more /etc/group | grep -E "$2.*$1" | highlight green "$1" | highlight magenta "$2"
-	             return 0
-		        #Группа "$2" существует (конец)
-		    else
-		        #Группа "$2" не существует
-		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует${COLOR_NC}"
-				return 2
-				#Группа "$2" не существует (конец)
-		    fi
-		#Конец проверки существования системного пользователя $2
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUsersInGroupByPartName\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-#отобразить реквизиты доступа к серверу MYSQL
-###input
-#$1 - user
-###return
-#0 - выполнено успешно,
-#1 - не переданы параметры,
-#2 - файл my.cnf не найден
-viewMysqlAccess(){
-	if [ -n "$1" ]
-	then
-		echo -e "${COLOR_YELLOW}"Реквизиты PHPMYADMIN" ${COLOR_NC}"
-		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
-		echo -e "Сервер: ${COLOR_YELLOW}" http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER "${COLOR_NC}"
-		echo -e "\n${COLOR_YELLOW}Пользователь MySQL:${COLOR_NC}"
-		if [ -f $HOMEPATHWEBUSERS/$1/.my.cnf ] ;  then
-            cat $HOMEPATHWEBUSERS/$1/.my.cnf
-            return 0
-		else
-		    echo -e "${COLOR_RED}Файл $HOMEPATHWEBUSERS/$1/.my.cnf не существует${COLOR_NC}"
-		    return 2
-        fi
-		echo $LINE
-
-	else
-		echo -e "${COLOR_RED}Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewMysqlAccess\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	fi
-}
 
 
 
