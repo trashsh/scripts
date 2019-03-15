@@ -37,7 +37,7 @@ source ~/.bashrc
     read item
     case "$item" in
         y|Y) echo
-            addSite_php $1 $domain $1 $site_path $apache_config $nginx_config
+            siteAdd_php $1 $domain $1 $site_path $apache_config $nginx_config
             exit 0
             ;;
         *) echo "Выход..."
