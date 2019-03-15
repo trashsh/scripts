@@ -1,6 +1,6 @@
 
-bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input";
-bash -c "source $SCRIPTS/include/inc.sh; dbUseradd lamer lamer % pass adminGrant";
+bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input root $USERLAMER";
+bash -c "source $SCRIPTS/include/inc.sh; dbUseradd $USERLAMER $USERLAMER % pass adminGrant";
 
 
 
