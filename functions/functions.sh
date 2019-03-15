@@ -85,7 +85,7 @@ declare -x -f dbBackupAllBases
 declare -x -f dbBackupBasesOneUser
 declare -x -f dbCheckExportedBase
 declare -x -f backupSiteFiles
-
+declare -x -f backupUserSitesFiles
 ###########################SSH-server########################################
 declare -x -f sshKeyGenerateToUser
 declare -x -f sshKeyAddToUser
@@ -2260,7 +2260,6 @@ backupSiteFiles() {
 	        if ! [ -d $DESTINATION ] ; then
                         #Каталог "$DESTINATION" не существует
                         mkdirWithOwn $DESTINATION $1 www-data 755
-                        echo "make"
                         #Каталог "$DESTINATION" не существует (конец)
             fi
 
@@ -2295,6 +2294,62 @@ backupSiteFiles() {
 	#Параметры запуска отсутствуют
 	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"backupSiteFiles\"${COLOR_RED} ${COLOR_NC}"
 	    return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Создание бэкапов файлов всех сайтов указанного пользователя
+###input
+#$1-username ;
+#$2-mode:createDestFolder/querryCreateDestFolder
+#$3-path destination
+###return
+#0 - выполнено успешно,
+#1 - нет параметров,
+#2 - нет пользователя
+backupUserSitesFiles() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				i=1
+                #ls -d $HOMEPATHWEBUSERS/$1/$1_* | cut -d'_' -f 2 | while read line >>/dev/null
+                ls $HOMEPATHWEBUSERS/$1 | while read line >>/dev/null
+                do
+                    #Проверка на существование параметров запуска скрипта
+                    if [ -n "$3" ]
+                    then
+                    #Параметры запуска существуют
+                        backupSiteFiles $1 $line createDestFolder $3
+                    #Параметры запуска существуют (конец)
+                    else
+                    #Параметры запуска отсутствуют
+                        backupSiteFiles $1 $line createDestFolder
+                    #Параметры запуска отсутствуют (конец)
+                    fi
+                    #Конец проверки существования параметров запуска скрипта
+                    (( i++ ))
+                done
+
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Функция ${COLOR_GREEN}\"backupUserSitesFiles\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupUserSitesFiles\"${COLOR_RED} ${COLOR_NC}"
+		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта

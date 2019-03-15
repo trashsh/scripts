@@ -48,7 +48,7 @@ declare -x -f dbBackupTable #Создание бэкапа отдельной т
 
 
 
-declare -x -f backupUserSitesFiles #Создание бэкапов файлов всех сайтов указанного пользователя: ($1-username ; $2-path)
+
 
 
 
@@ -530,51 +530,6 @@ inputSite_Laravel() {
 
 
 }
-
-
-#Создание бэкапов файлов всех сайтов указанного пользователя
-#return 0 - выполнено успешно, 1 - нет параметров, 2 - нет пользователя
-#$1-username ; $2-path
-backupUserSitesFiles() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				i=1
-                ls -d $HOMEPATHWEBUSERS/$1/$1_* | cut -d'_' -f 2 | while read line >>/dev/null
-                do
-                    #array[$i]="$line"
-                    #temp=$line
-                    #echo $line
-                    backupSiteFiles $1 $line $2
-                    (( i++ ))
-                    #backupSiteFiles $1 $line
-                done
-
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Функция ${COLOR_GREEN}\"backupUserSitesFiles\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupUserSitesFiles\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
 
 
 
