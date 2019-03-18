@@ -2,6 +2,7 @@
 ####################################users##########F##############
 declare -x -f userAddSystem_input
 declare -x -f userAddSystem
+declare -x -f userAddToGroupSudo
 declare -x -f viewGroupUsersAccessAll
 
 declare -x -f viewUserFullInfo
@@ -23,6 +24,7 @@ declare -x -f viewUsersInGroup
 declare -x -f userAddToGroup
 declare -x -f userDeleteFromGroup
 declare -x -f useraddFtp
+
 
 ####################################mysql########################
 declare -x -f dbSetMyCnfFile
@@ -282,14 +284,14 @@ userAddSystem()
                                          ssh|ftp)
                                          #sudo -s source /my/scripts/include/include.sh
                                          mkdir $2
-                                         useradd -N -g $4 -d $2/$1 -s $3 $1
+                                         useradd -N -g $4 -d $2 -s $3 $1
                                          chown $1:$4 $2
                                          chmod 777 $2
 
 
                                         echo "$1:$6" | chpasswd
 
-                                        dbSetMyCnfFile $1 $1 $6
+                                        #dbSetMyCnfFile $1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
@@ -889,6 +891,44 @@ userAddToGroup() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+#Добавление пользователя $1 в группу sudo
+#Протестировано 15.03.2019
+###РАБОТАЕТ
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+userAddToGroupSudo() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				usermod -a -G sudo $1
+				return 0
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddToGroupSudo\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 #Удаление пользователя $1 из группы $2
 #Полностью проверено. 13.03.2019
 ###input
@@ -1127,6 +1167,7 @@ dbUseradd() {
                     then
                     #Пользователь mysql "$1" существует
                         echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
+                        dbAddRecordToDb lamer_webserver db_users username $1 insert
                         return 0
                     #Пользователь mysql "$1" существует (конец)
                     else
@@ -1982,6 +2023,7 @@ dbAddRecordToDb() {
 
 #обновление записи в таблице
 #Полностью проверено. 13.03.2019
+#ПРОТЕСТИРОВАНО
 ###input:
 #$1-dbname ;
 #$2-table;
@@ -4389,6 +4431,7 @@ sshKeyGenerateToUser() {
 
 
 #Добавление существующего ключа $2 пользователю $1
+#ПРОТЕСТИРОВАНО
 #Полностью готово. 14.03.2019
 #$1-user ;
 #2 - group;
