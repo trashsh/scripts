@@ -95,11 +95,23 @@ declare -x -f sshKeyAddToUser
 #############################menuSite##################################################
 declare -x -f menuMain
 declare -x -f menuSite
+declare -x -f menuSiteAdd
+declare -x -f menuSite_cert
 declare -x -f menuUser
+declare -x -f menuUsers_info
+declare -x -f menuUserMysql
 declare -x -f menuGit
 declare -x -f menuGit_commit
 declare -x -f menuGit_remotePush
 declare -x -f menuGit_remoteView
+declare -x -f menuBackups
+declare -x -f menuBackups_show
+declare -x -f menuBackups_mysql
+declare -x -f menuServer
+declare -x -f menuServer_firewall
+declare -x -f menuServer_quota
+declare -x -f menuMysql
+
 
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
@@ -1275,7 +1287,7 @@ dbUseradd_input() {
                             	dbUseradd $1\_$username $password $host pass user $2
 
 
-                        #Пользователь mysql "$1\_$username" не существует (конец) 
+                        #Пользователь mysql "$1\_$username" не существует (конец)
                         fi
                         #Конец проверки на существование пользователя mysql "$1\_$username"
         			#Пользователь $2 существует (конец)
@@ -1618,7 +1630,7 @@ dbSetMyCnfFile() {
 				#Пользователь mysql "$2" существует
                     #Проверка существования файла ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf""
                     if [ -f "$HOMEPATHWEBUSERS"/"$1"/"my.cnf" ] ; then
-                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" существует    
+                        #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" существует
                              backupImportantFile $1 "my.cnf"  $HOMEPATHWEBUSERS/$1/.my.cnf
                              sudo sed -i "s/.*password=.*/password=$3/" $HOMEPATHWEBUSERS/$1/.my.cnf
                         #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" существует (конец)
@@ -1659,7 +1671,7 @@ dbSetMyCnfFile() {
                         #Файл ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf"" не существует (конец)
                     fi
                     #Конец проверки существования файла ""$HOMEPATHWEBUSERS"/"$1"/"my.cnf""
-                    
+
 				#Пользователь mysql "$2" существует (конец)
 				else
 				#Пользователь mysql "$2" не существует
@@ -4621,7 +4633,7 @@ siteAdd_php_input() {
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #Добавление php-сайта
@@ -4814,7 +4826,7 @@ siteRemove_input() {
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 
@@ -4987,7 +4999,6 @@ ufwOpenPorts() {
 #0 - выполнено успешно,
 #2 - нет пользователя
 menuMain() {
-    echo $1
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
 	then
@@ -5035,7 +5046,7 @@ menuMain() {
                     "1") source /my/scripts/include/inc.sh && menuSite $USERNAME;  break;;
                     "2") source /my/scripts/include/inc.sh && menuUser $USERNAME;  break;;
                     "3") source /my/scripts/include/inc.sh && menuMysql $USERNAME;  break;;
-                    "4") source /my/scripts/include/inc.sh && menyBackup $USERNAME;  break;;
+                    "4") source /my/scripts/include/inc.sh && menuBackups $USERNAME;  break;;
                     "5") source /my/scripts/include/inc.sh && menuGit $USERNAME;  break;;
                     "8") source /my/scripts/include/inc.sh && menuTesting $USERNAME;  break;;
                     "9") source /my/scripts/include/inc.sh &&  menuServer $USERNAME;  break;;
@@ -5094,6 +5105,99 @@ menuSite() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+#Меню добавление сайтов
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuSiteAdd() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Добавление сайтов===${COLOR_NC}"
+
+        echo '1: PHP/HTML'
+        echo '2: PHP/HTML (с вводом доп.параметров)'
+        echo '3: Framework Laravel'
+        echo '4: Framework Laravel (с вводом доп.параметров)'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")   $1; break;;
+                "4")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSiteAdd\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Меню управления сертификатами сайтов
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuSite_cert() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление сертификатами сайтов===${COLOR_NC}"
+
+        echo '1: certbot certificates'
+        echo '2: letsencrypt'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSite_cert\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 #Меню пользователей
 menuUser() {
 	#Проверка на существование параметров запуска скрипта
@@ -5145,6 +5249,100 @@ menuUser() {
                          *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
                         esac
                     done
+}
+
+#Меню просмотра информации о пользователях
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuUsers_info() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Информация о пользователях===${COLOR_NC}"
+
+        echo "1: Члены группы \"Users\""
+        echo "2: Члены группы \"sudo\""
+        echo "3: Члены группы \"ssh-access\""
+        echo "4: Список групп конкретного пользователя"
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")   $1; break;;
+                "4")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuUsers_info\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Меню управление пользователями mysql
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuUserMysql() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление пользователями mysql===${COLOR_NC}"
+
+        echo '1: Добавить пользователя'
+        echo '2: Удалить пользователя'
+        echo '3: Просмотр списка пользователей'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuUserMysql\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #Вывод меню git
@@ -5265,7 +5463,335 @@ menuGit_remoteView() {
 }
 
 
+#Меню управления бэкапами
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuBackups() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление бэкапами===${COLOR_NC}"
+
+        echo '1: Создать файловый бэкап сайта'
+        echo '2: Восстановить файловый бэкап сайта'
+        echo '3: Управление бэкапами баз данных mysql'
+        echo '5: Просмотр бэкапов'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")  menuBackups_mysql $1; break;;
+                "4")   $1; break;;
+                "5")  menuBackups_show $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuBackups\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 
+#Меню создания бэкапов баз данных mysql
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuBackups_mysql() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление бэкапами баз данных mysql===${COLOR_NC}"
+
+        echo '1: Создать копию всех баз всего сервера'
+        echo '2: Создать копию всех баз конкретного пользователя'
+        echo '3: Создать копию одной базы'
+        echo '4: Восстановить из бэкапа сервер баз данных'
+        echo '5: Восстановить из бэкапа все базы пользователя'
+        echo '6: Восстановить из бэкапа одну базу'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")   $1; break;;
+                "4")   $1; break;;
+                "5")   $1; break;;
+                "6")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuBackups_mysql\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 
+#Меню просмотра бэкапов
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuBackups_show() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Просмотр бэкапов===${COLOR_NC}"
+
+        echo '1: Бэкапы за сегодняшний день'
+        echo '2: Бэкапы за вчерашний день'
+        echo '3: Бэкапы за последнюю неделю'
+        echo '4: Указать дату'
+        echo '5: Указать диапазон дат'
+
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+                "3")   $1; break;;
+                "4")   $1; break;;
+                "5")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuBackups_show\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+#Меню управления сервером
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuServer() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление сервром===${COLOR_NC}"
+
+        echo '1: Firewall ufw'
+        echo '2: Quota'
+
+        echo '9: Перезапустить Apache2 и Nginx'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2") menuServer_quota $1; break;;
+
+                "9")   $1; break;;
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuServer\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+#Меню управление firewall
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuServer_firewall() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление Firewall===${COLOR_NC}"
+
+        echo '1: Добавить открытый порт'
+        echo '2: Просмотр открытых портов'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuServer_firewall\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Меню управления квотами
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuServer_quota() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление квотами===${COLOR_NC}"
+
+        echo '1: Отчет'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")  sudo repquota -a; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuServer_quota\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Меню управление базами данных mysql
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuMysql() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление базами данных mysql===${COLOR_NC}"
+
+        echo '1: Добавить базу данных'
+        echo '2: Управление пользователями баз данных'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")   $1; break;;
+                "2")   $1; break;;
+
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuMysql\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}

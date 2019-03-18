@@ -3,4 +3,5 @@ source /etc/profile
 source ~/.bashrc
 source /my/scripts/include/inc.sh
 
-menuMain
+USERNAME=$(whoami)
+menuMain $USERNAME
