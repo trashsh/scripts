@@ -1,5 +1,5 @@
 #!/bin/bash
-source $SCRIPTS/include/include.sh
+source $SCRIPTS/include/inc.sh
 
 #Добавление системного пользователя
 #$1-user ;

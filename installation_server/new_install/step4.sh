@@ -64,14 +64,14 @@ chown $USERLAMER:users $HOMEPATHWEBUSERS/$USERLAMER/.ssh/authorized_keys
 
 #sed -i '$ a source $SCRIPTS/functions/mysql.sh'  /root/.bashrc
 #sed -i '$ a source $SCRIPTS/functions/archive.sh'  /root/.bashrc
-sed -i '$ a source $SCRIPTS/include/include.sh'  /root/.bashrc
+sed -i '$ a source $SCRIPTS/include/inc.sh'  /root/.bashrc
 #sed -i '$ a source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh'  /root/.bashrc
 #sed -i '$ a source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh'  /etc/profile
 
 source ~/.bashrc
 source /etc/profile
 
-sed -i "$ a source $SCRIPTS/include/include.sh"  /etc/profile
+sed -i "$ a source $SCRIPTS/include/inc.sh"  /etc/profile
 
 
 usermod -G admin-access -a $USERLAMER

@@ -307,7 +307,7 @@ userAddSystem()
                                     #Группа "$4" существует
                                      case "$5" in
                                          ssh|ftp)
-                                         #sudo -s source /my/scripts/include/include.sh
+                                         #sudo -s source /my/scripts/include/inc.sh
                                          mkdir $2
                                          useradd -N -g $4 -d $2 -s $3 $1
                                          chown $1:$4 $2
@@ -337,7 +337,7 @@ userAddSystem()
                                                     touchFileWithModAndOwn $2/.sudo_as_admin_successful $1 $4 644
                                                     echo "source /etc/profile" >> $2/.bashrc
                                                     sudo chmod 644 $2/.bashrc
-                                                    #sed -i '$ a source $SCRIPTS/include/include.sh'  $2/.bashrc
+                                                    #sed -i '$ a source $SCRIPTS/include/inc.sh'  $2/.bashrc
                                                    # sed -i '$ a $SCRIPTS/menu'  $2/.bashrc
                                                     ;;
                                                 ftp)
@@ -1126,6 +1126,7 @@ useraddFtp() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 #############################################MYSQL###############################################
 #Добавление пользователя mysql
 #$1-user ;
@@ -1217,6 +1218,7 @@ dbUseradd() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 #Добавление пользователя mysql - форма ввода
 ###Полностью готово. Не трогать. 07.03.2019 г.
 #$1 - какому системному пользователю принадлежит данная учетка mysql
@@ -1228,7 +1230,6 @@ dbUseradd() {
 #3 - нет пользователя $2 в системе
 #4 - пользователь mysql уже существует
 #5 - пустой пароль пользователя mysql
-
 dbUseradd_input() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ]
@@ -1400,7 +1401,6 @@ dbUserdel() {
 #$2-CHARACTER SET (например utf8) ;
 #$3-COLLATE (например utf8_general_ci) ;
 #$4 - режим (normal/silent)
-
 ###return
 #0 - выполнено успешно.
 #1 - не переданы параметры,
@@ -1971,7 +1971,6 @@ dbViewBasesByUsername() {
 #$3 - столбец для вставки;
 #$4 - текст вставки;
 #$5-подтверждение "insert"
-
 ###return
 #0 - выполнено успешно
 #1 - отсутствуют параметры запуска
@@ -2247,6 +2246,63 @@ dbDeleteRecordFromDb() {
 }
 
 
+
+
+#Проверка существования таблицы
+#Полностью проверено. 14.03.2019
+###input
+#$1-dbname ;
+#$2-table
+###return
+#0 - таблица существует
+#1- не переданы параметры
+#2- база данных $1 не существует
+#3-таблица не существует
+dbExistTable() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования базы данных "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+			then
+			#база $1 - существует
+
+			    #Проверка существования таблицы в базе денных $1
+			    if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
+			    	then
+			    	#таблица $2 существует
+			    		return 0
+			    	#таблица $2 существует (конец)
+			    	else
+			    	#таблица $2 не существует
+			    	     return 3
+			    	    echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"\" ${COLOR_NC}"
+			    	#таблица $2 не существует (конец)
+			    fi
+			    #Проверка существования таблицы в базе денных $1 (конец)
+
+			#база $1 - существует (конец)
+			else
+			#база $1 - не существует
+			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbExistTable\" ${COLOR_NC}"
+			     return 2
+			#база $1 - не существует (конец)
+		fi
+		#конец проверки существования базы данных $1
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbExistTable\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 ##########################################BACKUPS################################################
 #Создание бэкапа файлов сайта
 #Полностью готово. Не трогать. Работает. 15.03.2019. Каталог по умолчанию в режиме querryCreateDestFolder при отсутствии папки все равно создается
@@ -2489,7 +2545,6 @@ backupImportantFile() {
 #$3 - full_info/error_only - вывод сообщений о выполнении операции
 #$4 - mode - data/structure
 #$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
-
 #return
 #0 - выполнено успешно,
 #1 - отсутствуют параметры,
@@ -2753,7 +2808,6 @@ dbBackupBase() {
 #2 - пользователь не существует,
 #3 - группа не существует
 #4 - проверка выгруженного файла завершилась с ошибкой
-
 dbBackupAllBases() {
 
 	#Проверка на существование параметров запуска скрипта
@@ -3067,63 +3121,6 @@ dbBackupBasesOneUser() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
-
-
-#Проверка существования таблицы
-#Полностью проверено. 14.03.2019
-###input
-#$1-dbname ;
-#$2-table
-###return
-#0 - таблица существует
-#1- не переданы параметры
-#2- база данных $1 не существует
-#3-таблица не существует
-dbExistTable() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-
-			    #Проверка существования таблицы в базе денных $1
-			    if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-			    	then
-			    	#таблица $2 существует
-			    		return 0
-			    	#таблица $2 существует (конец)
-			    	else
-			    	#таблица $2 не существует
-			    	     return 3
-			    	    echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"\" ${COLOR_NC}"
-			    	#таблица $2 не существует (конец)
-			    fi
-			    #Проверка существования таблицы в базе денных $1 (конец)
-
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbExistTable\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbExistTable\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
 
 
 #Создание бэкапа отдельной таблицы
@@ -3674,8 +3671,9 @@ tarFile() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#не трогать
+
 #архивация каталога
+#не трогать
 ###input:
 #$1-путь к исходному каталогу ;
 #$2-Путь к конечному архиву ;
@@ -4386,6 +4384,153 @@ viewSshAccess(){
 }
 
 
+#Добавление php-сайта
+###input
+#$1-username ;
+#$2-domain ;
+#$3-site_path ;
+#$4-apache_config ;
+#$5-nginx_config ;
+###return
+#0 - выполнено успешно
+#1 - отсутствуют параметры
+#2 - пользователь $1 не  существует
+#3 - конфигурация apache не существует
+#4 - конфигурация nginx не существует
+#5 - каталог сайта уже существует
+siteAdd_php() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		#Проверка существования файла "$TEMPLATES/apache2/$4"
+        		if [ -f $TEMPLATES/apache2/$4 ] ; then
+        		    #Файл "$TEMPLATES/apache2/$4" существует
+        		    #Проверка существования файла "$TEMPLATES/nginx/$5"
+        		    if [ -f $TEMPLATES/nginx/$5 ] ; then
+        		        #Файл "$TEMPLATES/nginx/$5" существует
+                        #Проверка существования каталога "$3"
+                        if [ -d $3 ] ; then
+                            #Каталог сайта "$3" уже существует
+                            echo -e "${COLOR_RED}Каталог сайта ${COLOR_GREEN}\"$3\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
+                            #Каталог сайта "$3" уже существует (конец)
+                        else
+                            #Каталог сайта "$3" не существует
+
+                            echo "Добавление веб пользователя $1_$2 с домашним каталогом: $3 для домена $2"
+                            sudo mkdir -p $3
+                            sudo useradd $1_$2 -N -d $3 -m -s /bin/false
+                            sudo adduser $1_$2 www-data
+                            echo -e "${COLOR_YELLOW}Установка пароля для ftp-пользователя \"$1_$2\"${COLOR_NC}"
+                            sudo passwd $1_$2
+                            sudo cp -R /etc/skel/* $3
+
+                           #copy index.php
+                           sudo cp $TEMPLATES/index_php/index.php $3/$WWWFOLDER/index.php
+                           sudo cp $TEMPLATES/index_php/underconstruction.jpg $3/$WWWFOLDER/underconstruction.jpg
+                           sudo grep '#__DOMAIN' -P -R -I -l  $3/$WWWFOLDER/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $3/$WWWFOLDER/index.php
+                     #       sed -i 's/#__DOMAIN/$2' $3/$WWWFOLDER/index.php
+
+
+                           #nginx
+                           sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo echo "Замена переменных в файле /etc/nginx/sites-available/"$1"_"$2".conf"
+                           sudo grep '#__DOMAIN' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo grep '#__USER' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo grep '#__PORT' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPNGINXPORT'/g' /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' /etc/nginx/sites-available/"$1"_"$2".conf
+
+                           sudo  ln -s /etc/nginx/sites-available/"$1"_"$2".conf /etc/nginx/sites-enabled/"$1"_"$2".conf
+                           sudo  systemctl reload nginx
+
+                            #apache2
+                            sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
+                            chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
+                            sudo echo "Замена переменных в файле /etc/apache2/sites-available/"$1"_"$2".conf"
+                            sudo grep '#__DOMAIN' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/apache2/sites-available/"$1"_"$2".conf
+                            sudo grep '#__USER' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/apache2/sites-available/"$1"_"$2".conf
+                            sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__HOMEPATHWEBUSERS/\/home\/webusers/g' /etc/apache2/sites-available/"$1"_"$2".conf
+                            sudo grep '#__PORT' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPAPACHEPORT'/g' /etc/apache2/sites-available/"$1"_"$2".conf
+
+                            sudo a2ensite "$1"_"$2".conf
+                            sudo service apache2 reload
+
+                            #chmod
+                            sudo find $3 -type d -exec chmod 755 {} \;
+                            sudo find $3/$WWWFOLDER -type d -exec chmod 755 {} \;
+                            sudo find $3 -type f -exec chmod 644 {} \;
+                            sudo find $3/$WWWFOLDER -type f -exec chmod 644 {} \;
+                            sudo find $3/logs -type f -exec chmod 644 {} \;
+
+                            sudo chown -R $1:www-data $3/logs
+                            sudo chown -R $1:www-data $3/$WWWFOLDER
+                            sudo chown -R $1:www-data $3/tmp
+
+                            cd $3/$WWWFOLDER
+                            echo -e "\033[32m" Инициализация Git "\033[0;39m"
+                            git init
+                            git add .
+                            git commit -m "initial commit"
+
+                            echo -e "==========================================="
+                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} Параметры подключения к сайту ${COLOR_NC} (nginx)"
+                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2" ${COLOR_NC} (nginx)"
+                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2":8080 ${COLOR_NC} (apache)"
+                            echo -e "Сервер FTP: ${COLOR_YELLOW} "$2":10081 ${COLOR_NC}"
+                            echo -e "FTP User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
+                            echo -e "PhpMyAdmin: ${COLOR_YELLOW} https://conf.mmgx.ru/dbase ${COLOR_NC}"
+                            echo -e "Adminer: ${COLOR_YELLOW} https://conf.mmgx.ru/a ${COLOR_NC}"
+                            echo -e "MYSQL User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
+                            echo -e "MYSQL DB: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
+
+                            #Каталог сайта "$3" не существует (конец)
+                        fi
+                        #Конец проверки существования каталога "$3"
+
+        		        #Файл "$TEMPLATES/nginx/$5" существует (конец)
+        		    else
+        		        #Файл "$TEMPLATES/nginx/$5" не существует
+        		        echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$5\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
+        		        return 4
+        		        #Файл "$TEMPLATES/nginx/$5" не существует (конец)
+        		    fi
+        		    #Конец проверки существования файла "$TEMPLATES/nginx/$5"
+
+        		    #Файл "$TEMPLATES/apache2/$4" существует (конец)
+        		else
+        		    #Файл "$TEMPLATES/apache2/$4" не существует
+        		    echo -e "${COLOR_RED}Конфигурация apache2 ${COLOR_GREEN}\"$TEMPLATES/apache2/$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
+        		    return 3
+        		    #Файл "$TEMPLATES/apache2/$4" не существует (конец)
+        		fi
+        		#Конец проверки существования файла "$TEMPLATES/apache2/$4"
+
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
 ##########################################ssh-server######################################################
 #Генерация ssh-ключа для пользователя
 #Полностью проверено. 14.03.2019
@@ -4566,226 +4711,6 @@ sshKeyAddToUser()
     #Конец проверки существования параметров запуска скрипта
 }
 
-
-
-#Форма ввода для добавления сайта php
-###input
-#$1-username
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры
-#2 - не существует пользователь
-siteAdd_php_input() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $1 существует
-                	echo "--------------------------------------"
-                    echo "Добавление виртуального хоста."
-                    if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
-                        sudo mkdir -p $HOMEPATHWEBUSERS/$1
-                    fi
-
-                    echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
-
-                    ls $HOMEPATHWEBUSERS/$1
-                    echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
-                    read domain
-                    site_path=$HOMEPATHWEBUSERS/$1/$domain
-                    echo ''
-                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
-
-                    ls $TEMPLATES/apache2/
-                    echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
-                    echo -n ": "
-                    read apache_config
-                    echo ''
-                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
-                    ls $TEMPLATES/nginx/
-                    echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
-                    echo -n ": "
-                    read nginx_config
-                    echo ''
-                    echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
-                    echo -n ": "
-                    read item
-                    case "$item" in
-                        y|Y) echo
-                            #
-                            bash -c "source $SCRIPTS/include/inc.sh; siteAdd_php $1 $domain $site_path $apache_config $nginx_config" ; echo $?;
-                            exit 0
-                            ;;
-                        *) echo "Выход..."
-                            exit 0
-                            ;;
-                    esac
-        	#Пользователь $1 существует (конец)
-        	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $1 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-#Добавление php-сайта
-###input
-#$1-username ;
-#$2-domain ;
-#$3-site_path ;
-#$4-apache_config ;
-#$5-nginx_config ;
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры
-#2 - пользователь $1 не  существует
-#3 - конфигурация apache не существует
-#4 - конфигурация nginx не существует
-#5 - каталог сайта уже существует
-siteAdd_php() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $1 существует
-        		#Проверка существования файла "$TEMPLATES/apache2/$4"
-        		if [ -f $TEMPLATES/apache2/$4 ] ; then
-        		    #Файл "$TEMPLATES/apache2/$4" существует
-        		    #Проверка существования файла "$TEMPLATES/nginx/$5"
-        		    if [ -f $TEMPLATES/nginx/$5 ] ; then
-        		        #Файл "$TEMPLATES/nginx/$5" существует
-                        #Проверка существования каталога "$3"
-                        if [ -d $3 ] ; then
-                            #Каталог сайта "$3" уже существует
-                            echo -e "${COLOR_RED}Каталог сайта ${COLOR_GREEN}\"$3\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
-                            #Каталог сайта "$3" уже существует (конец)
-                        else
-                            #Каталог сайта "$3" не существует
-
-                            echo "Добавление веб пользователя $1_$2 с домашним каталогом: $3 для домена $2"
-                            sudo mkdir -p $3
-                            sudo useradd $1_$2 -N -d $3 -m -s /bin/false
-                            sudo adduser $1_$2 www-data
-                            echo -e "${COLOR_YELLOW}Установка пароля для ftp-пользователя \"$1_$2\"${COLOR_NC}"
-                            sudo passwd $1_$2
-                            sudo cp -R /etc/skel/* $3
-
-                           #copy index.php
-                           sudo cp $TEMPLATES/index_php/index.php $3/$WWWFOLDER/index.php
-                           sudo cp $TEMPLATES/index_php/underconstruction.jpg $3/$WWWFOLDER/underconstruction.jpg
-                           sudo grep '#__DOMAIN' -P -R -I -l  $3/$WWWFOLDER/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $3/$WWWFOLDER/index.php
-                     #       sed -i 's/#__DOMAIN/$2' $3/$WWWFOLDER/index.php
-
-
-                           #nginx
-                           sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo echo "Замена переменных в файле /etc/nginx/sites-available/"$1"_"$2".conf"
-                           sudo grep '#__DOMAIN' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__USER' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__PORT' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPNGINXPORT'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' /etc/nginx/sites-available/"$1"_"$2".conf
-
-                           sudo  ln -s /etc/nginx/sites-available/"$1"_"$2".conf /etc/nginx/sites-enabled/"$1"_"$2".conf
-                           sudo  systemctl reload nginx
-
-                            #apache2
-                            sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
-                            chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo echo "Замена переменных в файле /etc/apache2/sites-available/"$1"_"$2".conf"
-                            sudo grep '#__DOMAIN' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__USER' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__HOMEPATHWEBUSERS/\/home\/webusers/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__PORT' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPAPACHEPORT'/g' /etc/apache2/sites-available/"$1"_"$2".conf
-
-                            sudo a2ensite "$1"_"$2".conf
-                            sudo service apache2 reload
-
-                            #chmod
-                            sudo find $3 -type d -exec chmod 755 {} \;
-                            sudo find $3/$WWWFOLDER -type d -exec chmod 755 {} \;
-                            sudo find $3 -type f -exec chmod 644 {} \;
-                            sudo find $3/$WWWFOLDER -type f -exec chmod 644 {} \;
-                            sudo find $3/logs -type f -exec chmod 644 {} \;
-
-                            sudo chown -R $1:www-data $3/logs
-                            sudo chown -R $1:www-data $3/$WWWFOLDER
-                            sudo chown -R $1:www-data $3/tmp
-
-                            cd $3/$WWWFOLDER
-                            echo -e "\033[32m" Инициализация Git "\033[0;39m"
-                            git init
-                            git add .
-                            git commit -m "initial commit"
-
-                            echo -e "==========================================="
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} Параметры подключения к сайту ${COLOR_NC} (nginx)"
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2" ${COLOR_NC} (nginx)"
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2":8080 ${COLOR_NC} (apache)"
-                            echo -e "Сервер FTP: ${COLOR_YELLOW} "$2":10081 ${COLOR_NC}"
-                            echo -e "FTP User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-                            echo -e "PhpMyAdmin: ${COLOR_YELLOW} https://conf.mmgx.ru/dbase ${COLOR_NC}"
-                            echo -e "Adminer: ${COLOR_YELLOW} https://conf.mmgx.ru/a ${COLOR_NC}"
-                            echo -e "MYSQL User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-                            echo -e "MYSQL DB: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-
-                            #Каталог сайта "$3" не существует (конец)
-                        fi
-                        #Конец проверки существования каталога "$3"
-
-        		        #Файл "$TEMPLATES/nginx/$5" существует (конец)
-        		    else
-        		        #Файл "$TEMPLATES/nginx/$5" не существует
-        		        echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$5\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
-        		        return 4
-        		        #Файл "$TEMPLATES/nginx/$5" не существует (конец)
-        		    fi
-        		    #Конец проверки существования файла "$TEMPLATES/nginx/$5"
-
-        		    #Файл "$TEMPLATES/apache2/$4" существует (конец)
-        		else
-        		    #Файл "$TEMPLATES/apache2/$4" не существует
-        		    echo -e "${COLOR_RED}Конфигурация apache2 ${COLOR_GREEN}\"$TEMPLATES/apache2/$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
-        		    return 3
-        		    #Файл "$TEMPLATES/apache2/$4" не существует (конец)
-        		fi
-        		#Конец проверки существования файла "$TEMPLATES/apache2/$4"
-
-        	#Пользователь $1 существует (конец)
-        	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $1 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 
@@ -4997,8 +4922,6 @@ ufwOpenPorts() {
 
 
 ############################################menu#############################################
-
-
 #Вывод главного меню
 #$1-username ;
 #return
@@ -5863,4 +5786,79 @@ input_addSite_php() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта    
+}
+
+
+#Форма ввода для добавления сайта php
+###input
+#$1-username
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры
+#2 - не существует пользователь
+siteAdd_php_input() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+                	echo "--------------------------------------"
+                    echo "Добавление виртуального хоста."
+                    if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
+                        sudo mkdir -p $HOMEPATHWEBUSERS/$1
+                    fi
+
+                    echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
+
+                    ls $HOMEPATHWEBUSERS/$1
+                    echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
+                    read domain
+                    site_path=$HOMEPATHWEBUSERS/$1/$domain
+                    echo ''
+                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+                    ls $TEMPLATES/apache2/
+                    echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+                    echo -n ": "
+                    read apache_config
+                    echo ''
+                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+                    ls $TEMPLATES/nginx/
+                    echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+                    echo -n ": "
+                    read nginx_config
+                    echo ''
+                    echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+                    echo -n ": "
+                    read item
+                    case "$item" in
+                        y|Y) echo
+                            #
+                            bash -c "source $SCRIPTS/include/inc.sh; siteAdd_php $1 $domain $site_path $apache_config $nginx_config" ; echo $?;
+                            exit 0
+                            ;;
+                        *) echo "Выход..."
+                            exit 0
+                            ;;
+                    esac
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-source $SCRIPTS/include/include.sh
+source $SCRIPTS/include/inc.sh
 
 
 
