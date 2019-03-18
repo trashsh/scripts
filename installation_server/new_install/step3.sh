@@ -21,6 +21,11 @@ bash -c "source $SCRIPTS/include/inc.sh; sshKeyAddToUser $USERLAMER users $SETTI
 bash -c "source $SCRIPTS/include/inc.sh; viewUserFullInfo $USERLAMER"
 
 
+
+sed -i '$ a alias start=\"sudo -s source \/my\/scripts\/include\/inc.sh && \/my\/scripts\/menu\"'  /etc/profile
+sed -i '$ a alias inc_func=sudo bash -c \"source \/my\/scripts\/include\/inc.sh\"'  /etc/profile
+
+
 #mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
 #cp /my/scripts/.config/templates/nginx/nginx_default_site /etc/nginx/sites-available/default
 #/etc/init.d/nginx restart

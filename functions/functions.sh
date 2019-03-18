@@ -92,7 +92,14 @@ declare -x -f backupUserSitesFiles
 declare -x -f sshKeyGenerateToUser
 declare -x -f sshKeyAddToUser
 
-
+#############################menuSite##################################################
+declare -x -f menuMain
+declare -x -f menuSite
+declare -x -f menuUser
+declare -x -f menuGit
+declare -x -f menuGit_commit
+declare -x -f menuGit_remotePush
+declare -x -f menuGit_remoteView
 
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
@@ -4971,12 +4978,291 @@ ufwOpenPorts() {
 }
 
 
+############################################menu#############################################
 
 
+#Вывод главного меню
+#$1-username ;
+#return
+#0 - выполнено успешно,
+#2 - нет пользователя
+menuMain() {
+    echo $1
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ====Главное меню==== ${COLOR_NC}"
+
+                echo '1: Управление сайтами'
+                echo '2: Управление пользователями'
+                echo '3: Управление базами данных'
+                echo '4: Управление бэкапами'
+                echo '5: Git'
+                echo '8: Testing'
+                echo '9: Сервер'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                do
+                    case "$REPLY" in
+                #    "1") source /my/scripts/include/inc.sh && menuSite $USERNAME;  break;;
+                    "1") source /my/scripts/include/inc.sh && menuSite $USERNAME;  break;;
+                    "2") source /my/scripts/include/inc.sh && menuUser $USERNAME;  break;;
+                    "3") source /my/scripts/include/inc.sh && menuMysql $USERNAME;  break;;
+                    "4") source /my/scripts/include/inc.sh && menyBackup $USERNAME;  break;;
+                    "5") source /my/scripts/include/inc.sh && menuGit $USERNAME;  break;;
+                    "8") source /my/scripts/include/inc.sh && menuTesting $USERNAME;  break;;
+                    "9") source /my/scripts/include/inc.sh &&  menuServer $USERNAME;  break;;
+                    "q"|"Q")  exit 0;;
+                     *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                    esac
+                done
+                return 0
+}
 
 
+#Меню управления сайтами
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuSite() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Управление сайтами===${COLOR_NC}"
+
+        echo '1: Добавить сайт на сервер'
+        echo '2: Удаление сайта с сервера'
+        echo '3: Список виртуальных хостов на сервере'
+        echo '4: Сертификаты'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1")  $MENU/submenu/site_add.sh $1; break;;
+                "2")  $SCRIPTS/webserver/remove/remove_site.sh $1; break;;
+                "3")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
+                "4")  $MENU/submenu/site_cert.sh $1; break;;
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSite\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+#Меню пользователей
+menuUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление пользователями===${COLOR_NC}"
+
+                echo '1: Добавить пользователя ssh'
+                echo '2: Удаление пользователя'
+                echo '3: Список пользователей'
+
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input"; break;;
+                        "2")  userDelSystem_input $1; break;;
+                        "3")  $MENU/submenu/users_info.sh $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+}
+
+#Вывод меню git
+#$1-username ;
+#return 0 - выполнено успешно, 2 - нет пользователя
+menuGit() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление Git===${COLOR_NC}"
+
+                echo '1: Git commit'
+                echo '2: Push remote'
+                echo '3: Git remote view'
 
 
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  menuGit_commit $1; break;;
+                        "2")  menuGit_remotePush $1; break;;
+                        "3")  menuGit_remoteView $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+                    return 0
+}
+
+#Создание коммита
+menuGit_commit() {
+    echo -n -e "Для создания коммита репозитария ${COLOR_YELLOW}\""$SCRIPTS"\"${COLOR_NC} введите ${COLOR_BLUE}\"y\"${COLOR_NC}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+    while read
+        do
+            case "$REPLY" in
+            "y"|"Y")
+                echo -n -e "Для задания имени коммита введите ${COLOR_BLUE}\"y\"${COLOR_NC}, задания вместо имени даты-времени - введите ${COLOR_BLUE}\"любой символ\"${COLOR_NC}: "
+                    while read
+                        do
+                            case "$REPLY" in
+                            "y"|"Y")
+                                echo -n -e "${COLOR_BLUE}Введите комментарий коммита${COLOR_NC}"
+                                read -p ": " comment
+                                dt=$(date '+%d/%m/%Y %H:%M:%S')
+                                sudo git add .
+                                sudo git commit -m "$dt - $comment"
+                                break
+                                ;;
+                            *)
+                                dt=$(date '+%d/%m/%Y %H:%M:%S')
+                                sudo git add .
+                                sudo git commit -m "$dt"
+                                break;;
+                            esac
+                        done
+                break
+                ;;
+            "n"|"N")
+                echo 'Отмена создания коммита'
+                    menuGit $1
+                break;;
+
+            *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+            esac
+        done
+        menuGit $1
+}
+
+#публикация проекта во внешнем репозитарии
+menuGit_remotePush() {
+    cd $SCRIPTS
+    echo -e "\n${COLOR_YELLOW}Публикация репозитария на github.com и Bitbucket.org:${COLOR_NC}"
+    sudo git remote add github https://trashsh@github.com/trashsh/scripts.git
+    sudo git remote add bitbucket https://gothundead@bitbucket.org/gothundead/scripts.git
+    sudo git push github master
+    sudo git push bitbucket master
+    echo ""
+    menuGit $1
+}
+
+# просмотр удаленных репозитариев
+menuGit_remoteView() {
+        echo $1
+		cd $SCRIPTS
+		echo -e "\n${COLOR_YELLOW}Список удаленных репозиториев:${COLOR_NC}"
+		git remote -v
+		menuGit $1
+}
 
 
 
