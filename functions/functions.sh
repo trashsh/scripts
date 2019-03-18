@@ -91,6 +91,7 @@ declare -x -f backupUserSitesFiles
 ###########################SSH-server########################################
 declare -x -f sshKeyGenerateToUser
 declare -x -f sshKeyAddToUser
+declare -x -f sshKeyImport
 
 #############################menuSite##################################################
 declare -x -f menuMain
@@ -124,6 +125,7 @@ declare -x -f input_viewGroupSudoAccessByName
 declare -x -f input_viewUserInGroupUsersByPartName
 declare -x -f input_viewGroup
 declare -x -f input_sshSettings
+
 
 
 ####################################testing##########################################
@@ -211,6 +213,7 @@ input_userAddSystem() {
                                 #переменная имеет не пустое значение
                                 userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $1
                                 input_sshSettings $username
+                                #TODO добавить админский ключ
                             fi
                             #Проверка на пустое значение переменной (конец)
 
@@ -1833,7 +1836,7 @@ dbViewAllUsersByContainName() {
 		    #проверка на пустой результат
 		    		if [[ $(mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv,Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '%%$1%%' ORDER BY User ASC") ]]; then
 		    			#непустой результат
-		    			echo -e "${COLOR_YELLOW}Перечень пользователей MYSQL, содержащих в названии ${COLOR_GREEN}\"$1\" $COLOR_NC"
+		    			echo -e "${COLOR_YELLOW}Перечень пользователей MYSQL, содержащих в названии ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
 		                mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv,Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '%%$1%%' ORDER BY User ASC"
 		                return 0
 		    			#непустой результат (конец)
@@ -4585,6 +4588,56 @@ sshKeyGenerateToUser() {
 }
 
 
+#Импорт ssh-ключа
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+sshKeyImport() {
+    #TODO сделать проверки на наличие файла, цикл и т.п., бэкап файла
+
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+                echo -e "\n${COLOR_YELLOW} Список возможных ключей для импорта: ${COLOR_NC}"
+			    ls -l $SETTINGS/ssh/keys/
+			    echo -n -e "${COLOR_BLUE} Укажите название открытого ключа, который необходимо применить к текущему пользователю: ${COLOR_NC}"
+			    read -p ":" key
+				mkdir -p $HOMEPATHWEBUSERS/$1/.ssh
+				cat $SETTINGS/ssh/keys/$key >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				echo "" >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				DATE=`date '+%Y-%m-%d__%H-%M'`
+				mkdir -p $BACKUPFOLDER_IMPORTANT/ssh/$1
+				chmod 700 $HOMEPATHWEBUSERS/$1/.ssh
+				chmod 600 $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				chown $1:users $HOMEPATHWEBUSERS/$1/.ssh
+				chown $1:users $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				usermod -G ssh-access -a $1
+				echo -e "\n${COLOR_YELLOW} Импорт ключа $COLOR_LIGHT_PURPLE\"$key\"${COLOR_YELLOW} пользователю $COLOR_LIGHT_PURPLE\"$1\"${COLOR_YELLOW} выполнен${COLOR_NC}"
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 #Добавление существующего ключа $2 пользователю $1
 #ПРОТЕСТИРОВАНО
@@ -5839,6 +5892,7 @@ input_viewGroup() {
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - не существует пользователь $1
+#3 - отменено пользователем
 input_sshSettings() {
 	#Проверка на существование параметров запуска скрипта
 	#TODO Сделать запуск функции без параметров.
@@ -5862,11 +5916,13 @@ input_sshSettings() {
                                 sudo bash -c "source $SCRIPTS/include/inc.sh; sshKeyGenerateToUser $username $HOMEPATHWEBUSERS/$username"; menuUser $1;
                 		    	break;;
                 		    i|I)
+                                sudo bash -c "source $SCRIPTS/include/inc.sh; sshKeyImport $username"; menuUser $1;
 
                 			    break;;
                 		    n|N)
-
-                			    break;;
+                                echo -e "${COLOR_YELLOW}"Добавление ssh-доступа отменено пользователем"${COLOR_NC}"
+                			    menuUser $1;
+                			    return 3;;
                 			*)
                                 echo -n -e "${COLOR_RED}Ошибка ввода режима генерации ключа ssh в функцию ${COLOR_GREEN}\"input_sshSettings\".${COLOR_YELLOW} Повторите ввод: ${COLOR_NC}";
                             ;;
