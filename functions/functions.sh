@@ -123,6 +123,11 @@ declare -x -f input_viewGroupAdminAccessByName
 declare -x -f input_viewGroupSudoAccessByName
 declare -x -f input_viewUserInGroupUsersByPartName
 declare -x -f input_viewGroup
+declare -x -f input_sshSettings
+
+
+####################################testing##########################################
+declare -x -f testFunction
 
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
@@ -205,6 +210,7 @@ input_userAddSystem() {
                             else
                                 #переменная имеет не пустое значение
                                 userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $1
+                                input_sshSettings $username
                             fi
                             #Проверка на пустое значение переменной (конец)
 
@@ -3650,7 +3656,7 @@ tarFile() {
 
 
 #архивация каталога
-#не трогать
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1-путь к исходному каталогу ;
 #$2-Путь к конечному архиву ;
@@ -3891,6 +3897,7 @@ tarFolder() {
 
 ########################################FILES###############################################
 #Смена владельна и прав доступа на файл
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
 #$1-путь к файлу ;
 #$2-user ;
@@ -4141,6 +4148,7 @@ chOwnFolderAndFiles() {
 
 
 #создание файла и применение прав к нему и владельца
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
 #$1-путь к файлу ;
 #$2-user ;
@@ -4511,7 +4519,7 @@ siteAdd_php() {
 
 ##########################################ssh-server######################################################
 #Генерация ssh-ключа для пользователя
-#Полностью проверено. 14.03.2019
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
 #$1-user ;
 #$2 - домашний каталог пользователя
@@ -4955,7 +4963,7 @@ menuMain() {
                     "3") source /my/scripts/include/inc.sh && menuMysql $USERNAME;  break;;
                     "4") source /my/scripts/include/inc.sh && menuBackups $USERNAME;  break;;
                     "5") source /my/scripts/include/inc.sh && menuGit $USERNAME;  break;;
-                    "8") source /my/scripts/include/inc.sh && menuTesting $USERNAME;  break;;
+                    "8") source /my/scripts/include/inc.sh && testFunction $USERNAME;  break;;
                     "9") source /my/scripts/include/inc.sh &&  menuServer $USERNAME;  break;;
                     "q"|"Q")  exit 0;;
                      *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
@@ -5822,10 +5830,68 @@ input_viewGroup() {
     		#Группа "$groupname" не существует (конец)
         fi
     #Конец проверки существования системной группы пользователей $groupname
+}
+
+#Ввод параметров ssh
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - не существует пользователь $1
+input_sshSettings() {
+	#Проверка на существование параметров запуска скрипта
+	#TODO Сделать запуск функции без параметров.
+	if [ -n "$1" ]
+	then
+
+	username=$1
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$username"
+			grep "^$username:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $username существует
+                echo -n -e "${COLOR_YELLOW}Введите ${COLOR_BLUE}\"g\"${COLOR_YELLOW} для генерации ключа ssh, ${COLOR_BLUE}\"i\"${COLOR_YELLOW} - для импорта ключа ssh, ${COLOR_BLUE}\"n\"${COLOR_YELLOW} - если ключ доступа не генерировать: ${COLOR_NC} "
+                	while read
+                	do
+
+                    	case "$REPLY" in
+                	    	g|G)
+
+                                sudo bash -c "source $SCRIPTS/include/inc.sh; sshKeyGenerateToUser $username $HOMEPATHWEBUSERS/$username"; menuUser $1;
+                		    	break;;
+                		    i|I)
+
+                			    break;;
+                		    n|N)
+
+                			    break;;
+                			*)
+                                echo -n -e "${COLOR_RED}Ошибка ввода режима генерации ключа ssh в функцию ${COLOR_GREEN}\"input_sshSettings\".${COLOR_YELLOW} Повторите ввод: ${COLOR_NC}";
+                            ;;
+
+                	    esac
+                	done
 
 
 
-
+			#Пользователь $username существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_sshSettings\"${COLOR_NC}"
+				return 2
+			#Пользователь $username не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $username
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_sshSettings\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #Форма ввода данных для добавления сайта php
@@ -5960,4 +6026,16 @@ siteAdd_php_input() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+
+
+################################################TESTING####################################################
+testFunction() {
+    input_sshSettings lamer2
+
+    echo ""
+    echo $?
 }
