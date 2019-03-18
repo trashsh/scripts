@@ -1,5 +1,5 @@
 
-bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input root $USERLAMER"
+bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem root $USERLAMER"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroupSudo $USERLAMER"
 bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSudo 1 update"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroup $USERLAMER admin-access 0"

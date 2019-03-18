@@ -1,13 +1,11 @@
 #!/bin/bash
 ####################################users##########F##############
-declare -x -f userAddSystem_input
+declare -x -f input_userAddSystem
 declare -x -f userAddSystem
 declare -x -f userAddToGroupSudo
 declare -x -f viewGroupUsersAccessAll
 
 declare -x -f viewUserFullInfo
-
-declare -x -f viewUserGroups
 
 
 declare -x -f userExistInGroup
@@ -43,9 +41,11 @@ declare -x -f dbViewAllUsersByContainName
 declare -x -f dbViewUserInfo
 declare -x -f dbViewBasesByUsername
 declare -x -f dbAddRecordToDb
+declare -x -f dbUpdateRecordToDb
 declare -x -f dbDeleteRecordFromDb
 declare -x -f dbExistTable
 declare -x -f dbChangeUserPassword
+
 
 ####################################Архивация########################
 declare -x -f tarFile
@@ -117,10 +117,16 @@ declare -x -f menuMysql
 
 ######################################input##########################################
 declare -x -f input_addSite_php
-
+declare -x -f input_viewUsersInGroup
+declare -x -f input_viewUserFullInfo
+declare -x -f input_viewGroupAdminAccessByName
+declare -x -f input_viewGroupSudoAccessByName
+declare -x -f input_viewUserInGroupUsersByPartName
+declare -x -f input_viewGroup
 
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #1 - имя добавляемого пользователя,
 #2 - имя добавляющего пользователя
@@ -131,7 +137,7 @@ declare -x -f input_addSite_php
 #3 - добавляемый пользователь $2 уже существует
 #4 - пользователь отменил создание пользователя $1
 #5 - пользователь не создан. Ошибка выполнения функции
-userAddSystem_input() {
+input_userAddSystem() {
 
     #Проверка на существование параметров запуска скрипта
     if [ -n "$1" ]
@@ -151,7 +157,7 @@ userAddSystem_input() {
                     	if  [ $? -eq 0 ]
                     	then
                     	#Пользователь $2 существует
-                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_YELLOW}  ${COLOR_NC}"
+                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_YELLOW}  ${COLOR_NC}"
                     		return 3
                     	#Пользователь $2 существует (конец)
                     	else
@@ -173,7 +179,7 @@ userAddSystem_input() {
                     	if  [ $? -eq 0 ]
                     	then
                     	#Пользователь $username существует
-                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_YELLOW}  ${COLOR_NC}"
+                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_YELLOW}  ${COLOR_NC}"
                     		return 3
                     	#Пользователь $username существует (конец)
                     	fi
@@ -224,7 +230,7 @@ userAddSystem_input() {
                 	#Пользователь $username существует (конец)
                 	else
                 	#Пользователь $username не существует
-                	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не создан. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_NC}"
+                	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не создан. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_NC}"
                 		return 5
                 	#Пользователь $username не существует (конец)
                 	fi
@@ -234,7 +240,7 @@ userAddSystem_input() {
         	#Пользователь $1 существует (конец)
         	else
         	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem_input\"${COLOR_NC}"
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_NC}"
         		return 2
         	#Пользователь $1 не существует (конец)
         	fi
@@ -250,6 +256,7 @@ userAddSystem_input() {
 }
 
 #Выполенние операций по созданию системного пользователя
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1-username ;
 #$2-homedir ;
@@ -402,7 +409,7 @@ userAddSystem()
 
 
 #Вывод всех пользователей группы users
-###Полностью готово. Не трогать. 06.03.2019 г.
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1 - может быть выведен дополнительно текст, предшествующий выводу списка пользователей
 ###return:
@@ -466,7 +473,6 @@ viewUserFullInfo() {
 			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
-			    viewUserGroups $1
 				echo "Описать функцию viewUserFullInfo. Пользователь $1 существует"
 				return 0
 			#Пользователь $1 существует (конец)
@@ -487,56 +493,6 @@ viewUserFullInfo() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Вывод списка групп, в которых состоит пользователь $1
-###Полностью готово. Не трогать. 06.03.2019 г.
-###input:
-#$1-user ;
-###return:
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь $1 не найден
-viewUserGroups() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		grep "^$1:" /etc/passwd >/dev/null
-		#Проверка на успешность выполнения предыдущей команды
-		if [ $? -eq 0 ]
-			then
-				#предыдущая команда завершилась успешно
-				#echo -e "${COLOR_YELLOW}Список групп, в которых состоит пользователь ${COLOR_GREEN}\""$1"\"${COLOR_NC}: "
-		        grep "$1" /etc/group | highlight green "$1"
-
-		        #Проверка наличия пользователя в группе users
-		        userExistInGroup $1 users
-		        #Проверка на успешность выполнения предыдущей команды
-		        if [ $? -eq 0 ]
-		        	then
-		        		#предыдущая команда завершилась успешно
-		        		echo -e "users:x:100:$1" | highlight green "$1"
-		        		return 0
-		        		#предыдущая команда завершилась успешно (конец)
-		        fi
-		        #Конец проверки на успешность выполнения предыдущей команды
-
-				#предыдущая команда завершилась успешно (конец)
-			else
-				#предыдущая команда завершилась с ошибкой
-				echo -e "${COLOR_RED}Пользователь ${COLOR_YELLOW}\"$1\"${COLOR_RED} не найден. Ошибка выполнения функции ${COLOR_YELLOW}\"viewUserGroups\"${COLOR_NC}"
-				return 2
-				#предыдущая команда завершилась с ошибкой (конец)
-		fi
-		#Конец проверки на успешность выполнения предыдущей команды
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUserGroups\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Функция проверяет состоит ли пользователь $1 в группе $2
 ###Полностью готово. Не трогать. 06.03.2019 г.
@@ -662,6 +618,7 @@ existGroup() {
 
 
 #Вывод всех пользователей группы admin-access
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 viewGroupAdminAccessAll(){
 	echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access:\":${COLOR_NC}"
 	more /etc/group | grep admin-access: | highlight magenta "admin-access"
@@ -677,8 +634,10 @@ viewGroupAdminAccessAll(){
 viewGroupAdminAccessByName(){
 	if [ -n "$1" ]
 	then
-		echo -e "\n${COLOR_YELLOW}Список пользователей группы \"admin-access\", содержащих в имени ${COLOR_GREEN}\"$1\"${COLOR_NC}"
+		echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"admin-access\"${COLOR_YELLOW}, содержащих в имени ${COLOR_GREEN}\"$1\":${COLOR_NC}"
 		more /etc/group | grep -E "admin.*$1" | highlight green "$1" | highlight magenta "admin-access"
+		#Проверка на успешность выполнения предыдущей команды
+		#Конец проверки на успешность выполнения предыдущей команды
 	else
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewGroupAdminAccessByName\"${COLOR_RED} ${COLOR_NC}"
 		return 1
@@ -686,7 +645,7 @@ viewGroupAdminAccessByName(){
 }
 
 #Вывод всех пользователей группы sudo
-#Полностью готово. 13.03.2019 г.
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 viewGroupSudoAccessAll(){
 		echo -e "\n${COLOR_YELLOW}Список пользователей группы \"sudo\":${COLOR_NC}"
 		more /etc/group | grep sudo: | highlight magenta "sudo"
@@ -751,21 +710,37 @@ viewUserInGroupUsersByPartName() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
 #Вывод групп, в которых состоит указанный пользователь
-# $1 - имя пользователя
-#return 0 - выполнено успешно, 1 - не передан параметр
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+###input
+#$1 - имя пользователя
+#return
+#0 - выполнено успешно,
+#1 - не передан параметр
 viewUserInGroupByName(){
 	if [ -n "$1" ]
 		then
 			cat /etc/group | grep -P $1 | highlight green $1 | highlight magenta "ssh-access" | highlight magenta "ftp-access" | highlight magenta "sudo" | highlight magenta "admin-access"
+			userExistInGroup $1 users
+		        #Проверка на успешность выполнения предыдущей команды
+		        if [ $? -eq 0 ]
+		        	then
+		        		#предыдущая команда завершилась успешно
+		        		echo -e "users:x:100:$1" | highlight green "$1" | highlight magenta "users"
+		        		return 0
+		        		#предыдущая команда завершилась успешно (конец)
+		        fi
+		        #Конец проверки на успешность выполнения предыдущей команды
+			return 0
 		else
-			echo -e "${COLOR_LIGHT_RED}Не передан параметр в функцию viewUserInGroupByName в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
+			echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUserInGroupByName\"${COLOR_RED} ${COLOR_NC}"
 			return 1
 		fi
 }
 
 #Вывод списка пользователей, входящих в группу $1
-#Проверено полностью. 13.03.2019 г.
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1-группа ;
 #return
@@ -783,6 +758,9 @@ viewUsersInGroup() {
 		        #Группа "$1" существует
 		         echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"$1\":${COLOR_NC}"
 	             more /etc/group | grep "$1:" | highlight magenta "$1"
+	             if [ "$1" == "users" ]
+	                then viewGroupUsersAccessAll
+	             fi
 	             return 0
 		        #Группа "$1" существует (конец)
 		    else
@@ -1964,7 +1942,7 @@ dbViewBasesByUsername() {
 
 
 #добавление записи в таблицу
-#Полностью проверено. 13.03.2019
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1-dbname ;
 #$2-table;
@@ -2046,8 +2024,7 @@ dbAddRecordToDb() {
 
 
 #обновление записи в таблице
-#Полностью проверено. 13.03.2019
-#ПРОТЕСТИРОВАНО
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
 #$1-dbname ;
 #$2-table;
@@ -3979,6 +3956,7 @@ chModAndOwnFile() {
 }
 
 #Создание папки и применение ей владельца и прав доступа
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
 #$1-путь к папке ;
 #$2-user ;
@@ -5158,9 +5136,9 @@ menuUser() {
  	            echo ''
                 echo -e "${COLOR_GREEN} ===Управление пользователями===${COLOR_NC}"
 
-                echo '1: Добавить пользователя ssh'
+                echo '1: Добавить пользователя'
                 echo '2: Удаление пользователя'
-                echo '3: Список пользователей'
+                echo '3: Информация о пользователях'
 
                 echo '0: Назад'
                 echo 'q: Выход'
@@ -5170,9 +5148,9 @@ menuUser() {
                 while read
                     do
                         case "$REPLY" in
-                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; userAddSystem_input"; break;;
+                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $1"; menuUser $1; break;;
                         "2")  userDelSystem_input $1; break;;
-                        "3")  $MENU/submenu/users_info.sh $1; break;;
+                        "3")  menuUsers_info $1; break;;
                         "0")  menuMain $1;  break;;
                         "q"|"Q")  exit 0;;
                          *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
@@ -5195,9 +5173,16 @@ menuUsers_info() {
         echo -e "${COLOR_GREEN} ===Информация о пользователях===${COLOR_NC}"
 
         echo "1: Члены группы \"Users\""
-        echo "2: Члены группы \"sudo\""
-        echo "3: Члены группы \"ssh-access\""
-        echo "4: Список групп конкретного пользователя"
+        echo "2: Члены группы \"Users\", содаржащих определенные символы"
+        echo "3: Список пользователей группы \"sudo\""
+        echo "4: Список пользователей группы \"sudo\", содаржащих определенные символы"
+        echo "5: Список пользователей группы \"admin-access\""
+        echo "6: Список пользователей группы \"admin-access\", содаржащих определенные символы"
+        echo "7: Список пользователей группы \"ssh-access\""
+        echo "8: Список пользователей группы \"ftp-access\""
+        echo "9: Список пользователей произвольной группы"
+        echo "10: Список групп конкретного пользователя"
+        echo "11: Сводная информация о пользователе"
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -5207,10 +5192,18 @@ menuUsers_info() {
         while read
             do
                 case "$REPLY" in
-                "1")   $1; break;;
-                "2")   $1; break;;
-                "3")   $1; break;;
-                "4")   $1; break;;
+                "1") clear; viewGroupUsersAccessAll "Список пользователей группы \"Users\":"  $1; menuUsers_info $1; break;;
+                "2") input_viewUserInGroupUsersByPartName; menuUsers_info $1; break;;
+                "3") clear; viewGroupSudoAccessAll; menuUsers_info $1; break;;
+                "4") input_viewGroupSudoAccessByName; menuUsers_info $1; break;;
+                "5") clear; viewGroupAdminAccessAll; menuUsers_info $1; $1; break;;
+                "6") input_viewGroupAdminAccessByName; menuUsers_info $1; break;;
+                "7") clear; viewUsersInGroup "ssh-access"; menuUsers_info $1; break;;
+                "8") clear; viewUsersInGroup "ftp-access"; menuUsers_info $1; break;;
+                "9") input_viewGroup; menuUsers_info $1; break;;
+                "10") input_viewUsersInGroup; menuUsers_info $1; break;;
+                "11") input_viewUserFullInfo; menuUsers_info $1; break;;
+
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
@@ -5729,6 +5722,112 @@ menuMysql() {
 
 
 ###############################################input####################################################
+#Запрос имени пользователя для вывода списка групп, в которых он состоит
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+input_viewUsersInGroup() {
+    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
+    read username
+    #Проверка существования системного пользователя "$username"
+    	grep "^$username:" /etc/passwd >/dev/null
+    	if  [ $? -eq 0 ]
+    	then
+    	#Пользователь $username существует
+    		clear
+    		echo -e "${COLOR_YELLOW}Список групп, в которые входит пользователь ${COLOR_GREEN}\"$username\":${COLOR_NC}"
+    		viewUserInGroupByName $username
+    		return 0
+    	#Пользователь $username существует (конец)
+    	else
+    	#Пользователь $username не существует
+    	    clear
+    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_viewUsersInGroup\"${COLOR_NC}"
+    		return 1
+    	#Пользователь $username не существует (конец)
+    	fi
+    #Конец проверки существования системного пользователя $username
+}
+
+#Запрос имени пользователя для вывода полной информации о пользователе
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+input_viewUserFullInfo() {
+    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
+    read username
+    #Проверка существования системного пользователя "$username"
+    	grep "^$username:" /etc/passwd >/dev/null
+    	if  [ $? -eq 0 ]
+    	then
+    	#Пользователь $username существует
+    		clear
+    		echo -e "${COLOR_YELLOW}Сводная информация о пользователе ${COLOR_GREEN}\"$username\":${COLOR_NC}"
+    		viewUserFullInfo $username
+    		return 0
+    	#Пользователь $username существует (конец)
+    	else
+    	#Пользователь $username не существует
+    	    clear
+    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_viewUsersInGroup\"${COLOR_NC}"
+    		return 1
+    	#Пользователь $username не существует (конец)
+    	fi
+    #Конец проверки существования системного пользователя $username
+}
+
+#Запрос части имени пользователя для вывода пользователей группы admin-access
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+input_viewGroupAdminAccessByName() {
+    echo -e -n "${COLOR_YELLOW}Введите имя или часть имени для поиска пользователей группы ${COLOR_GREEN}\"admin-access\"${COLOR_YELLOW}: ${COLOR_NC}"
+    read username
+    clear
+    viewGroupAdminAccessByName $username
+}
+
+#Запрос части имени пользователя для вывода пользователей группы sudo
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+input_viewGroupSudoAccessByName() {
+    echo -e -n "${COLOR_YELLOW}Введите имя или часть имени для поиска пользователей группы ${COLOR_GREEN}\"sudo\"${COLOR_YELLOW}: ${COLOR_NC}"
+    read username
+    clear
+    viewGroupSudoAccessByName $username
+}
+
+#Запрос части имени пользователя для вывода пользователей группы users
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+input_viewUserInGroupUsersByPartName() {
+    echo -e -n "${COLOR_YELLOW}Введите имя или часть имени для поиска пользователей группы ${COLOR_GREEN}\"users\"${COLOR_YELLOW}: ${COLOR_NC}"
+    read username
+    clear
+    viewUserInGroupUsersByPartName $username
+}
+
+#Запрос названия группы для вывода списка ее членов
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+#return
+#0 - выполнено успешно
+#1 - группа не существует
+input_viewGroup() {
+    echo -e -n "${COLOR_BLUE}"Введите название группы: "${COLOR_NC}"
+    read groupname
+    #Проверка существования системной группы пользователей "$groupname"
+    clear
+    if grep -q $groupname /etc/group
+        then
+            #Группа "$groupname" существует
+             viewUsersInGroup $groupname
+             return 0
+            #Группа "$groupname" существует (конец)
+        else
+            #Группа "$groupname" не существует
+            echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$groupname\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_viewGroup\"${COLOR_NC}"
+    		return 1
+    		#Группа "$groupname" не существует (конец)
+        fi
+    #Конец проверки существования системной группы пользователей $groupname
+
+
+
+
+}
+
 #Форма ввода данных для добавления сайта php
 ###input
 #$1-username ;
