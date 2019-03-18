@@ -135,8 +135,8 @@ declare -x -f testFunction
 #Добавление системного пользователя - ввод данных
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
-#1 - имя добавляемого пользователя,
-#2 - имя добавляющего пользователя
+#1 - имя добавляющео пользователя,
+#2 - имя добавляемого пользователя
 ###return:
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
@@ -257,7 +257,7 @@ input_userAddSystem() {
     #Параметры запуска существуют (конец)
     else
     #Параметры запуска отсутствуют
-        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"\"${COLOR_RED} ${COLOR_NC}"
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_RED} ${COLOR_NC}"
         return 1
     #Параметры запуска отсутствуют (конец)
     fi
@@ -1850,7 +1850,7 @@ dbViewAllUsersByContainName() {
 		#Параметры запуска существуют (конец)
 		else
 		#Параметры запуска отсутствуют
-		    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbViewAllUsersByContainName\"${COLOR_RED} ${COLOR_NC}"
+		    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewAllUsersByContainName\"${COLOR_RED} ${COLOR_NC}"
 		    return 1
 		#Параметры запуска отсутствуют (конец)
 		fi
@@ -2401,7 +2401,7 @@ backupSiteFiles() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"backupSiteFiles\"${COLOR_RED} ${COLOR_NC}"
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupSiteFiles\"${COLOR_RED} ${COLOR_NC}"
 	    return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -2772,7 +2772,7 @@ dbBackupBase() {
     #Параметры запуска существуют (конец)
     else
     #Параметры запуска отсутствуют
-        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbBackupBase\"${COLOR_RED} ${COLOR_NC}"
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbBackupBase\"${COLOR_RED} ${COLOR_NC}"
         return 1
     #Параметры запуска отсутствуют (конец)
     fi
@@ -2938,7 +2938,7 @@ dbBackupAllBases() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_RED} ${COLOR_NC}"
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbBackupAllBases\"${COLOR_RED} ${COLOR_NC}"
 	    return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -3101,7 +3101,7 @@ dbBackupBasesOneUser() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_RED} ${COLOR_NC}"
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_RED} ${COLOR_NC}"
 	    return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -4743,7 +4743,7 @@ sshKeyAddToUser()
     #Параметры запуска существуют (конец)
     else
     #Параметры запуска отсутствуют
-        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"sshKeyAddToUser\"${COLOR_RED} ${COLOR_NC}"
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyAddToUser\"${COLOR_RED} ${COLOR_NC}"
         return 1
     #Параметры запуска отсутствуют (конец)
     fi
@@ -4898,7 +4898,7 @@ viewSiteConfigsByName(){
 		echo $LINE
 		return 0
 	else
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"viewSiteConfigsByName\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewSiteConfigsByName\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	fi
 }
@@ -4922,7 +4922,7 @@ viewSiteFoldersByName(){
 			return 2
         fi
 	else
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"viewSiteFoldersByName\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewSiteFoldersByName\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	fi
 }
@@ -5209,7 +5209,7 @@ menuUser() {
                 while read
                     do
                         case "$REPLY" in
-                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $1"; menuUser $1; break;;
+                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $USERNAME"; menuUser $1; break;;
                         "2")  userDelSystem_input $1; break;;
                         "3")  menuUsers_info $1; break;;
                         "0")  menuMain $1;  break;;
