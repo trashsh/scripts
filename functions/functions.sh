@@ -113,6 +113,12 @@ declare -x -f menuServer_quota
 declare -x -f menuMysql
 
 
+
+
+######################################input##########################################
+declare -x -f input_addSite_php
+
+
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
 ###input:
@@ -5085,7 +5091,7 @@ menuSite() {
         while read
             do
                 case "$REPLY" in
-                "1")  $MENU/submenu/site_add.sh $1; break;;
+                "1")  menuSiteAdd $1; break;;
                 "2")  $SCRIPTS/webserver/remove/remove_site.sh $1; break;;
                 "3")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
                 "4")  $MENU/submenu/site_cert.sh $1; break;;
@@ -5133,7 +5139,7 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1")   $1; break;;
+                "1") input_addSite_php $1; break;;
                 "2")   $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
@@ -5794,4 +5800,67 @@ menuMysql() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+
+###############################################input####################################################
+#Форма ввода данных для добавления сайта php
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+input_addSite_php() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		echo "--------------------------------------"
+        echo "Добавление виртуального хоста."
+        if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
+            sudo mkdir -p $HOMEPATHWEBUSERS/$1
+        fi
+
+        echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
+
+        ls $HOMEPATHWEBUSERS/$1
+        echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
+        read domain
+        site_path=$HOMEPATHWEBUSERS/$1/$domain
+        echo ''
+        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+        ls $TEMPLATES/apache2/
+        echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+        echo -n ": "
+        read apache_config
+        echo ''
+        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+        ls $TEMPLATES/nginx/
+        echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+        echo -n ": "
+        read nginx_config
+        echo ''
+        echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+        echo -n ": "
+        read item
+        case "$item" in
+            y|Y) echo
+                siteAdd_php $1 $domain $1 $site_path $apache_config $nginx_config
+                exit 0
+                ;;
+            *) echo "Выход..."
+                exit 0
+                ;;
+        esac
+        #Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_addSite_php\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
 }
