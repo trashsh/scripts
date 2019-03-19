@@ -128,7 +128,7 @@ declare -x -f input_viewGroup
 declare -x -f input_sshSettings
 declare -x -f input_userDelete_system
 declare -x -f input_userAddSystem
-declare -x -f input_dbUserDelete
+declare -x -f input_dbUseradd
 declare -x -f input_dbUseradd_querry
 declare -x -f input_dbUserDelete_querry
 
@@ -1260,6 +1260,142 @@ dbUseradd() {
 }
 
 
+
+
+#Запрос имени пользователя для добавления пользователя mysql (основного пользователя)
+###input
+#$1 - системный пользователь, запускающий функцию
+#$2 - mode (main/dop) - основной или дополнительный пользователь
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь уже существует
+#3 - операция отменена пользователем
+#4 - ошибка передачи параметра mode (main/dop)
+input_dbUseradd() {
+    #Проверка на существование параметров запуска скрипта
+    if [ -n "$1" ] && [ -n "$2" ]
+    then
+    #Параметры запуска существуют
+        case "$2" in
+            main)
+                username=$user
+                ;;
+            dop)
+                username="$1"-"$user"
+                ;;
+        	*)
+        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}";
+        	    return 4
+        	    ;;
+        esac
+
+
+
+
+
+    #Параметры запуска существуют (конец)
+    else
+    #Параметры запуска отсутствуют
+        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_RED} ${COLOR_NC}"
+        return 1
+    #Параметры запуска отсутствуют (конец)
+    fi
+    #Конец проверки существования параметров запуска скрипта
+
+
+
+
+
+
+
+
+
+
+
+
+	clear
+	echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
+	dbViewAllUsers
+	echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql: ${COLOR_NC}"
+	read user
+
+
+	#Проверка на существование пользователя mysql "$username"
+	if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
+	then
+	#Пользователь mysql "$username" существует
+	    echo -e "${COLOR_YELLOW}Пользователь mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует.${COLOR_NC}"
+	    return 2
+	#Пользователь mysql "$username" существует (конец)
+	else
+	#Пользователь mysql "$username" не существует
+	    echo -n -e "${COLOR_YELLOW}Для добавления пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены добавления  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+	        while read
+	        do
+	            case "$REPLY" in
+	                y|Y)
+
+                        echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                            while read
+                            do
+                                case "$REPLY" in
+                                y|Y) password="$(openssl rand -base64 14)";
+                                    # echo -e "${COLOR_GREEN}Пароль для пользователя mysql ${COLOR_YELLOW}$usernameFull: ${COLOR_YELLOW}$password${COLOR_GREEN}  ${COLOR_NC}"
+                                     break;;
+                                n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$username\":${COLOR_NC}";
+                                     read password;
+                                     if [[ -z "$password" ]]; then
+                                        #переменная имеет пустое значение
+                                        echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$username\""${COLOR_NC}"
+                                        return 5
+                                     fi
+                                     break;;
+                                esac
+                            done
+
+
+                            echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
+                            	while read
+                            	do
+                                	case "$REPLY" in
+                            	    	localhost)
+                                            host=localhost;
+                            		    	break;;
+                            		    %)
+                                            host="%";
+                            			    break;;
+                            			*)
+                            			     echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd_querry\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
+                            	    esac
+                            done
+
+                            dbUseradd $username $password $host pass user $1
+                            clear
+                            echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
+                            dbViewAllUsers
+                            dbViewNewUserInfo $username $password $host
+                            dbCreateBase "$username"_test utf8 utf8_general_ci full_info
+                            dbViewBasesByUsername $username
+
+	                    break
+	                    ;;
+	                n|N)
+                        echo -e "${COLOR_YELLOW}Отмена создания пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW}${COLOR_NC}"
+	                    return 3;
+	                    break
+	                    ;;
+	                *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+	                   ;;
+	            esac
+	        done
+	#Пользователь mysql "$usernameFull" не существует (конец)
+	fi
+	#Конец проверки на существование пользователя mysql "$usernameFull"
+}
+
+
+
 #Запрос имени пользователя для добавления пользователя mysql
 ###input
 #$1 - системный пользователь, запускающий функцию
@@ -1269,6 +1405,8 @@ dbUseradd() {
 #2 - пользователь уже существует
 #3 - операция отменена пользователем
 input_dbUseradd_querry() {
+	clear
+	echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
 	dbViewAllUsers
 	echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql. Он будет добавлен в формате \"${COLOR_YELLOW}$1${COLOR_GREEN}_User${COLOR_BLUE}\": ${COLOR_NC}"
 	read username
@@ -1323,8 +1461,12 @@ input_dbUseradd_querry() {
                             done
 
                             dbUseradd $usernameFull $password $host pass user $1
+                            clear
+                            echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
                             dbViewAllUsers
                             dbViewNewUserInfo $usernameFull $password $host
+                            dbCreateBase $usernameFull_$username utf8 utf8_general_ci full_info
+                            dbViewBasesByUsername $usernameFull
 
 	                    break
 	                    ;;
@@ -1421,13 +1563,13 @@ dbUserdel() {
 #$1-dbname ;
 #$2-CHARACTER SET (например utf8) ;
 #$3-COLLATE (например utf8_general_ci) ;
-#$4 - режим (normal/silent)
+#$4 - режим (full_info/error_only/silent)
 ###return
 #0 - выполнено успешно.
 #1 - не переданы параметры,
 #2 - база данных уже существует
 #3 - ошибка при проверке наличия базы после ее создания,
-#4 - ошибка в параметре mode - silent/normal
+#4 - ошибка в параметре mode - full_info/error_only/silent
 dbCreateBase() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
@@ -3026,11 +3168,13 @@ dbBackupAllBases() {
 
 
 #создание бэкапа всех баз данных одного пользователя
-#$1-user ;
-#$2-owner group ;
-#$3-разрешения на файл ;
-#$4-mode:createfolder/nocreatefolder/querrycreatefolder ;
-#$5-Каталог выгрузки ;
+###input
+#$1-mysql_user (в названии баз данных)
+#$2-user system;
+#$3-owner group ;
+#$4-разрешения на файл ;
+#$5-mode:createfolder/nocreatefolder/querrycreatefolder ;
+#$6-Каталог выгрузки ;
 #return
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
@@ -3039,18 +3183,18 @@ dbBackupAllBases() {
 #4 - проверка выгруженного файла завершилась с ошибкой
 dbBackupBasesOneUser() {
     #Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
 	then
 	#Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
+        #Проверка существования системного пользователя "$2"
+        	grep "^$2:" /etc/passwd >/dev/null
         	if  [ $? -eq 0 ]
         	then
-        	#Пользователь $1 существует
-        		#Проверка существования системной группы пользователей "$2"
-        		if grep -q $2 /etc/group
+        	#Пользователь $2 существует
+        		#Проверка существования системной группы пользователей "$3"
+        		if grep -q $3 /etc/group
         		    then
-        		        #Группа "$2" существует
+        		        #Группа "$3" существует
 
                         d=$DATEFORMAT;
                         dt=$DATETIMEFORMAT;
@@ -3073,23 +3217,23 @@ dbBackupBasesOneUser() {
 								#echo $db
 
                                 #Проверка на существование параметров запуска скрипта
-                        if [ -n "$5" ]
+                        if [ -n "$6" ]
                         then
                         #Параметры запуска существуют
 
-                            #Проверка существования каталога "$5"
-                            if ! [ -d $5 ] ; then
-                                #Каталог "$5" не существует
-                                echo -e "${COLOR_RED} Каталог \"$5\" не найден для создания бэкапа всех баз данных mysql. Создать его? Функция ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
-                                echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$5\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                            #Проверка существования каталога "$6"
+                            if ! [ -d $6 ] ; then
+                                #Каталог "$6" не существует
+                                echo -e "${COLOR_RED} Каталог \"$6\" не найден для создания бэкапа всех баз данных mysql. Создать его? Функция ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
+                                echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$6\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
 
                                 while read
                                 do
                                 echo -n ": "
                                     case "$REPLY" in
                                     y|Y)
-                                        mkdir -p "$5";
-                                        DESTINATION=$5
+                                        mkdir -p "$6";
+                                        DESTINATION=$6
                                         #echo $DESTINATION
                                         break;;
                                     n|N)
@@ -3098,11 +3242,11 @@ dbBackupBasesOneUser() {
                                 done
                                 #Каталог "$6" не существует (конец)
                             else
-                                #Каталог "$5" существует
-                                DESTINATION=$5
-                                #Файл "$5" существует (конец)
+                                #Каталог "$6" существует
+                                DESTINATION=$6
+                                #Файл "$6" существует (конец)
                             fi
-                            #Конец проверки существования каталога "$5"
+                            #Конец проверки существования каталога "$6"
 
                         #Параметры запуска существуют (конец)
                         else
@@ -3121,8 +3265,6 @@ dbBackupBasesOneUser() {
                         fi
                         #Конец проверки существования каталога "$DESTINATION"
 
-                                #echo $1
-                               # echo $user
                                 filename=mysql.$user-"$db"-$dt.sql
                                 mysqldump --databases $db > $DESTINATION/$filename
                                 #архивация выгруженной базы и удаление оригинального файла sql
@@ -3142,26 +3284,26 @@ dbBackupBasesOneUser() {
 
 						return 0
 
-        		        #Группа "$2" существует (конец)
+        		        #Группа "$3" существует (конец)
         		    else
-        		        #Группа "$2" не существует
-        		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
+        		        #Группа "$3" не существует
+        		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
         				return 3
-        				#Группа "$2" не существует (конец)
+        				#Группа "$3" не существует (конец)
         		    fi
-        		#Конец проверки существования системной группы пользователей $2
+        		#Конец проверки существования системной группы пользователей $3
 
 
 
 
-        	#Пользователь $1 существует (конец)
+        	#Пользователь $2 существует (конец)
         	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
+        	#Пользователь $2 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}"
         		return 2
-        	#Пользователь $1 не существует (конец)
+        	#Пользователь $2 не существует (конец)
         	fi
-        #Конец проверки существования системного пользователя $1
+        #Конец проверки существования системного пользователя $2
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
@@ -3411,7 +3553,7 @@ dbCheckExportedBase() {
 }
 
 #Смена пароля пользователю mysql
-#Полностью проверено. 14.03.2019
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
 #$1-user ;
 #$2-host ;
@@ -5363,8 +5505,10 @@ menuUserMysql() {
         echo -e "${COLOR_GREEN} ===Управление пользователями mysql===${COLOR_NC}"
 
         echo '1: Добавить пользователя'
-        echo '2: Удалить пользователя'
-        echo '3: Просмотр списка пользователей'
+        echo '2: Добавить дополнительного пользователя'
+        echo '3: Удалить пользователя'
+        echo '4: Просмотр списка пользователей'
+        echo '5: Смена проля для пользователя'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -5374,9 +5518,11 @@ menuUserMysql() {
         while read
             do
                 case "$REPLY" in
-                "1") input_dbUseradd_querry $1; menuUserMysql $1; break;;
-                "2") input_dbUserDelete_querry $1; break;;
-                "3") dbViewAllUsers $1; menuUserMysql $1; break;;
+                "1") input_dbUseradd $1 main; menuUserMysql $1; break;;
+                "2") input_dbUseradd_querry $1 dop; menuUserMysql $1; break;;
+                "3") input_dbUserDelete_querry $1; break;;
+                "4") dbViewAllUsers $1; menuUserMysql $1; break;;
+                "5") input_dbChangeUserPassword $1; menuUserMysql $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
@@ -5922,6 +6068,46 @@ input_userDelete_system() {
 	  
 }
 
+declare -x -f input_dbChangeUserPassword #запрос данных для смены пароля пользователя mysql
+#запрос данных для смены пароля пользователя mysql
+###input
+#$1-имя системного пользователя;
+
+###return
+#0 - выполнено успешно
+#1 - пользователь mysql не существует
+#2 - пароль пустой. отмена выполнения
+input_dbChangeUserPassword() {
+    dbViewAllUsers
+    echo -e "${COLOR_GREEN}Смена пароля на пользователя mysql: ${COLOR_NC}"
+	echo -n -e "${COLOR_BLUE}Введите имя пользователя mysql: ${COLOR_NC}"
+	read username
+	#Проверка на существование пользователя mysql "$username"
+	if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
+	then
+	#Пользователь mysql "$username" существует
+        echo -n -e "${COLOR_BLUE}Введите новый пароль для пользователя ${COLOR_YELLOW}\"$username\"${COLOR_BLUE}: ${COLOR_NC}"
+	    read password
+	    if [[ -z "$password" ]]; then
+             #переменная имеет пустое значение
+              echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена смены пароля пользователя ${COLOR_GREEN}\"$username\""${COLOR_NC}"
+              return 2
+        else
+            echo -n -e "${COLOR_BLUE}Введите хост  ${COLOR_YELLOW}\"(localhost/%)\"${COLOR_BLUE}: ${COLOR_NC}"
+	        read host
+
+           dbChangeUserPassword $username $host $password mysql_native_password $1
+
+        fi
+	#Пользователь mysql "$username" существует (конец)
+	else
+	#Пользователь mysql "$username" не существует
+	    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_dbChangeUserPassword\" ${COLOR_NC}"
+	    return 1
+	#Пользователь mysql "$username" не существует (конец)
+	fi
+	#Конец проверки на существование пользователя mysql "$username"
+}
 
 #Запрос имени пользователя mysql на удаление
 ###return
@@ -5930,6 +6116,8 @@ input_userDelete_system() {
 #3 - операция отменена пользователем
 input_dbUserDelete_querry() {
     dbViewAllUsers
+    d=$DATEFORMAT
+
 	echo -n -e "${COLOR_BLUE}Введите имя пользователя mysql для его удаления: ${COLOR_NC}"
 	read username
 	#Проверка на существование пользователя mysql "$username"
@@ -5940,7 +6128,11 @@ input_dbUserDelete_querry() {
             while read
             do
                 case "$REPLY" in
-                    y|Y) 		
+                    y|Y)
+                        path=$BACKUPFOLDER/vds/removed/$username/$d
+                        sudo bash -c "source $SCRIPTS/include/inc.sh; mkdirWithOwn $path $USERLAMER users 755"
+                        sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBasesOneUser $username $USERLAMER users 644 createfolder $path"
+                        clear;
                         dbUserdel $username drop; dbViewAllUsers; menuUserMysql $1;
                         return 0;
                         break
@@ -5966,41 +6158,6 @@ input_dbUserDelete_querry() {
 	#Конец проверки на существование пользователя mysql "$username"
 }
 
-#запрос удаления пользователя mysql
-###input
-#$1-username ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-input_dbUserDelete() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка на существование пользователя mysql "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
-		then
-		#Пользователь mysql "$1" существует
-            dbViewUserInfo $1 1
-            dbViewBasesByUsername $1
-		#Пользователь mysql "$1" существует (конец)
-		else
-		#Пользователь mysql "$1" не существует
-		    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_dbUserDelete\" ${COLOR_NC}"
-		    return 2
-		#Пользователь mysql "$1" не существует (конец)
-		fi
-		#Конец проверки на существование пользователя mysql "$1"
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_dbUserDelete\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Запрос имени пользователя для вывода полной информации о пользователе
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
@@ -6285,7 +6442,7 @@ testFunction() {
 
     read  user
 
-    input_dbUserDelete user
+    dbBackupBasesOneUser user
 
     echo ""
     echo $?
