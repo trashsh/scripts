@@ -342,7 +342,7 @@ userAddSystem()
 
 
                                         #mysql-добавление информации о пользователе
-                                        dt=$DATETIMESQLFORMAT
+                                        dt=`date +%Y-%m-%d\ %H:%M:%S`
                                         dbAddRecordToDb $WEBSERVER_DB users username $1 insert
                                         dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
                                         dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$dt" update
@@ -2426,8 +2426,8 @@ dbExistTable() {
 #5 - ошибка передачи параметра mode:createDestFolder/querryCreateDestFolder
 #6 - ошибка при проверке заархивированного файла
 backupSiteFiles() {
-    d=$DATEFORMAT;
-	dt=$DATETIMEFORMAT;
+    d=`date +%Y.%m.%d`;
+	dt=`date +%Y.%m.%d-%H.%M.%S`;
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
@@ -2598,7 +2598,7 @@ backupUserSitesFiles() {
 #3 - файл $3 не найден
 #4 - в процессе архивации возникла ошибка
 backupImportantFile() {
-	dt=$DATETIMEFORMAT
+	dt=`date +%Y.%m.%d-%H.%M.%S`
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
@@ -2664,8 +2664,8 @@ backupImportantFile() {
 dbBackupBase() {
 	#	d=`date +%Y.%m.%d`;
     #	dt=`date +%Y.%m.%d_%H.%M.%S`;
-    date=$DATEFORMAT
-    datetime=$DATETIMEFORMAT
+    date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
 
     #Проверка на существование параметров запуска скрипта
     if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
@@ -2931,8 +2931,8 @@ dbBackupAllBases() {
         		    then
         		        #Группа "$2" существует
 
-                        d=$DATEFORMAT;
-                        dt=$DATETIMEFORMAT;
+                        d=`date +%Y.%m.%d`;
+                        dt=`date +%Y.%m.%d-%H.%M.%S`;
                         databases=`mysql -e "SHOW DATABASES;" | tr -d "| " | grep -v Database`
 
 
@@ -3096,8 +3096,8 @@ dbBackupBasesOneUser() {
         		    then
         		        #Группа "$3" существует
 
-                        d=$DATEFORMAT;
-                        dt=$DATETIMEFORMAT;
+                        d=`date +%Y.%m.%d`;
+                        dt=`date +%Y.%m.%d-%H.%M.%S`;
                         databases=`mysql -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME like '$1_%'" | tr -d "| " | grep -v SCHEMA_NAME`
 
 
@@ -3234,8 +3234,8 @@ dbBackupTable() {
 	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
-		d=$DATEFORMAT;
-	    dt=$DATETIMEFORMAT;
+		d=`date +%Y.%m.%d`;
+	    dt=`date +%Y.%m.%d-%H.%M.%S`;
 	    #проверка существования базы данных "$1"
 	    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
 	    	then
@@ -3479,28 +3479,6 @@ dbChangeUserPassword() {
                 #Пользователь mysql "$1" существует
                     mysql -e "ALTER USER '$1'@'$2' IDENTIFIED WITH '$4' BY '$3';"
                     echo -e "${COLOR_LIGHT_PURPLE}Пароль пользователя $1 изменен ${COLOR_NC}"
-                    #корректирование файла ~/.my.cnf
-                    #Проверка на существование параметров запуска скрипта
-                    if [ -n "$5" ]
-                    then
-                        #Проверка существования системного пользователя "$5"
-                        	grep "^$5:" /etc/passwd >/dev/null
-                        	if  [ $? -eq 0 ]
-                        	then
-                        	#Пользователь $5 существует
-                        		dbSetMyCnfFile $5 $1 $3
-                        	#Пользователь $5 существует (конец)
-                        	else
-                        	#Пользователь $5 не существует
-                        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$5\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbChangeUserPassword\"${COLOR_NC}"
-                        		return 3
-                        	#Пользователь $5 не существует (конец)
-                        	fi
-                        #Конец проверки существования системного пользователя $5
-
-                    #Параметры запуска существуют (конец)
-                    fi
-                    #Конец проверки существования параметров запуска скрипта
                     return 0
             #Пользователь mysql "$1" существует (конец)
 		else
@@ -4102,6 +4080,7 @@ mkdirWithOwn() {
 		    		            chmod $4 $1
 				                chown $2:$3 $1
 				                return 0
+
 		    		        #Группа "$3" существует (конец)
 		    		    else
 		    		        #Группа "$3" не существует
@@ -4650,8 +4629,8 @@ sshKeyGenerateToUser() {
 		#Пользователь $1 существует
 
                         DATE=`date '+%Y-%m-%d__%H-%M-%S'`
-                        #DATE_TYPE2=$DATETIMESQLFORMAT
-						DATE_TYPE2=$DATETIMEFORMAT
+                        #DATE_TYPE2=$`date +%Y-%m-%d\ %H:%M:%S`
+						DATE_TYPE2=`date +%Y.%m.%d-%H.%M.%S`
                     #Проверка существования каталога "$2/.ssh"
                         if [ -d $2/.ssh ] ; then
                             #Каталог "$2/.ssh" существует
@@ -5997,14 +5976,21 @@ input_dbChangeUserPassword() {
             echo -n -e "${COLOR_BLUE}Введите хост  ${COLOR_YELLOW}\"(localhost/%)\"${COLOR_BLUE}: ${COLOR_NC}"
 	        read host
 
-           dbChangeUserPassword $username $host $password mysql_native_password $1
-
-           #TODO меняется пароль в cnf-файле lamer
+           dbChangeUserPassword $username $host $password mysql_native_password $1           
            #Проверка на успешность выполнения предыдущей команды
            if [ $? -eq 0 ]
            	then
            		#предыдущая команда завершилась успешно
            		dbViewNewUserInfo $username $password $host
+           		#Проверка существования системного пользователя "$username"
+           			grep "^$username:" /etc/passwd >/dev/null
+           			if  [ $? -eq 0 ]
+           			then
+           			#Пользователь $username существует
+           				dbSetMyCnfFile $username $username $password
+           			#Пользователь $username существует (конец)
+           			fi
+           		#Конец проверки существования системного пользователя $username
            		#предыдущая команда завершилась успешно (конец)
            	else
            		#предыдущая команда завершилась с ошибкой
@@ -6032,7 +6018,7 @@ input_dbChangeUserPassword() {
 #3 - операция отменена пользователем
 input_dbUserDelete_querry() {
     dbViewAllUsers
-    d=$DATEFORMAT
+    d=`date +%Y.%m.%d`
 
 	echo -n -e "${COLOR_BLUE}Введите имя пользователя mysql для его удаления: ${COLOR_NC}"
 	read username

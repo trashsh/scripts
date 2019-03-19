@@ -7,8 +7,8 @@ source $SCRIPTS/include/inc.sh
 #Проверка на существование параметров запуска скрипта
 #	d=`date +%Y.%m.%d`;
 #	dt=`date +%Y.%m.%d_%H.%M.%S`;
-    d=$DATEFORMAT
-    dt=$DATETIMEFORMAT
+    d=`date +%Y.%m.%d`
+    dt=`date +%Y.%m.%d-%H.%M.%S`
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
