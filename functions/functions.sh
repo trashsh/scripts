@@ -129,7 +129,6 @@ declare -x -f input_sshSettings
 declare -x -f input_userDelete_system
 declare -x -f input_userAddSystem
 declare -x -f input_dbUseradd
-declare -x -f input_dbUseradd_querry
 declare -x -f input_dbUserDelete_querry
 
 ####################################testing##########################################
@@ -1277,12 +1276,19 @@ input_dbUseradd() {
     if [ -n "$1" ] && [ -n "$2" ]
     then
     #Параметры запуска существуют
+
+        clear
+        echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
+        dbViewAllUsers
+        echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql: ${COLOR_NC}"
+        read user
+
         case "$2" in
             main)
                 username=$user
                 ;;
             dop)
-                username="$1"-"$user"
+                username=$1--$user
                 ;;
         	*)
         	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}";
@@ -1291,7 +1297,77 @@ input_dbUseradd() {
         esac
 
 
+        #Проверка на существование пользователя mysql "$username"
+        if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
+        then
+        #Пользователь mysql "$username" существует
+            clear
+            echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$username\"${COLOR_RED} уже существует.${COLOR_NC}"
+            return 2
+        #Пользователь mysql "$username" существует (конец)
+        else
+        #Пользователь mysql "$username" не существует
+            echo -n -e "${COLOR_YELLOW}Для добавления пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены добавления  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                while read
+                do
+                    case "$REPLY" in
+                        y|Y)
 
+                            echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                                while read
+                                do
+                                    case "$REPLY" in
+                                    y|Y) password="$(openssl rand -base64 14)";
+                                        # echo -e "${COLOR_GREEN}Пароль для пользователя mysql ${COLOR_YELLOW}$usernameFull: ${COLOR_YELLOW}$password${COLOR_GREEN}  ${COLOR_NC}"
+                                         break;;
+                                    n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$username\":${COLOR_NC}";
+                                         read password;
+                                         if [[ -z "$password" ]]; then
+                                            #переменная имеет пустое значение
+                                            echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$username\""${COLOR_NC}"
+                                            return 5
+                                         fi
+                                         break;;
+                                    esac
+                                done
+
+
+                                echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
+                                    while read
+                                    do
+                                        case "$REPLY" in
+                                            localhost)
+                                                host=localhost;
+                                                break;;
+                                            %)
+                                                host="%";
+                                                break;;
+                                            *)
+                                                 echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
+                                        esac
+                                done
+
+                                dbUseradd $username $password $host pass user $1
+                                clear
+                                echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
+                                dbViewAllUsers
+                                dbViewNewUserInfo $username $password $host
+                                #dbCreateBase $username utf8 utf8_general_ci full_info
+
+                            break
+                            ;;
+                        n|N)
+                            echo -e "${COLOR_YELLOW}Отмена создания пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW}${COLOR_NC}"
+                            return 3;
+                            break
+                            ;;
+                        *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+                           ;;
+                    esac
+                done
+        #Пользователь mysql "$$username" не существует (конец)
+        fi
+        #Конец проверки на существование пользователя mysql "$$username"
 
 
     #Параметры запуска существуют (конец)
@@ -1306,182 +1382,6 @@ input_dbUseradd() {
 
 
 
-
-
-
-
-
-
-
-
-	clear
-	echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
-	dbViewAllUsers
-	echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql: ${COLOR_NC}"
-	read user
-
-
-	#Проверка на существование пользователя mysql "$username"
-	if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
-	then
-	#Пользователь mysql "$username" существует
-	    echo -e "${COLOR_YELLOW}Пользователь mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует.${COLOR_NC}"
-	    return 2
-	#Пользователь mysql "$username" существует (конец)
-	else
-	#Пользователь mysql "$username" не существует
-	    echo -n -e "${COLOR_YELLOW}Для добавления пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены добавления  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-	        while read
-	        do
-	            case "$REPLY" in
-	                y|Y)
-
-                        echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                            while read
-                            do
-                                case "$REPLY" in
-                                y|Y) password="$(openssl rand -base64 14)";
-                                    # echo -e "${COLOR_GREEN}Пароль для пользователя mysql ${COLOR_YELLOW}$usernameFull: ${COLOR_YELLOW}$password${COLOR_GREEN}  ${COLOR_NC}"
-                                     break;;
-                                n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$username\":${COLOR_NC}";
-                                     read password;
-                                     if [[ -z "$password" ]]; then
-                                        #переменная имеет пустое значение
-                                        echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$username\""${COLOR_NC}"
-                                        return 5
-                                     fi
-                                     break;;
-                                esac
-                            done
-
-
-                            echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
-                            	while read
-                            	do
-                                	case "$REPLY" in
-                            	    	localhost)
-                                            host=localhost;
-                            		    	break;;
-                            		    %)
-                                            host="%";
-                            			    break;;
-                            			*)
-                            			     echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd_querry\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
-                            	    esac
-                            done
-
-                            dbUseradd $username $password $host pass user $1
-                            clear
-                            echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
-                            dbViewAllUsers
-                            dbViewNewUserInfo $username $password $host
-                            dbCreateBase "$username"_test utf8 utf8_general_ci full_info
-                            dbViewBasesByUsername $username
-
-	                    break
-	                    ;;
-	                n|N)
-                        echo -e "${COLOR_YELLOW}Отмена создания пользователя mysql ${COLOR_GREEN}\"$username\"${COLOR_YELLOW}${COLOR_NC}"
-	                    return 3;
-	                    break
-	                    ;;
-	                *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
-	                   ;;
-	            esac
-	        done
-	#Пользователь mysql "$usernameFull" не существует (конец)
-	fi
-	#Конец проверки на существование пользователя mysql "$usernameFull"
-}
-
-
-
-#Запрос имени пользователя для добавления пользователя mysql
-###input
-#$1 - системный пользователь, запускающий функцию
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь уже существует
-#3 - операция отменена пользователем
-input_dbUseradd_querry() {
-	clear
-	echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
-	dbViewAllUsers
-	echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql. Он будет добавлен в формате \"${COLOR_YELLOW}$1${COLOR_GREEN}_User${COLOR_BLUE}\": ${COLOR_NC}"
-	read username
-	usernameFull=$1\_$username
-	#Проверка на существование пользователя mysql "$usernameFull"
-	if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$usernameFull'" 2>&1`" ]];
-	then
-	#Пользователь mysql "$usernameFull" существует
-	    echo -e "${COLOR_YELLOW}Пользователь mysql ${COLOR_GREEN}\"$usernameFull\"${COLOR_YELLOW} уже существует.${COLOR_NC}"
-	    return 2
-	#Пользователь mysql "$usernameFull" существует (конец)
-	else
-	#Пользователь mysql "$usernameFull" не существует
-	    echo -n -e "${COLOR_YELLOW}Для добавления пользователя mysql ${COLOR_GREEN}\"$usernameFull\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены добавления  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-	        while read
-	        do
-	            case "$REPLY" in
-	                y|Y)
-
-                        echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $usernameFull "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                            while read
-                            do
-                                case "$REPLY" in
-                                y|Y) password="$(openssl rand -base64 14)";
-                                    # echo -e "${COLOR_GREEN}Пароль для пользователя mysql ${COLOR_YELLOW}$usernameFull: ${COLOR_YELLOW}$password${COLOR_GREEN}  ${COLOR_NC}"
-                                     break;;
-                                n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$usernameFull\":${COLOR_NC}";
-                                     read password;
-                                     if [[ -z "$password" ]]; then
-                                        #переменная имеет пустое значение
-                                        echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$usernameFull\""${COLOR_NC}"
-                                        return 5
-                                     fi
-                                     break;;
-                                esac
-                            done
-
-
-                            echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
-                            	while read
-                            	do
-                                	case "$REPLY" in
-                            	    	localhost)
-                                            host=localhost;
-                            		    	break;;
-                            		    %)
-                                            host="%";
-                            			    break;;
-                            			*)
-                            			     echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd_querry\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
-                            	    esac
-                            done
-
-                            dbUseradd $usernameFull $password $host pass user $1
-                            clear
-                            echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
-                            dbViewAllUsers
-                            dbViewNewUserInfo $usernameFull $password $host
-                            dbCreateBase $usernameFull_$username utf8 utf8_general_ci full_info
-                            dbViewBasesByUsername $usernameFull
-
-	                    break
-	                    ;;
-	                n|N)
-                        echo -e "${COLOR_YELLOW}Отмена создания пользователя mysql ${COLOR_GREEN}\"$usernameFull\"${COLOR_YELLOW}${COLOR_NC}"
-	                    return 3;
-	                    break
-	                    ;;
-	                *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
-	                   ;;
-	            esac
-	        done
-	#Пользователь mysql "$usernameFull" не существует (конец)
-	fi
-	#Конец проверки на существование пользователя mysql "$usernameFull"
 }
 
 
@@ -5519,7 +5419,7 @@ menuUserMysql() {
             do
                 case "$REPLY" in
                 "1") input_dbUseradd $1 main; menuUserMysql $1; break;;
-                "2") input_dbUseradd_querry $1 dop; menuUserMysql $1; break;;
+                "2") input_dbUseradd $1 dop; menuUserMysql $1; break;;
                 "3") input_dbUserDelete_querry $1; break;;
                 "4") dbViewAllUsers $1; menuUserMysql $1; break;;
                 "5") input_dbChangeUserPassword $1; menuUserMysql $1; break;;
@@ -6077,6 +5977,7 @@ declare -x -f input_dbChangeUserPassword #запрос данных для см�
 #0 - выполнено успешно
 #1 - пользователь mysql не существует
 #2 - пароль пустой. отмена выполнения
+#3 - произошла ошибка при смене пароля
 input_dbChangeUserPassword() {
     dbViewAllUsers
     echo -e "${COLOR_GREEN}Смена пароля на пользователя mysql: ${COLOR_NC}"
@@ -6097,6 +5998,21 @@ input_dbChangeUserPassword() {
 	        read host
 
            dbChangeUserPassword $username $host $password mysql_native_password $1
+
+           #TODO меняется пароль в cnf-файле lamer
+           #Проверка на успешность выполнения предыдущей команды
+           if [ $? -eq 0 ]
+           	then
+           		#предыдущая команда завершилась успешно
+           		dbViewNewUserInfo $username $password $host
+           		#предыдущая команда завершилась успешно (конец)
+           	else
+           		#предыдущая команда завершилась с ошибкой
+           		echo -e "${COLOR_RED}Произошла ошибка при смене пароля для mysql-пользователя ${COLOR_GREEN}\"$username\"${COLOR_RED}  ${COLOR_GREEN}\"\"${COLOR_RED}  ${COLOR_NC}"
+           		return 3
+           		#предыдущая команда завершилась с ошибкой (конец)
+           fi
+           #Конец проверки на успешность выполнения предыдущей команды
 
         fi
 	#Пользователь mysql "$username" существует (конец)
