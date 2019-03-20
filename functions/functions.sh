@@ -120,7 +120,7 @@ declare -x -f menuMysql
 
 
 ######################################input##########################################
-declare -x -f input_addSite_php
+declare -x -f input_SiteAdd_php
 declare -x -f input_viewUsersInGroup
 declare -x -f input_viewUserFullInfo
 declare -x -f input_viewGroupAdminAccessByName
@@ -5431,7 +5431,7 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") input_addSite_php $1; break;;
+                "1") input_SiteAdd_php $1; break;;
                 "2")   $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
@@ -6743,7 +6743,7 @@ siteAdd_php_input() {
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
-input_addSite_php() {
+input_SiteAdd_php() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
 	then
@@ -6789,7 +6789,7 @@ input_addSite_php() {
         #Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_addSite_php\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
