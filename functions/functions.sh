@@ -1264,13 +1264,14 @@ dbUseradd() {
 #Запрос имени пользователя для добавления пользователя mysql (основного пользователя)
 ###input
 #$1 - системный пользователь, запускающий функцию
-#$2 - mode (main/dop) - основной или дополнительный пользователь
+#$2 - mode (main/dop/dop_querry) - основной или дополнительный пользователь или дополнительный пользователь с запросом основного
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь уже существует
 #3 - операция отменена пользователем
-#4 - ошибка передачи параметра mode (main/dop)
+#4 - ошибка передачи параметра mode (main/dop/dop_querry)
+#5 - основной пользователь mainUser не существует
 input_dbUseradd() {
     #Проверка на существование параметров запуска скрипта
     if [ -n "$1" ] && [ -n "$2" ]
@@ -1280,15 +1281,37 @@ input_dbUseradd() {
         clear
         echo -e "${COLOR_GREEN}"Добавление пользователя mysql"${COLOR_NC}"
         dbViewAllUsers
-        echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql: ${COLOR_NC}"
-        read user
 
         case "$2" in
             main)
+                echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql: ${COLOR_NC}"
+                read user
                 username=$user
                 ;;
             dop)
-                username=$1--$user
+                echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql \"${COLOR_YELLOW}$1--${COLOR_GREEN}User\"${COLOR_BLUE}: ${COLOR_NC}"
+                read user
+               username=$1--$user
+                ;;
+            dop_querry)
+                  echo -n -e "${COLOR_BLUE}\nВведите имя основного пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для которого будет создан допонительный пользователь: ${COLOR_NC}"
+                  read mainUser
+                  #Проверка существования системного пользователя "$mainUser"
+                  	grep "^$mainUser:" /etc/passwd >/dev/null
+                  	if  [ $? -eq 0 ]
+                  	then
+                  	#Пользователь $mainUser существует
+                  	    echo -n -e "${COLOR_BLUE}\nВведите имя пользователя (\"${COLOR_GREEN}User${COLOR_BLUE}\") для добавления его в пользователи mysql \"${COLOR_YELLOW}$mainUser--${COLOR_GREEN}User\"${COLOR_BLUE}: ${COLOR_NC}"
+                  	    read user
+                  		username=$mainUser--$user
+                  	#Пользователь $mainUser существует (конец)
+                  	else
+                  	#Пользователь $mainUser не существует
+                  	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$mainUser\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}"
+                  		return 5
+                  	#Пользователь $mainUser не существует (конец)
+                  	fi
+                  #Конец проверки существования системного пользователя $mainUser
                 ;;
         	*)
         	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}";
@@ -1348,6 +1371,34 @@ input_dbUseradd() {
                                 done
 
                                 dbUseradd $username $password $host pass user $1
+
+
+                                case "$2" in
+                                    main)
+                                        param1=0
+                                        ;;
+                                    dop|dop_querry)
+                                        param1=1
+                                        ;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка доп.проверки параметра ${COLOR_GREEN}\"mode (main/dop/dop_querry)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}";
+                                	    ;;
+                                esac
+                                dbUpdateRecordToDb lamer_webserver db_users username $username usertype $param1 update
+                                dbUpdateRecordToDb lamer_webserver db_users username $username created_by "$1" update
+
+                                #Если есть системный пользователь с таким же именем, то сделать my.cnf
+                                #Проверка существования системного пользователя "$username"
+                                	grep "^$username:" /etc/passwd >/dev/null
+                                	if  [ $? -eq 0 ]
+                                	then
+                                	#Пользователь $username существует
+                                		dbSetMyCnfFile $username $username $password
+                                	#Пользователь $username существует (конец)
+                                	fi
+                                #Конец проверки существования системного пользователя $username
+
+
                                 clear
                                 echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
                                 dbViewAllUsers
@@ -1413,7 +1464,6 @@ dbUserdel() {
                 mysql -e "DROP USER IF EXISTS '$1'@'localhost';"
 				mysql -e "DROP USER IF EXISTS '$1'@'%';"
 
-
                 #Проверка на существование пользователя mysql "$1"
                 if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
                 then
@@ -1423,6 +1473,7 @@ dbUserdel() {
                 else
                 #Пользователь mysql "$1" не существует
                     echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}$1${COLOR_GREEN} удален ${COLOR_NC}"
+                    dbDeleteRecordFromDb lamer_webserver db_users username $1 delete
                     return 0
                 #Пользователь mysql "$1" не существует (конец)
                 fi
@@ -5385,9 +5436,10 @@ menuUserMysql() {
 
         echo '1: Добавить пользователя'
         echo '2: Добавить дополнительного пользователя'
-        echo '3: Удалить пользователя'
-        echo '4: Просмотр списка пользователей'
-        echo '5: Смена проля для пользователя'
+        echo '3: Добавить дополнительного пользователя к указанному'
+        echo '4: Удалить пользователя'
+        echo '5: Просмотр списка пользователей'
+        echo '6: Смена проля для пользователя'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -5399,9 +5451,10 @@ menuUserMysql() {
                 case "$REPLY" in
                 "1") input_dbUseradd $1 main; menuUserMysql $1; break;;
                 "2") input_dbUseradd $1 dop; menuUserMysql $1; break;;
-                "3") input_dbUserDelete_querry $1; break;;
-                "4") dbViewAllUsers $1; menuUserMysql $1; break;;
-                "5") input_dbChangeUserPassword $1; menuUserMysql $1; break;;
+                "3") input_dbUseradd $1 dop_querry; menuUserMysql $1; break;;
+                "4") input_dbUserDelete_querry $1; break;;
+                "5") dbViewAllUsers $1; menuUserMysql $1; break;;
+                "6") input_dbChangeUserPassword $1; menuUserMysql $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
@@ -6017,9 +6070,10 @@ input_dbChangeUserPassword() {
 #2 - пользователь mysql не существует
 #3 - операция отменена пользователем
 input_dbUserDelete_querry() {
+    clear
+    echo -e "${COLOR_GREEN}Удаление пользователя mysql ${COLOR_NC}"
     dbViewAllUsers
     d=`date +%Y.%m.%d`
-
 	echo -n -e "${COLOR_BLUE}Введите имя пользователя mysql для его удаления: ${COLOR_NC}"
 	read username
 	#Проверка на существование пользователя mysql "$username"
