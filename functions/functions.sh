@@ -4526,6 +4526,7 @@ touchFileWithModAndOwn() {
 ###input
 #$1-path ;
 #$2-type (create/exist)
+#$3-mode {full_info/error_only/silent}
 ###return
 #1 - не переданы параметры,
 #2 - ошибка передачи параметров
@@ -4533,6 +4534,7 @@ touchFileWithModAndOwn() {
 #4 -каталог создан,
 #5 - каталог не существует,
 #6 - каталог существует
+#7 - ошибка передачи параметров mode {full_info/error_only/silent}
 folderExistWithInfo() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ]
@@ -4541,20 +4543,82 @@ folderExistWithInfo() {
 		case "$2" in
 				"create")
 					if ! [ -d $1 ] ; then
-						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
-						return 3
+						case "$3" in
+						    full_info)
+                                echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
+						        return 3
+						        ;;
+						    error_only)
+                                echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не создан${COLOR_NC}"
+						        return 3
+						        ;;
+							silent)
+                                return 3
+								;;
+							*)
+							    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode {full_info/error_only/silent}\"${COLOR_RED} в функцию ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_NC}";
+							    return 7
+							    ;;
+						esac
+
 					else
-						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
-						return 4
+						case "$3" in
+						    full_info)
+                                echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} создан успешно${COLOR_NC}"
+						        return 4
+						        ;;
+						    error_only)
+						        return 4
+						        ;;
+							silent)
+                                return 4
+								;;
+							*)
+							    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode {full_info/error_only/silent}\"${COLOR_RED} в функцию ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_NC}";
+							    return 7
+							    ;;
+						esac
+
 					fi
 						;;
 				"exist")
 					if ! [ -d $1 ] ; then
-						echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
-						return 5
+						case "$3" in
+						    full_info)
+                                echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
+						        return 5
+						        ;;
+						    error_only)
+                                echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
+						        return 5
+						        ;;
+							silent)
+                                return 5
+								;;
+							*)
+							    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode {full_info/error_only/silent}\"${COLOR_RED} в функцию ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_NC}";
+							    return 7
+							    ;;
+						esac
+
 					else
-						echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
-						return 6
+						case "$3" in
+						    full_info)
+                                echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} существует${COLOR_NC}"
+						        return 6
+						        ;;
+						    error_only)
+
+						        return 6
+						        ;;
+							silent)
+                                return 6
+								;;
+							*)
+							    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode {full_info/error_only/silent}\"${COLOR_RED} в функцию ${COLOR_GREEN}\"folderExistWithInfo\"${COLOR_NC}";
+							    return 7
+							    ;;
+						esac
 					fi
 					;;
 				*)
@@ -4713,6 +4777,7 @@ viewSshAccess(){
 #2 - пользователь не существует
 #3 - ошибка передачи параметра mode: apache2/nginx
 #4 - ошибка передачи параметра mode: webserver folder (sites-available/sites-enabled)
+#5 - результат отрицательный
 siteViewServerConf() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ]
@@ -4771,20 +4836,30 @@ siteViewServerConf() {
                                 #предыдущая команда завершилась успешно
                                 echo -e "\n${COLOR_GREEN}Список конфигураций ${COLOR_LIGHT_RED}$name${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
                                 ls -l -A -L $folder | grep "$3_" | highlight yellow "$3_" | highlight yellow ".conf"
+                                return 0
                                 #предыдущая команда завершилась успешно (конец)
+                            else
+                                #предыдущая команда завершилась с ошибкой
+                                return 5
+                                #предыдущая команда завершилась с ошибкой (конец)
                         fi
                         #Конец проверки на успешность выполнения предыдущей команды
                else
                     if [ "$1" == "website" ]
                     then
-                        [ "$(ls -A $folder | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$")" ]
+                        [ "$(ls -A $folder | egrep "$siteDomain")" ]
                         #Проверка на успешность выполнения предыдущей команды
                         if [ $? -eq 0 ]
-                            then
+                        then
                                 #предыдущая команда завершилась успешно
                                 echo -e "\n${COLOR_GREEN}Список доменов в каталоге ${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
-                        ls -l $folder | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$"
+                                ls -l $folder | egrep "$siteDomain"
+                                return 0
                                 #предыдущая команда завершилась успешно (конец)
+                        else
+                                #предыдущая команда завершилась с ошибкой
+                                return 5
+                                #предыдущая команда завершилась с ошибкой (конец)
                         fi
                         #Конец проверки на успешность выполнения предыдущей команды
 
@@ -4809,14 +4884,14 @@ siteViewServerConf() {
                 then
 	                echo -e "\n${COLOR_GREEN}Список всех конфигураций ${COLOR_LIGHT_RED}$1${COLOR_GREEN}:${COLOR_NC}"
 		            ls -l -A -L $folder
+
 		        else
                      if [ "$1" == "website" ]
                      then
                         echo -e "\n${COLOR_GREEN}Список всех каталогов сайтов:${COLOR_NC}"
 		                 ls $HOMEPATHWEBUSERS | while read line >>/dev/null
 		                 do
-		                 	ls $HOMEPATHWEBUSERS/$line | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$"
-		                 		
+		                 	ls $HOMEPATHWEBUSERS/$line | egrep "$siteDomain"
 		                 (( i++ ))
 		                 done
                      fi
@@ -6792,6 +6867,200 @@ input_viewGroup() {
     #Конец проверки существования системной группы пользователей $groupname
 }
 
+declare -x -f input_siteExist #Проверка наличия сайта:
+#Проверка наличия сайта
+###input
+#$1-username;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+input_siteExist() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+	    #Проверка существования системного пользователя "$1"
+	    	grep "^$1:" /etc/passwd >/dev/null
+	    	if  [ $? -eq 0 ]
+	    	then
+	    	#Пользователь $1 существует
+                siteViewServerConf apache2 sites-enabled $1
+                siteViewServerConf nginx sites-enabled $1
+                siteViewServerConf apache2 sites-available $1
+                siteViewServerConf nginx sites-available $1
+                siteViewServerConf website website $1
+
+                echo "---"
+                siteViewServerConf apache2 sites-enabled
+                siteViewServerConf nginx sites-enabled
+                siteViewServerConf apache2 sites-available
+                siteViewServerConf nginx sites-available
+                siteViewServerConf website website
+
+                echo -n -e "${COLOR_BLUE}Введите домен: ${COLOR_NC}"
+	            read domain
+
+	            siteExist $domain $1 ; echo $?
+	    	#Пользователь $1 существует (конец)
+	    	else
+	    	#Пользователь $1 не существует
+	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_siteExist\"${COLOR_NC}"
+                return 2
+	    	#Пользователь $1 не существует (конец)
+	    	fi
+	    #Конец проверки существования системного пользователя $1
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"input_siteExist\"${COLOR_RED} ${COLOR_NC}"
+	    return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteExist #Проверка существования сайта: ($1-username ; $2-domain)
+#Проверка существования сайта
+###input
+#$1-domain
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - каталог домена имеется в папках пользователей
+
+
+siteExist() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+
+                #Пользователь $2 существует
+                    [ "$(ls -A $NGINXAVAILABLE | grep "_$1.conf$")" ]
+                    #Проверка на успешность выполнения предыдущей команды
+                    if [ $? -eq 0 ]
+                        then
+                            #предыдущая команда завершилась успешно
+                            nginxAvailableExist=1
+                            echo -e "${COLOR_RED}Файл конфигурации для домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует: ${COLOR_GREEN}$NGINXAVAILABLE${COLOR_YELLOW}/$(ls -A $NGINXAVAILABLE | grep "_$1.conf$") ${COLOR_NC}"
+                            #предыдущая команда завершилась успешно (конец)
+                        else
+                            #предыдущая команда завершилась с ошибкой
+                            nginxAvailableExist=0
+                            #предыдущая команда завершилась с ошибкой (конец)
+                    fi
+                    #Конец проверки на успешность выполнения предыдущей команды
+                    #echo nginxAvailableExist=$nginxAvailableExist
+
+                    [ "$(ls -A $NGINXENABLED | grep "_$1.conf$")" ]
+                    #Проверка на успешность выполнения предыдущей команды
+                    if [ $? -eq 0 ]
+                        then
+                            #предыдущая команда завершилась успешно
+                            nginxEnableExist=1
+                            echo -e "${COLOR_RED}Файл конфигурации для домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует: ${COLOR_GREEN}$NGINXENABLED${COLOR_YELLOW}/$(ls -A $NGINXAVAILABLE | grep "_$1.conf$") ${COLOR_NC}"
+                            #предыдущая команда завершилась успешно (конец)
+                        else
+                            #предыдущая команда завершилась с ошибкой
+                            nginxEnableExist=0
+                            #предыдущая команда завершилась с ошибкой (конец)
+                    fi
+                    #Конец проверки на успешность выполнения предыдущей команды
+                     #echo nginxEnableExist=$nginxEnableExist
+
+                    [ "$(ls -A $APACHEAVAILABLE | grep "_$1.conf$")" ]
+                    #Проверка на успешность выполнения предыдущей команды
+                    if [ $? -eq 0 ]
+                        then
+                            #предыдущая команда завершилась успешно
+                            apacheAvailableExist=1
+                            echo -e "${COLOR_RED}Файл конфигурации для домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует: ${COLOR_GREEN}$APACHEAVAILABLE${COLOR_YELLOW}/$(ls -A $NGINXAVAILABLE | grep "_$1.conf$") ${COLOR_NC}"
+                            #предыдущая команда завершилась успешно (конец)
+                        else
+                            #предыдущая команда завершилась с ошибкой
+                            apacheAvailableExist=0
+                            #предыдущая команда завершилась с ошибкой (конец)
+                    fi
+                    #Конец проверки на успешность выполнения предыдущей команды
+                    #echo apacheAvailableExist=$apacheAvailableExist
+
+                    [ "$(ls -A $APACHEENABLED | grep "_$1.conf$")" ]
+                    #Проверка на успешность выполнения предыдущей команды
+                    if [ $? -eq 0 ]
+                        then
+                            #предыдущая команда завершилась успешно
+                            apacheEnableExist=1
+                            echo -e "${COLOR_RED}Файл конфигурации для домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует: ${COLOR_GREEN}$APACHEENABLED${COLOR_YELLOW}/$(ls -A $NGINXAVAILABLE | grep "_$1.conf$") ${COLOR_NC}"
+                            #предыдущая команда завершилась успешно (конец)
+                        else
+                            #предыдущая команда завершилась с ошибкой
+                            apacheEnableExist=0
+                            #предыдущая команда завершилась с ошибкой (конец)
+                    fi
+                    #Конец проверки на успешность выполнения предыдущей команд
+                    #echo apacheEnableExist=$apacheEnableExist
+
+
+                        #TODO сделать поиск find
+                    ls $HOMEPATHWEBUSERS | while read line
+                    do
+                        echo $HOMEPATHWEBUSERS/$line
+
+
+                            ls $HOMEPATHWEBUSERS/$line | while read line2
+                            do
+                                echo $line2
+                                if [ $line2 == $1 ]
+                                then
+                                        echo -e "${COLOR_RED}Каталог домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже имеется в домашней папке пользователя ${COLOR_YELLOW}$line${COLOR_RED} - ${COLOR_GREEN}$HOMEPATHWEBUSERS/$line/$1${COLOR_NC}"
+                                        temp=1
+                                        break
+                                fi
+                            (( i++ ))
+                            done
+                                        		#echo -e "${COLOR_RED}Каталог домена ${COLOR_GREEN}\"$1\"${COLOR_RED} уже имеется в домашней папке пользователя ${COLOR_YELLOW}$line${COLOR_RED} - ${COLOR_GREEN}$HOMEPATHWEBUSERS/$line/$1${COLOR_NC}"
+                                        		#return 3
+                             if [ $temp==1 ]
+                             then
+                                echo '123'
+                                break
+                             fi
+
+                    (( i++ ))
+                    done
+
+       if [ "$nginxAvailableExist" == "1" ] || [ "$nginxEnableExist" == "1" ] || [ "$apacheAvailableExist" == "1" ] || [ "$apacheEnableExist" == "1" ]
+       then
+            return 3
+       fi
+
+       folderExistWithInfo $HOMEPATHWEBUSERS/$line/$1 exist silent
+                                                #Проверка на успешность выполнения предыдущей команды
+                                                if [ $? -eq 6 ]
+                                                	then
+                                                		#предыдущая команда завершилась успешно
+                                                		return 3
+                                                		#предыдущая команда завершилась успешно (конец)
+                                                fi
+                                                #Конец проверки на успешность выполнения предыдущей команды
+	else
+	#Параметры запуска отсутствуют
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в фукнции ${COLOR_GREEN}\"siteExist\"${COLOR_RED} ${COLOR_NC}"
+	    return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+
+
+
+
+
+}
 
 #Форма ввода данных для добавления сайта php
 ###input
