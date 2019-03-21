@@ -73,10 +73,10 @@ declare -x -f viewSiteFoldersByName
 ####################################site#####################################
 declare -x -f viewFtpAccess
 declare -x -f viewSshAccess
-declare -x -f siteAdd_php_input
 declare -x -f siteAdd_php
 declare -x -f siteRemove_input
 declare -x -f siteRemove
+declare -x -f siteViewServerConf
 
 
 ############################ufw#############################
@@ -4701,6 +4701,135 @@ viewSshAccess(){
 }
 
 
+#Вывод списка конфигов apache2
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
+###input
+#$1-Название веб-сервера (apache2/nginx/website)
+#$2-Каталог (sites-available/sites-enabled/website)
+#$3-Username - не обязательно ; без параметра выводятся все конфиги
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - ошибка передачи параметра mode: apache2/nginx
+#4 - ошибка передачи параметра mode: webserver folder (sites-available/sites-enabled)
+siteViewServerConf() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+	    case "$1" in
+	        apache2)
+                name="apache2"
+	            ;;
+	        nginx)
+                name="nginx"
+	            ;;
+	        website)
+	            name="website"
+	            ;;
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}";
+	    	    return 3
+	    	    ;;
+	    esac
+
+	    case "$2" in
+	        sites-available)
+                folder="/etc/$name/sites-available"
+	            ;;
+	        sites-enabled)
+                folder="/etc/$name/sites-enabled"
+	            ;;
+	        website)
+                folder="$HOMEPATHWEBUSERS/$3"
+	            ;;
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-webserver folder\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}";
+	    	    return 4
+	    	    ;;
+	    esac
+
+	    #Проверка на существование параметров запуска скрипта
+	    if [ -n "$3" ]
+	    then
+	    #Параметры запуска существуют
+            #Проверка существования системного пользователя "$3"
+        	grep "^$3:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $3 существует
+
+
+                #Проверка наличия параметра $1, равного "apache2" или "nginx"
+                if [ "$1" == "apache2" ] || [ "$1" == "nginx" ]
+                then
+                        [ "$(ls -A $folder | grep "$3_")" ]
+                        #Проверка на успешность выполнения предыдущей команды
+                        if [ $? -eq 0 ]
+                            then
+                                #предыдущая команда завершилась успешно
+                                echo -e "\n${COLOR_GREEN}Список конфигураций ${COLOR_LIGHT_RED}$name${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
+                                ls -l -A -L $folder | grep "$3_" | highlight yellow "$3_" | highlight yellow ".conf"
+                                #предыдущая команда завершилась успешно (конец)
+                        fi
+                        #Конец проверки на успешность выполнения предыдущей команды
+               else
+                    if [ "$1" == "website" ]
+                    then
+                        [ "$(ls -A $folder | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$")" ]
+                        #Проверка на успешность выполнения предыдущей команды
+                        if [ $? -eq 0 ]
+                            then
+                                #предыдущая команда завершилась успешно
+                                echo -e "\n${COLOR_GREEN}Список доменов в каталоге ${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
+                        ls -l $folder | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$"
+                                #предыдущая команда завершилась успешно (конец)
+                        fi
+                        #Конец проверки на успешность выполнения предыдущей команды
+
+
+                    fi
+               fi
+                #Проверка наличия параметра $1, равного 1 (конец)
+
+
+        	#Пользователь $3 существует (конец)
+        	else
+        	#Пользователь $3 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $3 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $3
+	    #Параметры запуска существуют (конец)
+	    else
+	    #Параметры запуска отсутствуют
+	        if [ "$1" == "apache2" ] || [ "$1" == "nginx" ]
+                then
+	                echo -e "\n${COLOR_GREEN}Список всех конфигураций ${COLOR_LIGHT_RED}$1${COLOR_GREEN}:${COLOR_NC}"
+		            ls -l -A -L $folder
+		        else
+                     if [ "$1" == "website" ]
+                     then
+                        echo -e "\n${COLOR_GREEN}Список всех каталогов сайтов:${COLOR_NC}"
+		                 ls $HOMEPATHWEBUSERS | while read line >>/dev/null
+		                 do
+		                 	ls $HOMEPATHWEBUSERS/$line | egrep ".ru$|.com$|.net$|.loc$|.org$|.biz$|.info$|.su$|.local$"
+		                 		
+		                 (( i++ ))
+		                 done
+                     fi
+            fi
+	    #Параметры запуска отсутствуют (конец)
+	    fi
+	    #Конец проверки существования параметров запуска скрипта
+	else
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	fi
+}
+
 #Добавление php-сайта
 ###input
 #$1-username ;
@@ -5418,8 +5547,8 @@ menuSiteAdd() {
         echo ''
         echo -e "${COLOR_GREEN} ===Добавление сайтов===${COLOR_NC}"
 
-        echo '1: PHP/HTML'
-        echo '2: PHP/HTML (с вводом доп.параметров)'
+        echo '1: PHP/HTML (с вводом доп.параметров)'
+        echo '2: PHP/HTML (упрощенная настройка)'
         echo '3: Framework Laravel'
         echo '4: Framework Laravel (с вводом доп.параметров)'
 
@@ -5431,8 +5560,8 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") input_SiteAdd_php $1; break;;
-                "2")   $1; break;;
+                "1") input_SiteAdd_php $1 querry; break;;
+                "2") input_SiteAdd_php $1 lite; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
 
@@ -6663,101 +6792,39 @@ input_viewGroup() {
     #Конец проверки существования системной группы пользователей $groupname
 }
 
-#Форма ввода для добавления сайта php
-###input
-#$1-username
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры
-#2 - не существует пользователь
-siteAdd_php_input() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $1 существует
-                	echo "--------------------------------------"
-                    echo "Добавление виртуального хоста."
-                    if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
-                        sudo mkdir -p $HOMEPATHWEBUSERS/$1
-                    fi
-
-                    echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
-
-                    ls $HOMEPATHWEBUSERS/$1
-                    echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
-                    read domain
-                    site_path=$HOMEPATHWEBUSERS/$1/$domain
-                    echo ''
-                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
-
-                    ls $TEMPLATES/apache2/
-                    echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
-                    echo -n ": "
-                    read apache_config
-                    echo ''
-                    echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
-                    ls $TEMPLATES/nginx/
-                    echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
-                    echo -n ": "
-                    read nginx_config
-                    echo ''
-                    echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
-                    echo -n ": "
-                    read item
-                    case "$item" in
-                        y|Y) echo
-                            #
-                            bash -c "source $SCRIPTS/include/inc.sh; siteAdd_php $1 $domain $site_path $apache_config $nginx_config" ; echo $?;
-                            exit 0
-                            ;;
-                        *) echo "Выход..."
-                            exit 0
-                            ;;
-                    esac
-        	#Пользователь $1 существует (конец)
-        	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $1 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php_input\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Форма ввода данных для добавления сайта php
 ###input
 #$1-username ;
+#$2-mode: lite/querry ;
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 input_SiteAdd_php() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
+	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
+		clear
 		echo "--------------------------------------"
         echo "Добавление виртуального хоста."
-        if ! [ -d $HOMEPATHWEBUSERS/$1/ ]; then
-            sudo mkdir -p $HOMEPATHWEBUSERS/$1
-        fi
 
-        echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
+        #echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
 
-        ls $HOMEPATHWEBUSERS/$1
-        echo -n -e "${COLOR_BLUE} Введите домен для добавления ${COLOR_NC}: "
+        siteViewServerConf apache2 sites-enabled $1
+        siteViewServerConf nginx sites-enabled $1
+        siteViewServerConf apache2 sites-available $1
+        siteViewServerConf nginx sites-available $1
+        siteViewServerConf website website $1
+
+        echo "---"
+        siteViewServerConf apache2 sites-enabled
+        siteViewServerConf nginx sites-enabled
+        siteViewServerConf apache2 sites-available
+        siteViewServerConf nginx sites-available
+        siteViewServerConf website website
+
+        echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
         read domain
         site_path=$HOMEPATHWEBUSERS/$1/$domain
         echo ''

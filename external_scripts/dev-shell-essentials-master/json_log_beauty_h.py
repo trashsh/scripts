@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-# todo: write unit test
+
 # data = {}
 # data['a'] = {}
 # data['a']['b'] = 3
