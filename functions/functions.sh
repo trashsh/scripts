@@ -76,7 +76,7 @@ declare -x -f viewSshAccess
 declare -x -f siteAdd_php
 declare -x -f siteRemove_input
 declare -x -f siteRemove
-declare -x -f siteViewServerConf
+
 
 
 ############################ufw#############################
@@ -136,7 +136,9 @@ declare -x -f input_dbUserChangeAccess
 
 
 ####################################search##########################################
-declare -x -f searchSiteByDomain
+declare -x -f searchSiteFolder
+declare -x -f searchSiteConfig
+declare -x -f searchSiteConfigAllFolder
 
 ####################################testing##########################################
 declare -x -f testFunction
@@ -4768,153 +4770,15 @@ viewSshAccess(){
 }
 
 
-#Вывод списка конфигов apache2
-###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
-###input
-#$1-Название веб-сервера (apache2/nginx/website)
-#$2-Каталог (sites-available/sites-enabled/website)
-#$3-Username - не обязательно ; без параметра выводятся все конфиги
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - ошибка передачи параметра mode: apache2/nginx
-#4 - ошибка передачи параметра mode: webserver folder (sites-available/sites-enabled)
-#5 - результат отрицательный
-siteViewServerConf() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-	    case "$1" in
-	        apache2)
-                name="apache2"
-	            ;;
-	        nginx)
-                name="nginx"
-	            ;;
-	        website)
-	            name="website"
-	            ;;
-	    	*)
-	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}";
-	    	    return 3
-	    	    ;;
-	    esac
-
-	    case "$2" in
-	        sites-available)
-                folder="/etc/$name/sites-available"
-	            ;;
-	        sites-enabled)
-                folder="/etc/$name/sites-enabled"
-	            ;;
-	        website)
-                folder="$HOMEPATHWEBUSERS/$3"
-	            ;;
-	    	*)
-	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-webserver folder\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}";
-	    	    return 4
-	    	    ;;
-	    esac
-
-	    #Проверка на существование параметров запуска скрипта
-	    if [ -n "$3" ]
-	    then
-	    #Параметры запуска существуют
-            #Проверка существования системного пользователя "$3"
-        	grep "^$3:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $3 существует
-
-
-                #Проверка наличия параметра $1, равного "apache2" или "nginx"
-                if [ "$1" == "apache2" ] || [ "$1" == "nginx" ]
-                then
-                        [ "$(ls -A $folder | grep "$3_")" ]
-                        #Проверка на успешность выполнения предыдущей команды
-                        if [ $? -eq 0 ]
-                            then
-                                #предыдущая команда завершилась успешно
-                                echo -e "\n${COLOR_GREEN}Список конфигураций ${COLOR_LIGHT_RED}$name${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
-                                ls -l -A -L $folder | grep "$3_" | highlight yellow "$3_" | highlight yellow ".conf"
-                                return 0
-                                #предыдущая команда завершилась успешно (конец)
-                            else
-                                #предыдущая команда завершилась с ошибкой
-                                return 5
-                                #предыдущая команда завершилась с ошибкой (конец)
-                        fi
-                        #Конец проверки на успешность выполнения предыдущей команды
-               else
-                    if [ "$1" == "website" ]
-                    then
-                        [ "$(ls -A $folder | egrep "$siteDomain")" ]
-                        #Проверка на успешность выполнения предыдущей команды
-                        if [ $? -eq 0 ]
-                        then
-                                #предыдущая команда завершилась успешно
-                                echo -e "\n${COLOR_GREEN}Список доменов в каталоге ${COLOR_YELLOW} $folder${COLOR_GREEN}, доступных пользователю ${COLOR_YELLOW}\"$3\":${COLOR_NC}"
-                                ls -l $folder | egrep "$siteDomain"
-                                return 0
-                                #предыдущая команда завершилась успешно (конец)
-                        else
-                                #предыдущая команда завершилась с ошибкой
-                                return 5
-                                #предыдущая команда завершилась с ошибкой (конец)
-                        fi
-                        #Конец проверки на успешность выполнения предыдущей команды
-
-
-                    fi
-               fi
-                #Проверка наличия параметра $1, равного 1 (конец)
-
-
-        	#Пользователь $3 существует (конец)
-        	else
-        	#Пользователь $3 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $3 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $3
-	    #Параметры запуска существуют (конец)
-	    else
-	    #Параметры запуска отсутствуют
-	        if [ "$1" == "apache2" ] || [ "$1" == "nginx" ]
-                then
-	                echo -e "\n${COLOR_GREEN}Список всех конфигураций ${COLOR_LIGHT_RED}$1${COLOR_GREEN}:${COLOR_NC}"
-		            ls -l -A -L $folder
-
-		        else
-                     if [ "$1" == "website" ]
-                     then
-                        echo -e "\n${COLOR_GREEN}Список всех каталогов сайтов:${COLOR_NC}"
-		                 ls $HOMEPATHWEBUSERS | while read line >>/dev/null
-		                 do
-		                 	ls $HOMEPATHWEBUSERS/$line | egrep "$siteDomain"
-		                 (( i++ ))
-		                 done
-                     fi
-            fi
-	    #Параметры запуска отсутствуют (конец)
-	    fi
-	    #Конец проверки существования параметров запуска скрипта
-	else
-	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteViewServerConf\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	fi
-}
 
 #Добавление php-сайта
 ###input
-#$1-username ;
+#$1-username-кому добавляется сайт ;
 #$2-domain ;
 #$3-site_path ;
 #$4-apache_config ;
 #$5-nginx_config ;
+#$6-username - кем добавляется сайт;
 ###return
 #0 - выполнено успешно
 #1 - отсутствуют параметры
@@ -4924,7 +4788,7 @@ siteViewServerConf() {
 #5 - каталог сайта уже существует
 siteAdd_php() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
 	then
 	#Параметры запуска существуют
         #Проверка существования системного пользователя "$1"
@@ -4942,6 +4806,7 @@ siteAdd_php() {
                         if [ -d $3 ] ; then
                             #Каталог сайта "$3" уже существует
                             echo -e "${COLOR_RED}Каталог сайта ${COLOR_GREEN}\"$3\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_NC}"
+                            return 5
                             #Каталог сайта "$3" уже существует (конец)
                         else
                             #Каталог сайта "$3" не существует
@@ -4964,11 +4829,8 @@ siteAdd_php() {
                            #nginx
                            sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
                            sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo echo "Замена переменных в файле /etc/nginx/sites-available/"$1"_"$2".conf"
-                           sudo grep '#__DOMAIN' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__USER' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__PORT' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPNGINXPORT'/g' /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/nginx/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' /etc/nginx/sites-available/"$1"_"$2".conf
+
+                           siteChangeWebserverConfigs nginx $1 $2 $HTTPNGINXPORT
 
                            sudo  ln -s /etc/nginx/sites-available/"$1"_"$2".conf /etc/nginx/sites-enabled/"$1"_"$2".conf
                            sudo  systemctl reload nginx
@@ -4976,11 +4838,7 @@ siteAdd_php() {
                             #apache2
                             sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
                             chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo echo "Замена переменных в файле /etc/apache2/sites-available/"$1"_"$2".conf"
-                            sudo grep '#__DOMAIN' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__USER' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__USER/'$1'/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__HOMEPATHWEBUSERS/\/home\/webusers/g' /etc/apache2/sites-available/"$1"_"$2".conf
-                            sudo grep '#__PORT' -P -R -I -l  /etc/apache2/sites-available/"$1"_"$2".conf | sudo xargs sed -i 's/#__PORT/'$HTTPAPACHEPORT'/g' /etc/apache2/sites-available/"$1"_"$2".conf
+                            siteChangeWebserverConfigs apache $1 $2 $HTTPNGINXPORT
 
                             sudo a2ensite "$1"_"$2".conf
                             sudo service apache2 reload
@@ -6878,6 +6736,10 @@ declare -x -f input_siteExist #Проверка наличия сайта:
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь не существует
+#3 - Ошибка обработки возвращенного результата выполнения операции в функции input_siteExist-searchSiteConfigAllFolder
+#4 - ошибка ввода конфигурации apache
+#5 - ошибка ввода конфигурации nginx
+#6 - операция добавления отменена пользователем
 input_siteExist() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
@@ -6888,23 +6750,73 @@ input_siteExist() {
 	    	if  [ $? -eq 0 ]
 	    	then
 	    	#Пользователь $1 существует
-                siteViewServerConf apache2 sites-enabled $1
-                siteViewServerConf nginx sites-enabled $1
-                siteViewServerConf apache2 sites-available $1
-                siteViewServerConf nginx sites-available $1
-                siteViewServerConf website website $1
-
-                echo "---"
-                siteViewServerConf apache2 sites-enabled
-                siteViewServerConf nginx sites-enabled
-                siteViewServerConf apache2 sites-available
-                siteViewServerConf nginx sites-available
-                siteViewServerConf website website
 
                 echo -n -e "${COLOR_BLUE}Введите домен: ${COLOR_NC}"
 	            read domain
 
-	            siteExist $domain $1 ; echo $?
+	            searchSiteConfigAllFolder $domain success_only
+	            #Проверка на успешность выполнения предыдущей команды
+	            case "$?" in
+	                0)
+	                    echo -e "${COLOR_RED}Операция добавления домена ${COLOR_GREEN}\"$domain\"${COLOR_RED} прервана${COLOR_NC}"
+	                    ;;
+	                2)
+
+                        site_path=$HOMEPATHWEBUSERS/$1/$domain
+                        echo ''
+                        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+                        ls $TEMPLATES/apache2/
+                        echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+                        echo -n ": "
+                        read apache_config
+
+                            #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
+                            if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
+                                #Файл "$TEMPLATES/apache2/$apache_config" не существует
+                                echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Операция прервана${COLOR_NC}"
+                                return 4
+                                #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+                            fi
+                            #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+
+                        echo ''
+                        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+                        ls $TEMPLATES/nginx/
+                        echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+                        echo -n ": "
+                        read nginx_config
+
+                            #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
+                            if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
+                                #Файл "$TEMPLATES/nginx/$nginx_config" не существует
+                                echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Операция прервана${COLOR_NC}"
+                                return 5
+                                #Файл "$TEMPLATES/nginx/$nginx_config" не существует (конец)
+                            fi
+                            #Конец проверки существования файла "$TEMPLATES/nginx/$nginx_config"
+
+                        echo ''
+                        echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+                        echo -n ": "
+                        read item
+                        case "$item" in
+                            y|Y) echo
+                                echo $1 $domain $1 $site_path $apache_config $nginx_config
+                                ;;
+                            *) echo "Выход..."
+                                return 6
+                                ;;
+                        esac
+                        #Параметры запуска существуют (конец)
+
+
+	                    ;;
+	            	*)
+	            	    echo -e "${COLOR_RED}Ошибка обработки возвращенного результата выполнения операции в функции ${COLOR_GREEN}\"input_siteExist-searchSiteConfigAllFolder\"${COLOR_NC}";
+	            	    return 3
+	            	    ;;
+	            esac
 	    	#Пользователь $1 существует (конец)
 	    	else
 	    	#Пользователь $1 не существует
@@ -6935,6 +6847,84 @@ declare -x -f siteExist #Проверка существования сайта:
 #2 - пользователь не существует
 #3 - каталог домена имеется в папках пользователей
 
+
+declare -x -f siteChangeWebserverConfigs
+#Замена переменных в конфигах веб-серверов
+###input
+#$1-webserver(apache/nginx)
+#$2-username ;
+#$3-domain ;
+#$4-port ;
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - ошибка передачи параметра mode:webserver(apache/nginx)
+#3 - пользователь $2 не существует
+#4 - файл "$path"/"$2"_"$3".conf не существует
+siteChangeWebserverConfigs() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+        case "$1" in
+            apache)
+                path="/etc/apache2/sites-available"
+                ;;
+            nginx)
+                path="/etc/nginx/sites-available"
+                ;;
+        	*)
+        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}";
+        	    return 
+        	    ;;
+        esac
+
+        #Проверка существования системного пользователя "$2"
+        	grep "^$2:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $2 существует
+        		#Проверка существования файла ""$path"/"$2"_"$3".conf"
+        		if [ -f "$path"/"$2"_"$3".conf ] ; then
+        		    #Файл ""$path"/"$2"_"$3".conf" существует
+
+
+                           sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
+                           sudo grep '#__DOMAIN' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__DOMAIN/'$3'/g' "$path"/"$2"_"$3".conf
+                           sudo grep '#__USER' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__USER/'$2'/g' "$path"/"$2"_"$3".conf
+                           sudo grep '#__PORT' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__PORT/'$HTTPNGINXPORT'/g' "$path"/"$2"_"$3".conf
+                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' "$path"/"$2"_"$3".conf
+                            return 0
+
+        		    #Файл ""$path"/"$2"_"$3".conf" существует (конец)
+        		else
+        		    #Файл ""$path"/"$2"_"$3".conf" не существует
+        		    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\""$path"/"$2"_"$3".conf\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
+        		    return 4
+        		    #Файл ""$path"/"$2"_"$3".conf" не существует (конец)
+        		fi
+        		#Конец проверки существования файла ""$path"/"$2"_"$3".conf"
+        		
+        	#Пользователь $2 существует (конец)
+        	else
+        	#Пользователь $2 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
+        		return 3
+        	#Пользователь $2 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $2
+        
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 siteExist() {
 	#Проверка на существование параметров запуска скрипта
@@ -7072,60 +7062,123 @@ siteExist() {
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
+#2 - не существует файл apache_config
+#3 - не существует файл nginx_config
+#4 - не существует пользователь $1
+#5 - конфиги для домена уже существуют в настройках сервера
+#6 - каталог для домена уже существует на сервере
 input_SiteAdd_php() {
+    #TODO lite/querry сделать
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
-		clear
-		echo "--------------------------------------"
-        echo "Добавление виртуального хоста."
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
 
-        #echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
+                clear
+                echo "--------------------------------------"
+                echo "Добавление виртуального хоста."
 
-        siteViewServerConf apache2 sites-enabled $1
-        siteViewServerConf nginx sites-enabled $1
-        siteViewServerConf apache2 sites-available $1
-        siteViewServerConf nginx sites-available $1
-        siteViewServerConf website website $1
+                #echo -e "${COLOR_YELLOW}Список имеющихся доменов:${COLOR_NC}"
 
-        echo "---"
-        siteViewServerConf apache2 sites-enabled
-        siteViewServerConf nginx sites-enabled
-        siteViewServerConf apache2 sites-available
-        siteViewServerConf nginx sites-available
-        siteViewServerConf website website
 
-        echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
-        read domain
-        site_path=$HOMEPATHWEBUSERS/$1/$domain
-        echo ''
-        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+                echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
+                read domain
 
-        ls $TEMPLATES/apache2/
-        echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
-        echo -n ": "
-        read apache_config
-        echo ''
-        echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
-        ls $TEMPLATES/nginx/
-        echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
-        echo -n ": "
-        read nginx_config
-        echo ''
-        echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
-        echo -n ": "
-        read item
-        case "$item" in
-            y|Y) echo
-                siteAdd_php $1 $domain $1 $site_path $apache_config $nginx_config
-                exit 0
-                ;;
-            *) echo "Выход..."
-                exit 0
-                ;;
-        esac
-        #Параметры запуска существуют (конец)
+                searchSiteConfigAllFolder $domain silent
+                #Проверка на успешность выполнения предыдущей команды
+                if [ $? -eq 0 ]
+                	then
+                		#Есть конфигурация
+                		echo -e "${COLOR_RED}В настройках сервера уже имеется конфигурация для домена ${COLOR_GREEN}\"$domain\"${COLOR_RED}${COLOR_NC}"
+                		return 5
+                		#Есть конфигурация (конец)
+                	else
+                		#нет конфигурации
+
+                		#поиск каталога
+                        searchSiteFolder $domain $HOMEPATHWEBUSERS silent d 2
+                        #Проверка на успешность выполнения предыдущей команды
+                        if [ $? -eq 0 ]
+                        	then
+                        		#каталог существует
+                        		echo -e "${COLOR_RED}В настройках сервера уже имеется каталог домена ${COLOR_GREEN}\"$domain\"${COLOR_RED}${COLOR_NC}"
+                        		return 6
+                        		#каталог существует (конец)
+                        	else
+                        		#каталог не существует
+
+
+                                site_path=$HOMEPATHWEBUSERS/$1/$domain
+                                echo ''
+                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+                                ls $TEMPLATES/apache2/
+                                echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+                                echo -n ": "
+                                read apache_config
+                                #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
+                                if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
+                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует
+                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                    return 2
+                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+                                fi
+                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+
+
+                                echo ''
+                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+                                ls $TEMPLATES/nginx/
+                                echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+                                echo -n ": "
+                                read nginx_config
+                                #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
+                                if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
+                                    #Файл "$TEMPLATES/nginx/$nginx_config" не существует
+                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                    return 3
+                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+                                fi
+                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+
+                                echo ''
+                                echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+                                echo -n ": "
+                                read item
+                                case "$item" in
+                                    y|Y) echo
+                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                        exit 0
+                                        ;;
+                                    *) echo "Выход..."
+                                        exit 0
+                                        ;;
+                                esac
+                                #Параметры запуска существуют (конец)
+
+                        		#каталог не существует (конец)
+                        fi
+                        #Конец проверки на успешность выполнения предыдущей команды
+                		#нет конфигурациий (конец)
+                fi
+                #Конец проверки на успешность выполнения предыдущей команды
+
+
+
+                    #Пользователь $1 существует (конец)
+                    else
+                    #Пользователь $1 не существует
+                        echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                        return 4
+                    #Пользователь $1 не существует (конец)
+                    fi
+                #Конец проверки существования системного пользователя $1
+
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_RED} ${COLOR_NC}"
@@ -7199,22 +7252,42 @@ input_sshSettings() {
 
 ################################################search####################################################
 #Поиск каталога в указанной папке (с вложением)
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
 #$1-domain ;
 #$2-path-корневой каталог поиска ;
 #$3-mode: full_info/silent ;
-#$4-максимальная вложенность - не обязательно
+#$3-mode: d-directory; f-file;
+#$5-максимальная вложенность - не обязательно
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - корневой каталог для начала поиска не существует
 #3 - ошибка передачи параметра $3-mode: full_info/silent
 #4 - отрицательный результат поиска
-searchSiteByDomain() {
+#5 - ошибка передачи параметра mode: folder/file - поиск файла или каталога
+searchSiteFolder() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
+	    case "$4" in
+	        d)
+	            #directory
+	            searchType="d";
+	            searchTypeWord="Каталог"
+	            ;;
+	        f)
+	            #file
+	             searchType="f";
+	             searchTypeWord="Файл"
+	            ;;
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"searchType\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteFolder\"${COLOR_NC}";
+	    	    return 5
+	    	    ;;
+	    esac
+
 		#Проверка существования каталога "$2"
 		if [ -d $2 ] ; then
 		    #Каталог "$2" существует
@@ -7222,7 +7295,7 @@ searchSiteByDomain() {
 		    #Каталог "$2" существует (конец)
 		else
 		    #Каталог "$2" не существует
-		    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"searchSiteByDomain\"${COLOR_NC}"
+		    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"searchSiteFolder\"${COLOR_NC}"
 		    return 2
 		    #Каталог "$2" не существует (конец)
 		fi
@@ -7232,19 +7305,19 @@ searchSiteByDomain() {
             full_info)
 
                 #Проверка на существование параметров запуска скрипта - глубина поиска
-                if [ -n "$4" ]
+                if [ -n "$5" ]
                 then
                 #Параметры запуска существуют
 
-                    if [[ ! -z "$(sudo find $2 -maxdepth $4 -type d -name "$1")" ]]
+                    if [[ ! -z "$(sudo find $2 -maxdepth $5 -type $searchType -name "$1")" ]]
                         then
                             #Результат поиска положительный
-                            echo -e "${COLOR_YELLOW}Каталог ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} расположен по следующему пути ${COLOR_GREEN}\"$(sudo find $2 -type d -name "$1")\"${COLOR_YELLOW}  ${COLOR_NC}"
+                            echo -e "${COLOR_YELLOW}$searchTypeWord ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} расположен по следующему пути ${COLOR_GREEN}\"$(sudo find $2 -type $searchType -name "$1")\"${COLOR_YELLOW} с вложенностью поиска - ${COLOR_GREEN}$5${COLOR_NC}"
                             return 0
                             #Результат поиска положительный (конец)
                          else
                              #Результат поиска отрицательный
-                             echo -e "${COLOR_YELLOW}Каталог ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} не найден во вложенных каталогах папки ${COLOR_GREEN}\"$2\"${COLOR_YELLOW}  ${COLOR_NC}"
+                             echo -e "${COLOR_YELLOW}$searchTypeWord ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} не найден во вложенных каталогах папки ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} с вложенностью поиска - ${COLOR_GREEN}$5${COLOR_NC}"
                              return 4
                              #Результат поиска отрицательный (конец)
                          fi
@@ -7255,15 +7328,15 @@ searchSiteByDomain() {
                 #Параметры запуска отсутствуют
 
                         #Поиск каталога по имени
-                        if [[ ! -z "$(sudo find $2 -type d -name "$1")" ]]
+                        if [[ ! -z "$(sudo find $2 -type $searchType -name "$1")" ]]
                         then
                             #Результат поиска положительный
-                            echo -e "${COLOR_YELLOW}Каталог ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} расположен по следующему пути ${COLOR_GREEN}\"$(sudo find $2 -type d -name "$1")\"${COLOR_YELLOW}  ${COLOR_NC}"
+                            echo -e "${COLOR_YELLOW}$searchTypeWord ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} расположен по следующему пути ${COLOR_GREEN}\"$(sudo find $2 -type $searchType -name "$1")\"${COLOR_YELLOW}  ${COLOR_NC}"
                             return 0
                             #Результат поиска положительный (конец)
                          else
                              #Результат поиска отрицательный
-                             echo -e "${COLOR_YELLOW}Каталог ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} не найден во вложенных каталогах папки ${COLOR_GREEN}\"$2\"${COLOR_YELLOW}  ${COLOR_NC}"
+                             echo -e "${COLOR_YELLOW}$searchTypeWord ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} не найден во вложенных каталогах папки ${COLOR_GREEN}\"$2\"${COLOR_YELLOW}  ${COLOR_NC}"
                              return 4
                              #Результат поиска отрицательный (конец)
                          fi
@@ -7276,11 +7349,11 @@ searchSiteByDomain() {
 
             silent)
                 #Проверка на существование параметров запуска скрипта - глубина поиска
-                if [ -n "$4" ]
+                if [ -n "$5" ]
                 then
                 #Параметры запуска существуют
 
-                    if [[ ! -z "$(sudo find $2 -maxdepth $4 -type d -name "$1")" ]]
+                    if [[ ! -z "$(sudo find $2 -maxdepth $5 -type $searchType -name "$1")" ]]
                         then
                             #Результат поиска положительный
                             return 0
@@ -7297,7 +7370,7 @@ searchSiteByDomain() {
                 #Параметры запуска отсутствуют
 
                         #Поиск каталога по имени
-                        if [[ ! -z "$(sudo find $2 -type d -name "$1")" ]]
+                        if [[ ! -z "$(sudo find $2 -type $searchType -name "$1")" ]]
                         then
                             #Результат поиска положительный
                             return 0
@@ -7315,19 +7388,281 @@ searchSiteByDomain() {
 
                 ;;
         	*)
-        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteByDomain\"${COLOR_NC}";
+        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteFolder\"${COLOR_NC}";
         	    return 3
         	    ;;
         esac
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteByDomain\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteFolder\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
+
+#Вывод списка конфигов apache2
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
+###input
+#$1 - Каталог (aa/ae/na/ne)
+#$2 - domain
+#$3 - mode: full_info/error_only/success_only/silent
+#$4 - Username - не обязательно ; без параметра выводятся все конфиги
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - ошибка передачи параметра mode: apache2/nginx
+#4 - результат отрицательный
+#5 - ошибка передачи параметра mode-full_info/error_only/success_only/silent
+searchSiteConfig() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+	    case "$1" in
+	        aa)
+                folder="/etc/apache2/sites-available"
+	            ;;
+	        ae)
+                folder="/etc/apache2/sites-enabled"
+	            ;;
+	        na)
+	            folder="/etc/nginx/sites-available"
+	            ;;
+	        ne)
+	            folder="/etc/nginx/sites-enabled"
+	            ;;
+
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+	    	    return 3
+	    	    ;;
+	    esac
+
+	    #Проверка на существование параметров запуска скрипта
+	    if [ -n "$4" ]
+	    then
+	    #Параметры запуска существуют
+            #Проверка существования системного пользователя "$4"
+        	grep "^$4:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $4 существует
+
+                        [ "$(ls -A $folder | grep "$4_$2.conf$")" ]
+                        #Проверка на успешность выполнения предыдущей команды
+                        if [ $? -eq 0 ]
+                            then
+                                #предыдущая команда завершилась успешно
+
+                                case "$3" in
+                                    full_info)
+                                        echo -e "\n${COLOR_GREEN}Конфигурация ${COLOR_YELLOW}\"$4_$2.conf\"${COLOR_GREEN} в каталоге ${COLOR_YELLOW}$folder${COLOR_GREEN} существует${COLOR_NC}"
+                                        return 0
+                                        ;;
+                                    error_only)
+                                         return 4
+                                        ;;
+                                	success_only)
+                                        echo -e "\n${COLOR_GREEN}Конфигурация ${COLOR_YELLOW}\"$4_$2.conf\"${COLOR_GREEN} в каталоге ${COLOR_YELLOW}$folder${COLOR_GREEN} существует${COLOR_NC}"
+                                        return 0
+                                		;;
+                                	silent)
+                                        return 4
+                                		;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-full_info/error_only/success_only/silent\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+                                	    return 5
+                                	    ;;
+                                esac
+
+                                #предыдущая команда завершилась успешно (конец)
+                            else
+                                #предыдущая команда завершилась с ошибкой
+                                case "$3" in
+                                    full_info)
+                                        echo -e "\n${COLOR_GREEN}Конфигурация ${COLOR_YELLOW}\"$4_$2.conf\"${COLOR_GREEN} в каталоге ${COLOR_YELLOW}$folder${COLOR_GREEN} отсутствует${COLOR_NC}"
+                                        return 4
+                                        ;;
+                                    error_only)
+                                        echo -e "\n${COLOR_GREEN}Конфигурация ${COLOR_YELLOW}\"$4_$2.conf\"${COLOR_GREEN} в каталоге ${COLOR_YELLOW}$folder${COLOR_GREEN} отсутствует${COLOR_NC}"
+                                        return 4
+                                        ;;
+                                	success_only)
+                                	    return 4
+                                		;;
+                                	silent)
+                                        return 4
+                                		;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-full_info/error_only/success_only/silent\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+                                	    return 5
+                                	    ;;
+                                esac
+
+                                #предыдущая команда завершилась с ошибкой (конец)
+                        fi
+                        #Конец проверки на успешность выполнения предыдущей команды
+
+
+        	#Пользователь $4 существует (конец)
+        	else
+        	#Пользователь $2 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $4 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $4
+	    #Параметры запуска существуют (конец)
+	    else
+	    #Параметры запуска отсутствуют
+		            [ "$(ls -A $folder | grep "_$2.conf$")" ]
+		            case "$?" in
+		                0)
+		                    case "$3" in
+                                    full_info)
+                                        echo -e "\n${COLOR_GREEN}Список всех конфигураций ${COLOR_LIGHT_RED}$1${COLOR_GREEN}:${COLOR_NC}";
+		                                ls -l -A -L $folder | grep "$2.conf$"
+		                                return 0
+                                        ;;
+                                    error_only)
+                                        return 0
+                                        ;;
+                                	success_only)
+                                	    echo -e "\n${COLOR_GREEN}Список всех конфигураций ${COLOR_LIGHT_RED}$1${COLOR_GREEN}:${COLOR_NC}";
+		                                ls -l -A -L $folder | grep "$2.conf$"
+		                                return 0
+                                		;;
+                                	silent)
+                                        return 0
+                                		;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-full_info/error_only/success_only/silent\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+                                	    return 5
+                                	    ;;
+                                esac
+
+
+		                    ;;
+		                1)
+		                    case "$3" in
+                                    full_info)
+                                        echo -e "\n${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$2.conf\"${COLOR_RED} в каталоге ${COLOR_YELLOW}$folder${COLOR_RED} - отсутствует${COLOR_NC}";
+                                        return 4
+                                        ;;
+                                    error_only)
+                                        echo -e "\n${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$2.conf\"${COLOR_RED} в каталоге ${COLOR_YELLOW}$folder${COLOR_RED} - отсутствует${COLOR_NC}";
+                                        return 4
+                                        ;;
+                                	success_only)
+                                	    return 4
+                                		;;
+                                	silent)
+                                	    return 4
+                                		;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode-full_info/error_only/success_only/silent\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+                                	    return 5
+                                	    ;;
+                                esac
+
+		                    ;;
+		            	*)
+		            	    echo -e "${COLOR_RED}Код ошибки отличается от 0/1 в функции ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_NC}";
+		            	    ;;
+		            esac
+	    fi
+	    #Конец проверки существования параметров запуска скрипта
+	else
+	    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteConfig\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	fi
+}
+
+#Поиск файла конфигурации сайта в каталогах серверов apache2, nginx
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
+###input
+#$1-домен ;
+#$2-mode full_info/error_only/success_only/silent ;
+###return
+#0 - Конфигурация существует
+#1 - не переданы параметры в функцию
+#2 - конфигурация отсутствует
+#3 - ошибка передачи параметра mode full_info/error_only/success_only/silent
+searchSiteConfigAllFolder() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		[ "$(ls -A $APACHEAVAILABLE | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_aa=0; else res_aa=1; folder=$APACHEAVAILABLE; fi
+
+		[ "$(ls -A $APACHEENABLED | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_ae=0; else res_ae=1; folder=$APACHEENABLED; fi
+
+        [ "$(ls -A $NGINXAVAILABLE | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_na=0; else res_na=1; folder=$NGINXAVAILABLE; fi
+
+		[ "$(ls -A $NGINXENABLED | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_ne=0; else res_ne=1; folder=$NGINXENABLED; fi
+
+
+		 if [ $res_aa -eq 0 ] || [ $res_ae -eq 0 ] || [ $res_na -eq 0 ] || [ $res_ne -eq 0 ]
+		 then
+            case "$2" in
+                full_info)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+                    ;;
+                error_only)
+
+                    ;;
+            	success_only)
+            	    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+            		;;
+                silent)
+
+            		;;
+            	*)
+            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+            	    return 3
+            	    ;;
+            esac
+            return 0
+
+         else
+            case "$2" in
+                full_info)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+                    ;;
+                error_only)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+                    ;;
+            	success_only)
+            		;;
+                silent)
+
+            		;;
+            	*)
+            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+            	    return 3
+            	    ;;
+            esac
+            return 2
+		 fi
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 
 ################################################TESTING####################################################
 testFunction() {
