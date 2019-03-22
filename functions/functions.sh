@@ -22,8 +22,7 @@ declare -x -f viewUsersInGroup
 declare -x -f userAddToGroup
 declare -x -f userDeleteFromGroup
 declare -x -f useraddFtp
-declare -x -f input_userAddToGroupSudo
-
+declare -x -f userChangePassword
 
 ####################################mysql########################
 declare -x -f dbSetMyCnfFile
@@ -76,7 +75,7 @@ declare -x -f viewSshAccess
 declare -x -f siteAdd_php
 declare -x -f siteRemove_input
 declare -x -f siteRemove
-
+declare -x -f siteAddTestIndexFile
 
 
 ############################ufw#############################
@@ -133,6 +132,7 @@ declare -x -f input_userAddSystem
 declare -x -f input_dbUseradd
 declare -x -f input_dbUserDelete_querry
 declare -x -f input_dbUserChangeAccess
+declare -x -f input_userAddToGroupSudo
 
 
 ####################################search##########################################
@@ -581,6 +581,86 @@ userDelete_system() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_system\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+#Смена пароля пользователя
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
+###input
+#$1-user ;
+#$2-mode set password: manual/querry/autogenerate ;
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - пароль пустой
+userChangePassword() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				case "$2" in
+				    manual)
+                        echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
+                        read password;
+                        if [[ -z "$password" ]]; then
+                              #переменная имеет пустое значение
+                              echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
+                              return 3
+                         fi
+				        ;;
+				    querry)
+				        echo -n -e "Пароль для пользователя ${COLOR_YELLOW}" $1 "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                                while read
+                                do
+                                    case "$REPLY" in
+                                    y|Y) password="$(openssl rand -base64 14)";
+                                         break;;
+                                    n|N) echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
+                                         read password;
+                                         if [[ -z "$password" ]]; then
+                                            #переменная имеет пустое значение
+                                            echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
+                                            return 3
+                                         fi
+                                         break;;
+                                    esac
+                                done
+				        ;;
+					autogenerate)
+                        password="$(openssl rand -base64 14)"
+						;;
+					*)
+					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+					    ;;
+				esac
+
+				sudo echo "$1:$password" | chpasswd
+				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
+				return 0
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -4812,14 +4892,10 @@ siteAdd_php() {
                             #Каталог сайта "$3" не существует
 
                             echo "Добавление веб пользователя $1_$2 с домашним каталогом: $3 для домена $2"
-                            sudo mkdir -p $3
-                            sudo useradd $1_$2 -N -d $3 -m -s /bin/false
-                            sudo adduser $1_$2 www-data
-                            echo -e "${COLOR_YELLOW}Установка пароля для ftp-пользователя \"$1_$2\"${COLOR_NC}"
-                            sudo passwd $1_$2
+                            siteAddFtpUser $1 $2 pass querry
                             sudo cp -R /etc/skel/* $3
 
-
+                            siteAddTestIndexFile $1 $2 public_html replace phpinfo
 
                            #nginx
                            sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
@@ -4900,6 +4976,131 @@ siteAdd_php() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteAddFtpUser
+#Добавление ftp-пользователя
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode: password type - autogenerate/manual/manual;
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь ftp-уже существует
+#3 - Ошибка передачи параметра mode - manual|querry|autogenerate
+siteAddFtpUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    case "$3" in
+			        manual|querry|autogenerate)
+			            sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                        sudo useradd $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false
+                        sudo adduser $1_$2 www-data
+                        #смена пароля на пользователя
+                        userChangePassword $1_$2 $3
+                        return 0
+			            ;;
+			    	*)
+			    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - manual|querry|autogenerate\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}";
+			    	    return 3
+			    	    ;;
+			    esac
+
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+declare -x -f input_siteAddFtpUser #Запрос информации для создания пользователя ftp: ($1-user ; $2-domain ; $3-mode password: querry/autogenerate ;)
+#Запрос информации для создания пользователя ftp
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode password: manual/querry/autogenerate ;
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - Пользователь уже существует
+#3 - Каталог сайта $HOMEPATHWEBUSERS/$1/$2 не существует
+#4 - Ошибка передачи параметра mode password: manual/querry/autogenerate
+#5 - пароль пустой
+input_siteAddFtpUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_siteAddFtpUser\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+                #Проверка существования каталога "$HOMEPATHWEBUSERS/$1/$2"
+                if [ -d $HOMEPATHWEBUSERS/$1/$2 ] ; then
+                    #Каталог "$HOMEPATHWEBUSERS/$1/$2" существует
+                    case "$3" in
+                        manual)
+
+                            ;;
+                        querry)
+
+                            ;;
+                    	autogenerate)
+
+                    		;;
+                    	*)
+                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode password: manual/querry/autogenerate\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+                    	    return 4
+                    	    ;;
+                    esac
+                    #Каталог "$HOMEPATHWEBUSERS/$1/$2" существует (конец)
+                else
+                    #Каталог "$HOMEPATHWEBUSERS/$1/$2" не существует
+                    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$HOMEPATHWEBUSERS/$1/$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_siteAddFtpUser\"${COLOR_NC}"
+                    return 3
+                    #Каталог "$HOMEPATHWEBUSERS/$1/$2" не существует (конец)
+                fi
+                #Конец проверки существования каталога "$HOMEPATHWEBUSERS/$1/$2"
+
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_siteAddFtpUser\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -6922,20 +7123,23 @@ siteChangeWebserverConfigs() {
 }
 
 
-declare -x -f siteAddTestIndexFile 
+
 #Добавление тестового индексного файла при добавлении домена
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
 #$1 - user
 #$2-domain ;
 #$3 - wwwfolder_name
 #$4-mode: replace/noreplace ;
-#$5-mode:type index file: phpinfo/... ;
+#$5-mode (type index file): phpinfo ;
 
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь не существует
 #3 - каталог $HOMEPATHWEBUSERS/$1/$2/$3 не существует
+#4 - ошибка передачи параметра mode: replace/noreplace
+#5 - ошибка передачи параметра mode (type index file): phpinfo
 siteAddTestIndexFile() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
@@ -6950,12 +7154,43 @@ siteAddTestIndexFile() {
 				if [ -d $HOMEPATHWEBUSERS/$1/$2/$3 ] ; then
 				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует
 
+				    case "$4" in
+				        replace)
 
-				    #copy index.php
-                          # sudo cp $TEMPLATES/index_php/index.php $3/$WWWFOLDER/index.php
-                          # sudo cp $TEMPLATES/index_php/underconstruction.jpg $3/$WWWFOLDER/underconstruction.jpg
-                          # sudo grep '#__DOMAIN' -P -R -I -l  $3/$WWWFOLDER/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $3/$WWWFOLDER/index.php
+                            case "$5" in
+                                phpinfo)
+                                     sudo cp -f $TEMPLATES/index_php/index.php $HOMEPATHWEBUSERS/$1/$2/$3/index.php
+                                     sudo cp -f $TEMPLATES/index_php/underconstruction.jpg $HOMEPATHWEBUSERS/$1/$2/$3/underconstruction.jpg
+                                     sudo grep '#__DOMAIN' -P -R -I -l  $HOMEPATHWEBUSERS/$1/$2/$3/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $HOMEPATHWEBUSERS/$1/$2/$3/index.php;
+                                     return 0
+                                    ;;
 
+                            	*)
+                            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - (type index file)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
+                            	    return 5
+                            	    ;;
+                            esac
+				            ;;
+				        noreplace)
+                            case "$5" in
+                                phpinfo)
+                                     sudo cp -n $TEMPLATES/index_php/index.php $HOMEPATHWEBUSERS/$1/$2/$3/index.php
+                                     sudo cp -n $TEMPLATES/index_php/underconstruction.jpg $HOMEPATHWEBUSERS/$1/$2/$3/underconstruction.jpg
+                                     sudo grep '#__DOMAIN' -P -R -I -l  $HOMEPATHWEBUSERS/$1/$2/$3/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $HOMEPATHWEBUSERS/$1/$2/$3/index.php;
+                                     return 0
+                                    ;;
+
+                            	*)
+                            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - (type index file)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
+                            	    return 5
+                            	    ;;
+                            esac
+				            ;;
+				    	*)
+				    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
+				    	    return 4
+				    	    ;;
+				    esac
 
 				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует (конец)
 				else
