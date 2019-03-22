@@ -4819,11 +4819,6 @@ siteAdd_php() {
                             sudo passwd $1_$2
                             sudo cp -R /etc/skel/* $3
 
-                           #copy index.php
-                           sudo cp $TEMPLATES/index_php/index.php $3/$WWWFOLDER/index.php
-                           sudo cp $TEMPLATES/index_php/underconstruction.jpg $3/$WWWFOLDER/underconstruction.jpg
-                           sudo grep '#__DOMAIN' -P -R -I -l  $3/$WWWFOLDER/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $3/$WWWFOLDER/index.php
-                     #       sed -i 's/#__DOMAIN/$2' $3/$WWWFOLDER/index.php
 
 
                            #nginx
@@ -6924,6 +6919,69 @@ siteChangeWebserverConfigs() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteAddTestIndexFile 
+#Добавление тестового индексного файла при добавлении домена
+###input
+#$1 - user
+#$2-domain ;
+#$3 - wwwfolder_name
+#$4-mode: replace/noreplace ;
+#$5-mode:type index file: phpinfo/... ;
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - каталог $HOMEPATHWEBUSERS/$1/$2/$3 не существует
+siteAddTestIndexFile() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				#Проверка существования каталога "$HOMEPATHWEBUSERS/$1/$2/$3"
+				if [ -d $HOMEPATHWEBUSERS/$1/$2/$3 ] ; then
+				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует
+
+
+				    #copy index.php
+                          # sudo cp $TEMPLATES/index_php/index.php $3/$WWWFOLDER/index.php
+                          # sudo cp $TEMPLATES/index_php/underconstruction.jpg $3/$WWWFOLDER/underconstruction.jpg
+                          # sudo grep '#__DOMAIN' -P -R -I -l  $3/$WWWFOLDER/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $3/$WWWFOLDER/index.php
+
+
+				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует (конец)
+				else
+				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" не существует
+				    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$HOMEPATHWEBUSERS/$1/$2/$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}"
+				    return 3
+				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" не существует (конец)
+				fi
+				#Конец проверки существования каталога "$HOMEPATHWEBUSERS/$1/$2/$3"
+				
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
 }
 
 siteExist() {
