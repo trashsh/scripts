@@ -24,6 +24,8 @@ declare -x -f userDeleteFromGroup
 declare -x -f useraddFtp
 declare -x -f userChangePassword
 
+#TODO сделать проверку на отсутствие - при вводе имени или
+
 ####################################mysql########################
 declare -x -f dbSetMyCnfFile
 declare -x -f dbUseradd
@@ -2790,7 +2792,7 @@ backupSiteFiles() {
                         #Каталог "$DESTINATION" не существует (конец)
             fi
 
-            FILENAME=site.$1_$2_$dt.tar.gz
+            FILENAME=site.$1.$2_$dt.tar.gz
             #tar_folder_structure $HOMEPATHWEBUSERS/$1/$2 $DESTINATION/$FILENAME
             tarFolder $HOMEPATHWEBUSERS/$1/$2 $DESTINATION/$FILENAME str silent rewrite $1 www-data 644
 
@@ -2825,6 +2827,96 @@ backupSiteFiles() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
+#declare -x -f backupSiteWebserverConfig
+#создание копии конфигов для вебсервера у сайта
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode:full_info/error_only/make_dir
+#$4-path-не обязательный - назначение.
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - не существует пользователь $1
+#backupSiteWebserverConfig() {
+#	#Проверка на существование параметров запуска скрипта
+#	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+#	then
+#	#Параметры запуска существуют
+#        d=`date +%Y.%m.%d`;
+#        dt=`date +%Y.%m.%d-%H.%M.%S`;
+#
+#        #Проверка существования системного пользователя "$1"
+#        	grep "^$1:" /etc/passwd >/dev/null
+#        	if  [ $? -eq 0 ]
+#        	then
+#        	#Пользователь $1 существует
+#        		#Проверка на существование параметров запуска скрипта
+#                if [ -n "$4" ]
+#                then
+#                #Параметры запуска существуют
+#                    DESTINATION=$4
+#                #Параметры запуска существуют (конец)
+#                else
+#                #Параметры запуска отсутствуют
+#                    DESTINATION=$BACKUPFOLDER_DAYS/$1/$2/$d
+#                #Параметры запуска отсутствуют (конец)
+#                fi
+#                #Конец проверки существования параметров запуска скрипта
+#
+#                if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
+#
+#                fi
+#
+#                if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
+#
+#                fi
+#
+#                if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
+#
+#                fi
+#
+#                if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
+#
+#                fi
+#
+#                case "$3" in
+#                    full_info)
+#
+#                        ;;
+#                    error_only)
+#
+#                        ;;
+#                	make_dir)
+#
+#                		;;
+#                	*)
+#                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+#                	    ;;
+#                esac
+#
+#        	#Пользователь $1 существует (конец)
+#        	else
+#        	#Пользователь $1 не существует
+#        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupSiteWebserverConfig\"${COLOR_NC}"
+#        		return 2
+#        	#Пользователь $1 не существует (конец)
+#        	fi
+#        #Конец проверки существования системного пользователя $1
+#
+#
+#
+#
+#	#Параметры запуска существуют (конец)
+#	else
+#	#Параметры запуска отсутствуют
+#		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupSiteWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
+#		return 1
+#	#Параметры запуска отсутствуют (конец)
+#	fi
+#	#Конец проверки существования параметров запуска скрипта
+#}
 
 #Создание бэкапов файлов всех сайтов указанного пользователя
 ###input
@@ -2913,7 +3005,7 @@ backupImportantFile() {
                         sudo mkdir -p $BACKUPFOLDER_IMPORTANT/$2/$1
                     fi
                     #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1" (конец)
-                        tarFile $3 $BACKUPFOLDER_IMPORTANT/$2/$1/$2_$1_$dt.tar.gz str silent rewrite $1 users 644 && return 0 || return 4
+                        tarFile $3 $BACKUPFOLDER_IMPORTANT/$2/$1/$2.$1_$dt.tar.gz str silent rewrite $1 users 644 && return 0 || return 4
                     #Файл "$3" существует (конец)
                 else
                     #Файл "$3" не существует
@@ -2939,6 +3031,7 @@ backupImportantFile() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 
 
 #Создание бэкапа указанной базы данных
@@ -2981,10 +3074,18 @@ dbBackupBase() {
 
                         #Пользователь mysql "$1" существует
 
-                        #извлечение названия базы данных (с учетом, что это может быть дополнительная база данных к сайту)
-                        dopdbname_trim_dbname=${2#$1_}
-                        #извлечение названия сайта из названия базы данных
-                        sitedomain_trim_dbname=${dopdbname_trim_dbname%_*}
+                        #извлечение имени владельца
+                        dbExtractUser=${2%$1\_*}
+                        #echo $dbExtractUser
+                        #основная база и дополнительная
+                        dbNameWithDopBase=${2#$dbExtractUser\_}
+                        #echo $dbNameWithDopBase
+                        #извлечение названия дополнительной базы
+                        dbNameDopBase=${dbNameWithDopBase#*--*}
+                        #echo $dbNameDopBase
+                        #извлечения названия основной базы
+                        dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
+                        #echo $dbNameMainBase
 
                         #Проверка на существование параметров запуска скрипта
                         if [ -n "$5" ]
@@ -2994,13 +3095,14 @@ dbBackupBase() {
                         #Параметры запуска существуют (конец)
                         else
                         #Параметры запуска отсутствуют
-                            DESTINATIONFOLDER=$BACKUPFOLDER_DAYS/$1/$sitedomain_trim_dbname/$date
+                            #DESTINATIONFOLDER=$BACKUPFOLDER_DAYS/$1/$sitedomain_trim_dbname/$date
+                            DESTINATIONFOLDER=$BACKUPFOLDER_DAYS/$1/$dbNameMainBase/$date
                         #Параметры запуска отсутствуют (конец)
                         fi
                         #Конец проверки существования параметров запуска скрипта
 
                         #пусть к файлу с бэкапом без расширения
-                        FILENAME=$DESTINATIONFOLDER/mysql.$1-"$2"-$datetime
+                        FILENAME=$DESTINATIONFOLDER/mysql.$1."$2"-$datetime
 
                         #Проверка существования каталога "$DESTINATIONFOLDER"
                         if [ -d $DESTINATIONFOLDER ] ; then
@@ -3049,6 +3151,32 @@ dbBackupBase() {
                                             tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
                                             chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
                                             dbCheckExportedBase $2 full_info ${FILENAME}_structure.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
+                                error_only_make_dir)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz;
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mysqldump --databases $2 > ${FILENAME}_structure.sql;
+                                            mysqldump --databases $2  --no-data > ${FILENAME}_structure.sql;
+                                            #mysqldump database_name  --no-data;
+                                            tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only ${FILENAME}_structure.sql.tar.gz;
                                             return 0
                                             ;;
                                     	*)
@@ -3158,6 +3286,37 @@ dbBackupBase() {
                                     esac
                                     #параметр 4 - выгрузка базы с данными или только структуры (конец)
                                     ;;
+                                error_only_make_dir)
+                                    #параметр 4 - выгрузка базы с данными или только структуры
+                                    case "$4" in
+                                        data)
+                                            mkdir -p $DESTINATIONFOLDER;
+                                            mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755;
+                                            chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R;
+                                            mysqldump --databases $2 > $FILENAME.sql;
+                                            tarFile $FILENAME.sql $FILENAME.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only $FILENAME.sql.tar.gz;
+                                            chModAndOwnFile $FILENAME.sql.tar.gz $1 www-data 644;
+                                            return 0
+                                            ;;
+                                        structure)
+                                            mkdir -p $DESTINATIONFOLDER;
+                                            mkdirWithOwn $DESTINATIONFOLDER $1 www-data 755;
+                                            chown $1:www-data $BACKUPFOLDER_DAYS/$1/ -R;
+                                            mysqldump --databases $2 --no-data > ${FILENAME}_structure.sql;
+                                            #mysqldump database_name --no-data;
+                                            tarFile ${FILENAME}_structure.sql ${FILENAME}_structure.sql.tar.gz nostr_rem silent rewrite $1 www-data 644;
+                                            dbCheckExportedBase $2 error_only ${FILENAME}_structure.sql.tar.gz;
+                                            chModAndOwnFile ${FILENAME}_structure.sql.tar.gz $1 www-data 644;
+                                            return 0
+                                            ;;
+                                    	*)
+                                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: (date/structure)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
+                                    	    return 7
+                                    	    ;;
+                                    esac
+                                    #параметр 4 - выгрузка базы с данными или только структуры (конец)
+                                    ;;
                                 *)
                                     echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (full_info/error_only)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBase\"${COLOR_NC}";
                                     return 5
@@ -3236,32 +3395,20 @@ dbBackupAllBases() {
                         #выгрузка баз данных
                         for db in $databases; do
                             if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
-                                #echo -e "---\nВыгрузка базы данных MYSQL: ${COLOR_YELLOW}$db${COLOR_NC}"
-                               # echo db = $db
-                               # user_fcut=${db%_*}
-                               # user=${user_fcut%_*}
 
-                               # echo user_fcut - $user_fcut
-                               # echo user - $user
+                               #извлечение имени владельца
+                                dbExtractUser=${db%\_*}
+                                #echo $dbExtractUser
+                                #основная база и дополнительная
+                                dbNameWithDopBase=${db#$dbExtractUser\_}
+                                #echo $dbNameWithDopBase
+                                #извлечение названия дополнительной базы
+                                dbNameDopBase=${dbNameWithDopBase#*--*}
+                                #echo $dbNameDopBase
+                                #извлечения названия основной базы
+                                dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
+                                #echo $dbNameMainBase
 
-                               # domain_fcut=${db##$user_}
-                               # echo domain_fcut - $domain_fcut
-                               # domain=${domain_fcut%_*}
-                               # echo domain - $domain
-								#echo DB: $db
-								 #user_fcut=${db%_*}
-								user1=${db%_*}
-								user=${user1%_*}
-								#echo user - $user
-								#${user_fcut%_*}
-
-								#обрезаем пользователя слева
-								domain1=${db#${user}_}
-								#echo domain1 - $domain1
-								#обрезаем дополнительную базу справа
-								domain=${domain1%_*}
-								#echo domain - $domain
-								#echo $db
 
                                 #Проверка на существование параметров запуска скрипта
                         if [ -n "$5" ]
@@ -3299,7 +3446,7 @@ dbBackupAllBases() {
                         else
                         #Параметры запуска отсутствуют
                             #каталог устанавливается по умолчанию
-                            DESTINATION=$BACKUPFOLDER_DAYS/$user/$domain/$d
+                            DESTINATION=$BACKUPFOLDER_DAYS/$dbExtractUser/$dbNameMainBase/$d
                         #Параметры запуска отсутствуют (конец)
                         fi
                         #Конец проверки существования параметров запуска скрипта
@@ -3308,19 +3455,22 @@ dbBackupAllBases() {
                          #Проверка существования каталога "$DESTINATION"
                         if ! [ -d $DESTINATION ] ; then
                             #Каталог "$DESTINATION" не существует
-                            mkdir -p "$DESTINATION"
+                            #mkdir -p "$DESTINATION"
+                            mkdirWithOwn $DESTINATION $1 $2 755
+                            sudo chown -R $dbExtractUser:users $BACKUPFOLDER_DAYS/$dbExtractUser
+
                         fi
                         #Конец проверки существования каталога "$DESTINATION"
 
                                 #echo $1
-                               # echo $user
-                                filename=mysql.$user-"$db"-$dt.sql
+                               # echo $dbExtractUser
+                                filename=mysql.$dbExtractUser."$db"-$dt.sql
                                 mysqldump --databases $db > $DESTINATION/$filename
                                 #архивация выгруженной базы и удаление оригинального файла sql
                                 #tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
                                 tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
                                 #проверка на существование выгруженных и заархививанных баз данных
-                                chModAndOwnFile $DESTINATION/$filename.tar.gz $user www-data 644
+                                chModAndOwnFile $DESTINATION/$filename.tar.gz $dbExtractUser www-data 644
                                 if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
                                     echo -e "${COLOR_GREEN}Выгрузка базы данных MYSQL:${COLOR_NC} ${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_GREEN}успешно завершилась в файл${COLOR_NC}${COLOR_YELLOW} \"$DESTINATION/$filename.tar.gz\"${COLOR_NC}\n---"
                                     #return 0
@@ -3364,6 +3514,130 @@ dbBackupAllBases() {
 }
 
 
+declare -x -f dbBackupBasesOneDomain
+#создание бэкапов баз данных для определнного домена
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode:createfolder/nocreatefolder/querrycreatefolder ;
+#$4-Каталог выгрузки ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbBackupBasesOneDomain() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		d=`date +%Y.%m.%d`;
+        dt=`date +%Y.%m.%d-%H.%M.%S`;
+
+        databases=`mysql -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME like '$1_$2'" | tr -d "| " | grep -v SCHEMA_NAME`
+
+                        #выгрузка баз данных
+                        for db in $databases; do
+                            if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
+
+								#извлечение имени владельца
+                                dbExtractUser=${db%$1\_*}
+                                #echo $dbExtractUser
+                                #основная база и дополнительная
+                                dbNameWithDopBase=${db#$dbExtractUser\_}
+                                #echo $dbNameWithDopBase
+                                #извлечение названия дополнительной базы
+                                dbNameDopBase=${dbNameWithDopBase#*--*}
+                                #echo $dbNameDopBase
+                                #извлечения названия основной базы
+                                dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
+                                #echo $dbNameMainBase
+                                #извлечения домена
+                                dbNameDomain=${dbNameMainBase#$dbExtractUser\_}
+                                #echo $dbNameMainBase
+
+								#TODO Подтвердите удаление всех баз данных пользователя "lamer3". Все базы данных предварительно будут заархиврованы. Введите для подтверждения "y", для отмены - введите "n": y
+                                #TODO Пользователь "lamer3--user1" не существует. Ошибка выполнения функции "mkdirWithOwn"
+                                #TODO Выгрузка базы данных MYSQL: lamer3--user1_test успешно завершилась в файл "/var/backups/vds/days/lamer3--user1/test/2019.03.20/mysql.lamer3--user1-lamer3--user1_test-2019.03.20-17.27.05.sql.tar.gz"
+                                #TODO Выгрузка базы данных MYSQL: lamer3_db2 успешно завершилась в файл "/var/backups/vds/days/lamer3/db2/2019.03.20/mysql.lamer3-lamer3_db2-2019.03.20-17.27.05.sql.tar.gz"
+
+                                #Проверка на существование параметров запуска скрипта
+                        if [ -n "$4" ]
+                        then
+                        #Параметры запуска существуют
+
+                            #Проверка существования каталога "$4"
+                            if ! [ -d $4 ] ; then
+                                #Каталог "$4" не существует
+                                echo -e "${COLOR_RED} Каталог \"$4\" не найден для создания бэкапа всех баз данных mysql. Создать его? Функция ${COLOR_GREEN}\"dbBackupBasesOneDomain\"${COLOR_NC}"
+                                echo -n -e "Введите ${COLOR_BLUE}\"y\"${COLOR_NC} для создания каталога ${COLOR_YELLOW}\"$4\"${COLOR_NC}, для отмены операции - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+
+                                while read
+                                do
+                                echo -n ": "
+                                    case "$REPLY" in
+                                    y|Y)
+                                        #mkdir -p "$4";
+                                        mkdirWithOwn $4 $1 users 755
+                                        sudo chown -R $1:users $4
+                                        DESTINATION=$4
+                                        #echo $DESTINATION
+                                        break;;
+                                    n|N)
+                                         break;;
+                                    esac
+                                done
+                                #Каталог "$4" не существует (конец)
+                            else
+                                #Каталог "$4" существует
+                                DESTINATION=$4
+                                #Файл "$4" существует (конец)
+                            fi
+                            #Конец проверки существования каталога "$4"
+
+                        #Параметры запуска существуют (конец)
+                        else
+                        #Параметры запуска отсутствуют
+                            #каталог устанавливается по умолчанию
+                            DESTINATION=$BACKUPFOLDER_DAYS/$1/$dbNameDomain/$d
+                        #Параметры запуска отсутствуют (конец)
+                        fi
+                        #Конец проверки существования параметров запуска скрипта
+
+
+                         #Проверка существования каталога "$DESTINATION"
+                        if ! [ -d $DESTINATION ] ; then
+                            #Каталог "$DESTINATION" не существует
+                            #mkdir -p "$DESTINATION"
+                            mkdirWithOwn $DESTINATION $1 users 755
+                            sudo chown -R $1:users $BACKUPFOLDER_DAYS/$1
+                        fi
+                        #Конец проверки существования каталога "$DESTINATION"
+
+                                filename=mysql.$1-"$db"-$dt.sql
+                                mysqldump --databases $db > $DESTINATION/$filename
+                                #архивация выгруженной базы и удаление оригинального файла sql
+                                #tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
+                                tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
+                                #проверка на существование выгруженных и заархививанных баз данных
+                                chModAndOwnFile $DESTINATION/$filename.tar.gz $1 www-data 644
+                                if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
+                                    echo -e "${COLOR_GREEN}Выгрузка базы данных MYSQL:${COLOR_NC} ${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_GREEN}успешно завершилась в файл${COLOR_NC}${COLOR_YELLOW} \"$DESTINATION/$filename.tar.gz\"${COLOR_NC}\n---"
+                                    #return 0
+                                else
+                                    echo -e "${COLOR_RED}Выгрузка базы данных: ${COLOR_NC}${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_RED}завершилась с ошибкой${COLOR_NC}\n---"
+                                    return 4
+                                fi
+                            fi
+                        done
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbBackupBasesOneDomain\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 #создание бэкапа всех баз данных одного пользователя
 ###input
 #$1-mysql_user (в названии баз данных)
@@ -3395,23 +3669,24 @@ dbBackupBasesOneUser() {
 
                         d=`date +%Y.%m.%d`;
                         dt=`date +%Y.%m.%d-%H.%M.%S`;
-                        databases=`mysql -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME like '$1_%'" | tr -d "| " | grep -v SCHEMA_NAME`
-
+                        databases=`mysql -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME like '$1\_%'" | tr -d "| " | grep -v SCHEMA_NAME`
 
                         #выгрузка баз данных
                         for db in $databases; do
                             if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
 
-								user1=${db%_*}
-								user=${user1%_*}
-
-								#обрезаем пользователя слева
-								domain1=${db#${user}_}
-								#echo domain1 - $domain1
-								#обрезаем дополнительную базу справа
-								domain=${domain1%_*}
-								#echo domain - $domain
-								#echo $db
+								#извлечение имени владельца
+                                dbExtractUser=${db%$1\_*}
+                                #echo $dbExtractUser
+                                #основная база и дополнительная
+                                dbNameWithDopBase=${db#$dbExtractUser\_}
+                                #echo $dbNameWithDopBase
+                                #извлечение названия дополнительной базы
+                                dbNameDopBase=${dbNameWithDopBase#*--*}
+                                #echo $dbNameDopBase
+                                #извлечения названия основной базы
+                                dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
+                                #echo $dbNameMainBase
 
 								#TODO Подтвердите удаление всех баз данных пользователя "lamer3". Все базы данных предварительно будут заархиврованы. Введите для подтверждения "y", для отмены - введите "n": y
                                 #TODO Пользователь "lamer3--user1" не существует. Ошибка выполнения функции "mkdirWithOwn"
@@ -3434,7 +3709,9 @@ dbBackupBasesOneUser() {
                                 echo -n ": "
                                     case "$REPLY" in
                                     y|Y)
-                                        mkdir -p    "$6";
+                                        #mkdir -p "$6";
+                                        mkdirWithOwn $6 $2 $3 755
+                                        sudo chown -R $2:$3 $6
                                         DESTINATION=$6
                                         #echo $DESTINATION
                                         break;;
@@ -3454,7 +3731,7 @@ dbBackupBasesOneUser() {
                         else
                         #Параметры запуска отсутствуют
                             #каталог устанавливается по умолчанию
-                            DESTINATION=$BACKUPFOLDER_DAYS/$user/$domain/$d
+                            DESTINATION=$BACKUPFOLDER_DAYS/$1/$dbNameMainBase/$d
                         #Параметры запуска отсутствуют (конец)
                         fi
                         #Конец проверки существования параметров запуска скрипта
@@ -3463,17 +3740,19 @@ dbBackupBasesOneUser() {
                          #Проверка существования каталога "$DESTINATION"
                         if ! [ -d $DESTINATION ] ; then
                             #Каталог "$DESTINATION" не существует
-                            mkdir -p "$DESTINATION"
+                            #mkdir -p "$DESTINATION"
+                            mkdirWithOwn $DESTINATION $2 $3 755
+                            sudo chown -R $2:$3 $BACKUPFOLDER_DAYS/$1
                         fi
                         #Конец проверки существования каталога "$DESTINATION"
 
-                                filename=mysql.$user-"$db"-$dt.sql
+                                filename=mysql.$1."$db"-$dt.sql
                                 mysqldump --databases $db > $DESTINATION/$filename
                                 #архивация выгруженной базы и удаление оригинального файла sql
                                 #tarFile	$DESTINATION/$filename $DESTINATION/$filename.tar.gz
                                 tarFile $DESTINATION/$filename $DESTINATION/$filename.tar.gz nostr_rem silent rewrite;
                                 #проверка на существование выгруженных и заархививанных баз данных
-                                chModAndOwnFile $DESTINATION/$filename.tar.gz $user www-data 644
+                                chModAndOwnFile $DESTINATION/$filename.tar.gz $2 www-data 644
                                 if  [ -f "$DESTINATION/$filename.tar.gz" ] ; then
                                     echo -e "${COLOR_GREEN}Выгрузка базы данных MYSQL:${COLOR_NC} ${COLOR_YELLOW}$db${COLOR_NC} ${COLOR_GREEN}успешно завершилась в файл${COLOR_NC}${COLOR_YELLOW} \"$DESTINATION/$filename.tar.gz\"${COLOR_NC}\n---"
                                     #return 0
@@ -3566,7 +3845,7 @@ dbBackupTable() {
 								domain=${domain1%_*}
 
 	    		#Параметры запуска отсутствуют
-	    		    DESTINATION=$BACKUPFOLDER_DAYS/$user/$domain/$d
+	    		    DESTINATION=$BACKUPFOLDER_DAYS/$dbExtractUser/$domain/$d
 			        mkdir -p $DESTINATION
 	    		#Параметры запуска отсутствуют (конец)
 	    		fi
@@ -5543,17 +5822,14 @@ siteRemoveWebserverConfig() {
             sudo rm "$NGINXENABLED"/"$1_$2.conf"
         fi
 
-        # remove the config in the sites-available directory
         if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
            sudo rm "$NGINXAVAILABLE"/"$1_$2.conf"
         fi
 
-        # remove the symlink in the sites-enabled directory
         if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
            sudo rm "$APACHEENABLED"/"$1_$2.conf"
         fi
 
-        # remove the config in the sites-available directory
         if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
            sudo rm "$APACHEAVAILABLE"/"$1_$2.conf"
         fi
