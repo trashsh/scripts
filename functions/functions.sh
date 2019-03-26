@@ -63,9 +63,11 @@ declare -x -f touchFileWithModAndOwn
 declare -x -f folderExistWithInfo
 declare -x -f fileExistWithInfo
 declare -x -f mkdirWithOwn
+declare -x -f chModAndOwnSiteFileAndFolder
 
 ####################################webserver################################
 declare -x -f webserverRestart
+declare -x -f webserverReload
 declare -x -f viewPHPVersion
 declare -x -f viewSiteConfigsByName
 declare -x -f viewSiteFoldersByName
@@ -73,9 +75,11 @@ declare -x -f viewSiteFoldersByName
 declare -x -f viewFtpAccess
 declare -x -f viewSshAccess
 declare -x -f siteAdd_php
-declare -x -f siteRemove_input
+declare -x -f input_siteRemove
 declare -x -f siteRemove
 declare -x -f siteAddTestIndexFile
+declare -x -f siteRemoveWebserverConfig
+declare -x -f siteRemoveLogs
 
 
 ############################ufw#############################
@@ -2710,7 +2714,7 @@ dbExistTable() {
 #$1-user ;
 #$2-domain ;
 #$3-mode:createDestFolder/querryCreateDestFolder
-#$4-path destination;
+#$4-path destination; - не обязательно
 ###return
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
@@ -2749,7 +2753,7 @@ backupSiteFiles() {
                                     do
                                         case "$REPLY" in
                                             y|Y)
-                                                mkdirWithOwn $4 $1 www-data 755;
+                                                sudo mkdirWithOwn $4 $1 www-data 755;
                                                 DESTINATION=$4;
                                                 break
                                                 ;;
@@ -4114,7 +4118,7 @@ tarFolder() {
 		        silent)
 		            showSuccessResult=0; #Показывать ли успешный результат
 		            folder=`dirname $2`;
-		            mkdir -p $folder
+		            sudo mkdir -p $folder
 		            ;;
 		        querry)
 		             #Проверка существования каталога "`dirname $2`"
@@ -4132,7 +4136,7 @@ tarFolder() {
 		                    	case "$REPLY" in
 		                	    	y|Y)
 		                	    	    folder=`dirname $2`;
-		                                mkdir -p $folder;
+		                                sudo mkdir -p $folder;
 		                               # echo -e "${COLOR_GREEN}Каталог ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно заархивирован в ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}";
 		                                break
 		                                ;;
@@ -4204,8 +4208,8 @@ tarFolder() {
                 		if grep -q $7 /etc/group
                 		    then
                 		        #Группа "$67 существует
-                                chmod $8 $2
-                                chown $6:$7 $2
+                                sudo chmod $8 $2
+                                sudo chown $6:$7 $2
                 		        #Группа "$7" существует (конец)
                 		    else
                 		        #Группа "$7" не существует
@@ -4348,6 +4352,93 @@ chModAndOwnFile() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+#Смена прав,владельца для файлов и каталога сайта
+###input
+#$1-sitepath ; 
+#$2-wwwfolder ; 
+#$3-user ;
+#$4-file permittion ;
+#$5-folder permittion ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - каталог $1 не существует
+#3 - каталог $1/$2 не существует
+#4 - пользовтель $3 не существует
+chModAndOwnSiteFileAndFolder() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]  
+	then
+	#Параметры запуска существуют
+		#Проверка существования каталога "$1"
+		if [ -d $1 ] ; then
+		    #Каталог "$1" существует
+		    #Проверка существования каталога ""$1"/"$2""
+		    if [ -d "$1"/"$2" ] ; then
+		        #Каталог ""$1"/"$2"" существует
+		        #Проверка существования системного пользователя "$3"
+		        	grep "^$3:" /etc/passwd >/dev/null
+		        	if  [ $? -eq 0 ]
+		        	then
+		        	#Пользователь $3 существует
+		        		sudo find $1 -type d -exec chmod $5 {} \;
+                        sudo find $1 -type f -exec chmod $4 {} \;
+                        #Проверка существования каталога ""$1"/"$2""
+                        if [ -d "$1"/"$2" ] ; then
+                            #Каталог ""$1"/"$2"" существует
+                            sudo find $1/$2 -type d -exec chmod $5 {} \;
+                            sudo find $1/$2 -type f -exec chmod $4 {} \;
+                            #Каталог ""$1"/"$2"" существует (конец)
+                        fi
+                        #Конец проверки существования каталога ""$1"/"$2""
+                         #Проверка существования каталога ""$1"/logs"
+                        if [ -d "$1"/logs ] ; then
+                            #Каталог ""$1"/logs" существует
+                             sudo find $1/logs -type f -exec chmod $4 {} \;
+                            #Каталог ""$1"/logs" существует (конец)
+                        fi
+                        #Конец проверки существования каталога ""$1"/logs"
+
+                        sudo find $1 -type d -exec chown $3:www-data {} \;
+                        sudo find $1 -type f -exec chown $3:www-data {} \;
+		        	#Пользователь $3 существует (конец)
+		        	else
+		        	#Пользователь $3 не существует
+		        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"chModAndOwnSiteFileAndFolder\"${COLOR_NC}"
+		        		return 4
+		        	#Пользователь $3 не существует (конец)
+		        	fi
+		        #Конец проверки существования системного пользователя $3
+		        #Каталог ""$1"/"$2"" существует (конец)
+		    else
+		        #Каталог ""$1"/"$2"" не существует
+		        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1/$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"chModAndOwnSiteFileAndFolder\"${COLOR_NC}"
+		        return 3
+
+		        #Каталог ""$1"/"$2"" не существует (конец)
+		    fi
+		    #Конец проверки существования каталога ""$1"/"$2""
+
+		    #Каталог "$1" существует (конец)
+		else
+		    #Каталог "$1" не существует
+		    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"chModAndOwnSiteFileAndFolder\"${COLOR_NC}"
+		    return 2
+		    #Каталог "$1" не существует (конец)
+		fi
+		#Конец проверки существования каталога "$1"
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"chModAndOwnSiteFileAndFolder\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
+}
+
 #Создание папки и применение ей владельца и прав доступа
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input
@@ -4374,9 +4465,9 @@ mkdirWithOwn() {
 		    		if grep -q $3 /etc/group
 		    		    then
 		    		        #Группа "$3" существует
-		    		            mkdir -p $1
-		    		            chmod $4 $1
-				                chown $2:$3 $1
+		    		            sudo mkdir -p $1
+		    		            sudo chmod $4 $1
+				                sudo chown $2:$3 $1
 				                return 0
 
 		    		        #Группа "$3" существует (конец)
@@ -4899,7 +4990,8 @@ siteAdd_php() {
 
                            #nginx
                            sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
+      #                     sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
+                           sudo chModAndOwnFile /etc/nginx/sites-available/"$1"_"$2".conf $1 www-data 644
 
                            siteChangeWebserverConfigs nginx $1 $2 $HTTPNGINXPORT
 
@@ -4907,23 +4999,27 @@ siteAdd_php() {
                            sudo  systemctl reload nginx
 
                             #apache2
-                            sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
-                            chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
+                           sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
+     #                       chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
+                           sudo chModAndOwnFile /etc/apache2/sites-available/"$1"_"$2".conf $1 www-data 644
                             siteChangeWebserverConfigs apache $1 $2 $HTTPNGINXPORT
 
                             sudo a2ensite "$1"_"$2".conf
                             sudo service apache2 reload
 
-                            #chmod
-                            sudo find $3 -type d -exec chmod 755 {} \;
-                            sudo find $3/$WWWFOLDER -type d -exec chmod 755 {} \;
-                            sudo find $3 -type f -exec chmod 644 {} \;
-                            sudo find $3/$WWWFOLDER -type f -exec chmod 644 {} \;
-                            sudo find $3/logs -type f -exec chmod 644 {} \;
 
-                            sudo chown -R $1:www-data $3/logs
-                            sudo chown -R $1:www-data $3/$WWWFOLDER
-                            sudo chown -R $1:www-data $3/tmp
+                            chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1 644 755
+
+                            #chmod
+                            #sudo find $3 -type d -exec chmod 755 {} \;
+                            #sudo find $3/$WWWFOLDER -type d -exec chmod 755 {} \;
+                            #sudo find $3 -type f -exec chmod 644 {} \;
+                            #sudo find $3/$WWWFOLDER -type f -exec chmod 644 {} \;
+                            #sudo find $3/logs -type f -exec chmod 644 {} \;
+
+                            #sudo chown -R $1:www-data $3/logs
+                            #sudo chown -R $1:www-data $3/$WWWFOLDER
+                            #sudo chown -R $1:www-data $3/tmp
 
                             cd $3/$WWWFOLDER
                             echo -e "\033[32m" Инициализация Git "\033[0;39m"
@@ -5350,7 +5446,7 @@ sshKeyAddToUser()
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - не существует пользователь $1
-siteRemove_input() {
+input_siteRemove() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
 	then
@@ -5370,11 +5466,11 @@ siteRemove_input() {
                 path=$HOMEPATHWEBUSERS/$1/$domain
                 echo ''
 
-                bash -c "source $SCRIPTS/include/inc.sh; siteRemove_input $domain $path $1";
+                bash -c "source $SCRIPTS/include/inc.sh; siteRemove $domain $1 createbackup";
 			#Пользователь $1 существует (конец)
 			else
 			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteRemove_input\"${COLOR_NC}"
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_siteRemove\"${COLOR_NC}"
 				return 2
 			#Пользователь $1 не существует (конец)
 			fi
@@ -5382,7 +5478,7 @@ siteRemove_input() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemove_input\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_siteRemove\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -5390,12 +5486,92 @@ siteRemove_input() {
 }
 
 
+#Удаление логов с сайта
+###input
+#$1-user ;
+#$2-domain ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+siteRemoveLogs() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+
+		path=$HOMEPATHWEBUSERS/$1/$2
+        if [ -f $path/logs/error_apache.log ] ;  then
+           sudo rm $path/logs/error_apache.log
+        fi
+
+        if [ -f $path/logs/access_apache.log ] ;  then
+           sudo rm $path/logs/access_apache.log
+        fi
+
+        if [ -f $path/logs/access_nginx.log ] ;  then
+           rm $path/logs/access_nginx.log
+        fi
+
+        if [ -f $path/logs/error_nginx.log ] ;  then
+           sudo rm $path/logs/error_nginx.log
+fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveLogs\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
+}
+
+
+
+#Удаление конфигов веб-серверов
+###input
+#$1-user ;
+#$2-domain ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+siteRemoveWebserverConfig() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
+            sudo rm "$NGINXENABLED"/"$1_$2.conf"
+        fi
+
+        # remove the config in the sites-available directory
+        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
+           sudo rm "$NGINXAVAILABLE"/"$1_$2.conf"
+        fi
+
+        # remove the symlink in the sites-enabled directory
+        if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
+           sudo rm "$APACHEENABLED"/"$1_$2.conf"
+        fi
+
+        # remove the config in the sites-available directory
+        if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
+           sudo rm "$APACHEAVAILABLE"/"$1_$2.conf"
+        fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
+}
+
 #Удаление сайта
 ###input
 #$1-domain ;
-#$2-path ;
-#$3-user ;
-#$4-mode:createbackup/nocreatebackup ;
+#$2-user ;
+#$3-mode:createbackup/nocreatebackup ;
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
@@ -5403,16 +5579,33 @@ siteRemove_input() {
 #3 - ошибка передачи параметра mode:createbackup/nocreatebackup
 siteRemove() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
+	path="$HOMEPATHWEBUSERS"/"$2"/"$1"
 	#Параметры запуска существуют
-        #Проверка существования каталога "$2"
-        if [ -d $2 ] ; then
-            #Каталог "$2" существует
-            case "$4" in
+        #Проверка существования каталога "$path"
+        if [ -d $path ] ; then
+            #Каталог "$path" существует
+            case "$3" in
                 createbackup)
+                    backupSiteFiles $2 $1 createDestFolder;
+                    #Проверка существования системного пользователя "$2_$1"
+                    	grep "^$2_$1:" /etc/passwd >/dev/null
+                    	if  [ $? -eq 0 ]
+                    	then
+                    	#Пользователь $2_$1 существует
+                    		sudo userdel $2_$1
+                    	#Пользователь $2_$1 существует (конец)
+                    	fi
+                    #Конец проверки существования системного пользователя $2_$1
+                    sudo a2dissite $2_$1.conf
+                    #TODO сделать бэкап конфигов сайта
+                    siteRemoveWebserverConfig $2 $1
+                    siteRemoveLogs $2 $1
 
-                    break
+                    #TODO сделать бэкап базы данных сайта
+                    sudo rm -Rfv $path
+                    webserverReload
                     ;;
                 nocreatebackup)
                     break
@@ -5422,14 +5615,14 @@ siteRemove() {
             	    return 3
             	    ;;
             esac
-            #Каталог "$2" существует (конец)
+            #Каталог "$path" существует (конец)
         else
-            #Каталог "$2" не существует
-            echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}"
+            #Каталог "$path" не существует
+            echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$path\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}"
             return 2
-            #Каталог "$2" не существует (конец)
+            #Каталог "$path" не существует (конец)
         fi
-        #Конец проверки существования каталога "$2"
+        #Конец проверки существования каталога "$path"
 
 	#Параметры запуска существуют (конец)
 	else
@@ -5449,6 +5642,13 @@ siteRemove() {
 webserverRestart() {
     /etc/init.d/apache2 restart
     /etc/init.d/nginx restart
+}
+
+
+#обновление конфигураций веб-серверов
+webserverReload() {
+    sudo systemctl reload nginx
+    sudo systemctl reload apache2
 }
 
 #вывод информации о версии PHP
@@ -5645,7 +5845,7 @@ menuSite() {
             do
                 case "$REPLY" in
                 "1")  menuSiteAdd $1; break;;
-                "2")  $SCRIPTS/webserver/remove/remove_site.sh $1; break;;
+                "2")  input_siteRemove $1;  break;;
                 "3")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
                 "4")  $MENU/submenu/site_cert.sh $1; break;;
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
