@@ -1822,7 +1822,7 @@ dbCreateBase() {
 
 
 #Удаление базы данных mysql
-###Полностью готово. Не трогать. 07.03.2019 г.
+###!ПОЛНОСТЬЮ ГОТОВО. 28.03.2019
 ###input:
 #$1-dbname ;
 #$2-"drop"-подтверждение ;
@@ -1844,13 +1844,13 @@ dbDropBase() {
             if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
             	then
             	#база $1 - существует
-                    mysql -e "DROP DATABASE IF EXISTS $1;"
-
+                   # mysql -e "DROP DATABASE IF EXISTS '$1';"
+                    echo "DROP DATABASE IF EXISTS \`$1\`;" | mysql
                     #Финальная проверка существования базы данных "$1"
                     if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
                     	then
                     	#база $1 - существует
-                    	    echo -e "${COLOR_RED}Произошла ошибка удаления базы данных ${COLOR_GREEN}\"$1.\"${COLOR_RED} Функция ${COLOR_GREEN}\"dbDropBase\"${COLOR_RED}  ${COLOR_NC}"
+                    	    echo -e "${COLOR_RED}Произошла ошибка удаления базы данных ${COLOR_GREEN}\"$1\"${COLOR_RED} Функция ${COLOR_GREEN}\"dbDropBase\"${COLOR_RED}  ${COLOR_NC}"
                     		return 4
                     	#база $1 - существует (конец)
                     	else
@@ -2876,7 +2876,7 @@ backupSiteWebserverConfig() {
                 #Проверка существования каталога "$DESTINATION/$1_$2"
                 if ! [ -d $DESTINATION/$1_$2 ] ; then
                     #Каталог "$DESTINATION" не существует
-                    mkdir $DESTINATION/$1_$2
+                    sudo mkdir -p $DESTINATION/$1_$2
                     #Каталог "$DESTINATION" не существует (конец)
                 fi
                 #Конец проверки существования каталога "$DESTINATION/$1_$2"
@@ -3357,21 +3357,151 @@ dbBackupAllBases() {
 }
 
 
+#Выгрузка всех баз данных, принадлежащих к определенному домену
+###input
+#$1-domain ;
+#$2-user;
+#$3 - full_info/error_only - вывод сообщений о выполнении операции
+#$4 - mode - data/structure
+#$5 - mode - DeleteBase/NoDeleteBase (удаление после создания бэкапа)
+#$6-В параметре $6 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+#return
+#0 - выполнено успешно,
+#1 - отсутствуют параметры запуска,
+#2 - ошибка передачи параметра mode: full_info/error_only
+#3 - ошибка передачи параметра mode: data|structure
+#4 - ошибка передачи параметра mode: DeleteBase/NoDeleteBase
+dbBackupBasesOneDomainAndUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]&& [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+		date=`date +%Y.%m.%d`
+        datetime=`date +%Y.%m.%d-%H.%M.%S`
+
+        #Параметры запуска существуют
+        case "$4" in
+            data|structure)
+                case "$5" in
+                    DeleteBase|NoDeleteBase)
+                        true
+                        ;;
+                    *)
+                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: DeleteBase/NoDeleteBase\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneDomainAndUser\"${COLOR_NC}";
+                        return 4
+                        ;;
+                esac
+                ;;
+            *)
+                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: data/structure\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneDomainAndUser\"${COLOR_NC}";
+                return 3
+                ;;
+        esac
+
+        case "$3" in
+            full_info|error_only)
+                true
+             ;;
+            *)
+                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: full_info/error_only\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneDomainAndUser\"${COLOR_NC}";
+                return 2
+                ;;
+        esac
+
+        #Проверка на существование параметров запуска скрипта
+        if [ -n "$6" ]
+        then
+        #Параметры запуска существуют
+            DESTINATION=$6
+        #Параметры запуска существуют (конец)
+        else
+        #Параметры запуска отсутствуют
+             DESTINATION=""
+        #Параметры запуска отсутствуют (конец)
+        fi
+        #Конец проверки существования параметров запуска скрипта
+
+        databases=`mysql -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME like '$2\_$1%' or SCHEMA_NAME like '$2\_$1'" | tr -d "| " | grep -v SCHEMA_NAME`
+
+                        #выгрузка баз данных
+                        for db in $databases; do
+                        #echo $db
+                           # if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
+
+								#извлечение имени владельца
+                                dbExtractUser=${db%\_*}
+                                #echo $dbExtractUser
+                                #основная база и дополнительная
+                                dbNameWithDopBase=${db#$dbExtractUser\_}
+                                #echo $dbNameWithDopBase
+                                #извлечение названия дополнительной базы
+                                dbNameDopBase=${dbNameWithDopBase#*--*}
+                                #echo $dbNameDopBase
+                                #извлечения названия основной базы (домена)
+                                dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
+                                #echo $dbNameMainBase
+                           #  fi
+
+                             case "$3" in
+                                full_info)
+                                    case "$4" in
+                                        data)
+                                            dbBackupBase $db full_info data $DESTINATION
+                                            ;;
+                                        structure)
+                                            dbBackupBase $db full_info structure $DESTINATION
+                                            ;;
+                                    esac
+                                    ;;
+                                error_only)
+                                    case "$4" in
+                                        data)
+                                            dbBackupBase $db error_only data $DESTINATION
+                                            ;;
+                                        structure)
+                                            dbBackupBase $db error_only structure $DESTINATION
+                                            ;;
+                                    esac
+                                    ;;
+                            esac
+
+                            case "$5" in
+                                DeleteBase)
+                                    dbDropBase $db drop
+                                    ;;
+                                NoDeleteBase)
+                                   true
+                                    ;;
+                            esac
+                        done
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbBackupBasesOneDomainAndUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 
 #Выгрузка всех баз данных, принадлежащих к определенному домену
 ###input
 #$1-domain ;
 #$2 - full_info/error_only - вывод сообщений о выполнении операции
 #$3 - mode - data/structure
-#$4-В параметре $4 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+#$4 - mode - DeleteBase/NoDeleteBase (удаление после создания бэкапа)
+#$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
 #return
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
 #2 - ошибка передачи параметра mode: full_info/error_only
 #3 - ошибка передачи параметра mode: data|structure
+#4 - ошибка передачи параметра mode: DeleteBase/NoDeleteBase
 dbBackupBasesOneDomain() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
 		date=`date +%Y.%m.%d`
@@ -3380,7 +3510,15 @@ dbBackupBasesOneDomain() {
         #Параметры запуска существуют
         case "$3" in
             data|structure)
-                true
+                case "$4" in
+                    DeleteBase|NoDeleteBase)
+                        true
+                        ;;
+                    *)
+                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: DeleteBase/NoDeleteBase\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}";
+                        return 4
+                        ;;
+                esac
                 ;;
             *)
                 echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: data/structure\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}";
@@ -3388,7 +3526,7 @@ dbBackupBasesOneDomain() {
                 ;;
         esac
 
-        case "$2" in
+        case "$3" in
             full_info|error_only)
                 true
              ;;
@@ -3399,10 +3537,10 @@ dbBackupBasesOneDomain() {
         esac
 
         #Проверка на существование параметров запуска скрипта
-        if [ -n "$4" ]
+        if [ -n "$5" ]
         then
         #Параметры запуска существуют
-            DESTINATION=$4
+            DESTINATION=$5
         #Параметры запуска существуют (конец)
         else
         #Параметры запуска отсутствуют
@@ -3415,7 +3553,7 @@ dbBackupBasesOneDomain() {
 
                         #выгрузка баз данных
                         for db in $databases; do
-                        echo $db
+                        #echo $db
                            # if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "phpmyadmin" ]] && [[ "$db" != "sys" ]] ; then
 
 								#извлечение имени владельца
@@ -3454,6 +3592,15 @@ dbBackupBasesOneDomain() {
                                     esac
                                     ;;
                             esac
+
+                            case "$4" in
+                                DeleteBase)
+                                    dbDropBase $db drop
+                                    ;;
+                                NoDeleteBase)
+                                   true
+                                    ;;
+                            esac
                         done
 	#Параметры запуска существуют (конец)
 	else
@@ -3471,16 +3618,18 @@ dbBackupBasesOneDomain() {
 #$1-user ;
 #$2 - full_info/error_only - вывод сообщений о выполнении операции
 #$3 - mode - data/structure
-#$4-В параметре $4 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
+#$4 - mode - DeleteBase/NoDeleteBase  - удалить ли базы после создания бэкапов
+#$5-В параметре $5 может быть установлен каталог выгрузки. По умолчанию грузится в $BACKUPFOLDER_DAYS\`date +%Y.%m.%d` ;
 #return
 #0 - выполнено успешно,
 #1 - отсутствуют параметры запуска,
 #2 - ошибка передачи параметра mode: full_info/error_only
 #3 - ошибка передачи параметра mode: data|structure
+#4 - ошибка передачи параметра mode: DeleteBase/NoDeleteBase
 
 dbBackupBasesOneUser() {
     #Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
 		date=`date +%Y.%m.%d`
@@ -3489,7 +3638,15 @@ dbBackupBasesOneUser() {
         #Параметры запуска существуют
         case "$3" in
             data|structure)
-                true
+                case "$4" in
+                    DeleteBase|NoDeleteBase)
+                        true
+                        ;;
+                    *)
+                        echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: DeleteBase/NoDeleteBase\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}";
+                        return 4
+                        ;;
+                esac
                 ;;
             *)
                 echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: data/structure\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbBackupBasesOneUser\"${COLOR_NC}";
@@ -3508,10 +3665,10 @@ dbBackupBasesOneUser() {
         esac
 
         #Проверка на существование параметров запуска скрипта
-        if [ -n "$4" ]
+        if [ -n "$5" ]
         then
         #Параметры запуска существуют
-            DESTINATION=$4
+            DESTINATION=$5
         #Параметры запуска существуют (конец)
         else
         #Параметры запуска отсутствуют
@@ -3561,6 +3718,15 @@ dbBackupBasesOneUser() {
                                             dbBackupBase $db error_only structure $DESTINATION
                                             ;;
                                     esac
+                                    ;;
+                            esac
+
+                            case "$4" in
+                                DeleteBase)
+                                    dbDropBase $db drop
+                                    ;;
+                                NoDeleteBase)
+                                   true
                                     ;;
                             esac
                         done
@@ -4580,10 +4746,10 @@ chModAndOwnFolderAndFiles() {
          		if [ $? -eq 0 ]
          			then
          				#предыдущая команда завершилась успешно
-         				find $1 -type d -exec chmod $3 {} \;
-                        find $1 -type f -exec chmod $3 {} \;
-                        find $1 -type d -exec chown $4:$5 {} \;
-                        find $1 -type f -exec chown $4:$5 {} \;
+         				find $1 -type d -exec sudo chmod $3 {} \;
+                        find $1 -type f -exec sudo chmod $3 {} \;
+                        find $1 -type d -exec sudo chown $4:$5 {} \;
+                        find $1 -type f -exec sudo chown $4:$5 {} \;
          				#предыдущая команда завершилась успешно (конец)
          			else
          				#предыдущая команда завершилась с ошибкой
@@ -5744,7 +5910,8 @@ siteRemove() {
             case "$3" in
                 createbackup)
                     backupSiteWebserverConfig $2 $1 error_only;
-                    dbBackupBasesOneDomain $1 error_only data;
+                    dbBackupBasesOneDomainAndUser $1 $2 error_only data DeleteBase;
+                    ##TODO сделать проверку успешности выполнения бэкапа
 
                     #Проверка существования каталога "$path"
                     if [ -d $path ] ; then
@@ -5771,7 +5938,7 @@ siteRemove() {
                     #Проверка существования каталога "$path"
                     if [ -d $path ] ; then
                         #Каталог "$path" существует
-                        sudo rm -Rfv $path
+                        sudo rm -Rf $path
                         #Каталог "$path" существует (конец)
                     fi
                     #Конец проверки существования каталога "$path"
@@ -6821,8 +6988,7 @@ input_dbUserDeleteBase() {
                         case "$REPLY" in
                             y|Y)
 
-                                sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBasesOneUser $username $username www-data 644 createfolder";
-                                dbUserDeleteBase $username;
+                                dbBackupBasesOneUser $username full_info data DeleteBase;
                                 break
                                 ;;
                             n|N)
@@ -6990,9 +7156,8 @@ input_dbUserDelete_querry() {
             do
                 case "$REPLY" in
                     y|Y)
-                        path=$BACKUPFOLDER/vds/removed/$username/$d
                         sudo bash -c "source $SCRIPTS/include/inc.sh; mkdirWithOwn $path $USERLAMER users 755"
-                        sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBasesOneUser $username $USERLAMER users 644 createfolder $path"
+                        dbBackupBasesOneUser $username full_info data NoDeleteBase
                         clear;
                         dbUserdel $username drop; dbViewAllUsers; menuUserMysql $1;
                         return 0;
