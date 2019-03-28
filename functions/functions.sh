@@ -21,7 +21,6 @@ declare -x -f viewUserInGroupByName
 declare -x -f viewUsersInGroup
 declare -x -f userAddToGroup
 declare -x -f userDeleteFromGroup
-declare -x -f useraddFtp
 declare -x -f userChangePassword
 
 #TODO сделать проверку на отсутствие - при вводе имени или
@@ -393,6 +392,8 @@ input_userAddToGroupSudo() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+
 #Выполенние операций по созданию системного пользователя
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
 ###input:
@@ -466,15 +467,8 @@ userAddSystem()
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
 
+                                        dbRecordAdd_addUser $1 $2 $7 1
 
-                                        #mysql-добавление информации о пользователе
-                                        dt=`date +%Y-%m-%d\ %H:%M:%S`
-                                        dbAddRecordToDb $WEBSERVER_DB users username $1 insert
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$dt" update
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $1 created_by "$7" update
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $1 isAdminAccess 0 update
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $1 isFtpAccess 1 update
 
 
                                             case "$5" in
@@ -1305,75 +1299,6 @@ userDeleteFromGroup() {
 }
 
 
-#Добавление пользователя ftp
-#Проверено полностью
-###input
-#$1-user ;
-#$2-path ;
-#$3-пароль
-###return
-#0 - выполнено успешно,
-#1 - отсутствуют параметры запуска,
-#2 - пользователь уже существует
-#3 - каталог уже существует,
-#4 - произошла ошибка при создании пользователя
-useraddFtp() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				echo -e "${COLOR_RED}Пользователь ftp ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"useraddFtp\"${COLOR_RED}  ${COLOR_NC}"
-				return 2
-			#Пользователь $1 существует (конец)
-			else
-			    #Проверка существования каталога "$2"
-			    if [ -d $2 ] ; then
-			        #Каталог "$2" существует
-			        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"useraddFtp\"${COLOR_RED}  ${COLOR_NC}"
-			        return 3
-			        #Каталог "$2" существует (конец)
-			    else
-			        #Каталог "$2" не существует
-			        useradd $1 -N -d $2 -m -s /bin/false -g ftp-access -G www-data
-                    echo "$1:$3" | chpasswd
-			        #Финальная проверка существования системного пользователя "$1"
-			        	grep "^$1:" /etc/passwd >/dev/null
-			        	if  [ $? -eq 0 ]
-			        	then
-			        	#Пользователь $1 существует
-			        		echo -e "${COLOR_GREEN}Пользователь ftp ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно добавлен с домашим каталогом ${COLOR_YELLOW}\"$2\"${COLOR_GREEN}  ${COLOR_NC}"
-			        		return 0
-			        	#Пользователь $1 существует (конец)
-			        	else
-			        	#Пользователь $1 не существует
-
-			        	    echo -e "${COLOR_RED}Произошла ошибка при создании пользователя ftp ${COLOR_GREEN}\"$1\"${COLOR_RED}. Ошибка выполнения функции ${COLOR_GREEN}\"useraddFtp\"${COLOR_NC}"
-			        	    return 4
-			        	#Пользователь $1 не существует (конец)
-			        	fi
-			        #Финальная проверка существования системного пользователя $1 (конец)
-			        #Каталог "$2" не существует (конец)
-			    fi
-			    #Конец проверки существования каталога "$2"
-
-
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"useraddFtp\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #############################################MYSQL###############################################
 #Добавление пользователя mysql
@@ -1479,7 +1404,73 @@ dbUseradd() {
 }
 
 
+declare -x -f dbRecordAdd_addUser #Добавление записи в базу о добавлении пользователя
+#Добавление записи в базу о добавлении пользователя
+###input
+#$1-user ;
+#$2-homedir ;
+#$3-created_by ;
+#$4-userType (1-system, 2-ftp)
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
 
+		#mysql-добавление информации о пользователе
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+    dbAddRecordToDb $WEBSERVER_DB users username $1 insert
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$datetime" update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created_by "$3" update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isAdminAccess 0 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isFtpAccess 1 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 userType $4 update
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+declare -x -f dbRecordAdd_addBase #Добавление записи в базу о добавлении пользователя
+#Добавление записи в базу о добавлении пользователя
+###input
+#$1-dbname ;
+#$2-characterSetId_db ;
+#$3-collateId_db ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addBase() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+    dbAddRecordToDb $WEBSERVER_DB db name_db $1 insert
+    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 characterSetId_db $2 update
+    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 collateId_db $3 update
+    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 collateId_db $3 update
+    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 created_db "$datetime" update
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addBase\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 #Запрос имени пользователя для добавления пользователя mysql (основного пользователя)
 ###input
@@ -1608,11 +1599,6 @@ input_dbUseradd() {
                                 	    echo -e "${COLOR_RED}Ошибка доп.проверки параметра ${COLOR_GREEN}\"mode (main/dop/dop_querry)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_NC}";
                                 	    ;;
                                 esac
-                                dbUpdateRecordToDb lamer_webserver db_users username $username usertype $param1 update
-                                dbUpdateRecordToDb lamer_webserver db_users username $username created_by "$1" update
-                                dbUpdateRecordToDb lamer_webserver db_users username $username name_mainUser "$mainUser" update
-
-
 
 
                                 clear
@@ -1753,12 +1739,12 @@ dbCreateBase() {
 	    	#база $1 - не существует
 	    	     case "$4" in
 	    	     	silent)
-	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS $1 CHARACTER SET $2 COLLATE $3;";
+	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS \`$1\` CHARACTER SET \`$2\` COLLATE \`$3\`;";
 	    	     		#Финальная проверка существования базы данных "$1"
                          if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
                             then
                             #база $1 - существует
-                                return 0
+                                true
                             #база $1 - существует (конец)
                             else
                             #база $1 - не существует
@@ -1769,13 +1755,12 @@ dbCreateBase() {
                          #Финальная проверка существования базы данных $1 (конец)
 	    	     		;;
 	    	     	full_info)
-	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS $1 CHARACTER SET $2 COLLATE $3;";
+	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS \`$1\` CHARACTER SET \`$2\` COLLATE \`$3\`;";
 	    	     		#Финальная проверка существования базы данных "$1"
                          if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
                             then
                             #база $1 - существует
                                 echo -e "${COLOR_GREEN}База данных ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создана ${COLOR_NC}"
-                                return 0
                             #база $1 - существует (конец)
                             else
                             #база $1 - не существует
@@ -1786,12 +1771,12 @@ dbCreateBase() {
                          #Финальная проверка существования базы данных $1 (конец)
 	    	     		;;
 	    	     	error_only)
-	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS $1 CHARACTER SET $2 COLLATE $3;";
+	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS \`$1\` CHARACTER SET \`$2\` COLLATE \`$3\`;";
 	    	     		#Финальная проверка существования базы данных "$1"
                          if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
                             then
                             #база $1 - существует
-                                return 0
+                                true
                             #база $1 - существует (конец)
                             else
                             #база $1 - не существует
@@ -1806,7 +1791,11 @@ dbCreateBase() {
 	    	     		echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbCreateBase\"${COLOR_NC}";
 	    	     		return 4;;
 	    	     esac
+
+	    	     dbRecordAdd_addBase $1 $2 $3
 	    	#база $1 - не существует (конец)
+
+
 	    fi
 	    #конец проверки существования базы данных $1
 
@@ -2883,19 +2872,19 @@ backupSiteWebserverConfig() {
 
 
                 if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
-                    cp -R "$NGINXENABLED"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--ngEnabled"
+                    sudo cp -R "$NGINXENABLED"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--ngEnabled"
                 fi
 
                 if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
-                    cp -R "$NGINXAVAILABLE"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--ngAvailable"
+                    sudo cp -R "$NGINXAVAILABLE"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--ngAvailable"
                 fi
 
                 if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
-                    cp -R "$APACHEENABLED"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--apEnabled"
+                    sudo cp -R "$APACHEENABLED"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--apEnabled"
                 fi
 
                 if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
-                    cp -R "$APACHEAVAILABLE"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--apAvailable"
+                    sudo cp -R "$APACHEAVAILABLE"/"$1_$2.conf" "$DESTINATION"/"$1_$2"/"$1_$2.conf--apAvailable"
                 fi
 
                 #Проверка существования системного пользователя "$1"
@@ -4402,16 +4391,16 @@ tarFolder() {
             #тип архивации (с сохранением структуры, дополнительно с удалением исходника, без структуры, доп. с удалением исходника)
 		    case "$3" in
 		        str)
-                    tar -czpf $2 -P $1
+                    sudo tar -czpf $2 -P $1
 		            ;;
 		        str_rem)
-                    tar -czpf $2 -P $1 --remove-files
+                    sudo tar -czpf $2 -P $1 --remove-files
 		            ;;
 		    	nostr)
-                    cd `dirname $1` && tar -czpf $2 `basename $1`
+                    cd `dirname $1` && sudo tar -czpf $2 `basename $1`
 		    		;;
 		    	nostr_rem)
-                    cd `dirname $1` && tar -czpf $2 `basename $1` --remove-files
+                    cd `dirname $1` && sudo tar -czpf $2 `basename $1` --remove-files
 		    		;;
 		    	*)
 		    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode (str, str_rem, nostr, nostr_rem)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"tarFile\"${COLOR_NC}";
@@ -5209,43 +5198,30 @@ siteAdd_php() {
                             #Каталог сайта "$3" не существует
 
                             echo "Добавление веб пользователя $1_$2 с домашним каталогом: $3 для домена $2"
-                            siteAddFtpUser $1 $2 pass querry
+                            siteAddFtpUser $1 $2 autogenerate $6
                             sudo cp -R /etc/skel/* $3
 
                             siteAddTestIndexFile $1 $2 public_html replace phpinfo
 
                            #nginx
                            sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
-      #                     sudo chmod 644 /etc/nginx/sites-available/"$1"_"$2".conf
                            sudo chModAndOwnFile /etc/nginx/sites-available/"$1"_"$2".conf $1 www-data 644
 
                            siteChangeWebserverConfigs nginx $1 $2 $HTTPNGINXPORT
 
-                           sudo  ln -s /etc/nginx/sites-available/"$1"_"$2".conf /etc/nginx/sites-enabled/"$1"_"$2".conf
-                           sudo  systemctl reload nginx
+                           siteStatus $1 $2 nginx enable
 
                             #apache2
                            sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
-     #                       chmod 644 /etc/apache2/sites-available/"$1"_"$2".conf
                            sudo chModAndOwnFile /etc/apache2/sites-available/"$1"_"$2".conf $1 www-data 644
-                            siteChangeWebserverConfigs apache $1 $2 $HTTPNGINXPORT
+                            siteChangeWebserverConfigs apache $1 $2 $APACHEHTTPPORT
 
-                            sudo a2ensite "$1"_"$2".conf
-                            sudo service apache2 reload
-
+                            siteStatus $1 $2 apache enable
 
                             chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1 644 755
 
-                            #chmod
-                            #sudo find $3 -type d -exec chmod 755 {} \;
-                            #sudo find $3/$WWWFOLDER -type d -exec chmod 755 {} \;
-                            #sudo find $3 -type f -exec chmod 644 {} \;
-                            #sudo find $3/$WWWFOLDER -type f -exec chmod 644 {} \;
-                            #sudo find $3/logs -type f -exec chmod 644 {} \;
+                            dbCreateBase $1_$2 utf8 utf8_general_ci full_info
 
-                            #sudo chown -R $1:www-data $3/logs
-                            #sudo chown -R $1:www-data $3/$WWWFOLDER
-                            #sudo chown -R $1:www-data $3/tmp
 
                             cd $3/$WWWFOLDER
                             echo -e "\033[32m" Инициализация Git "\033[0;39m"
@@ -5393,42 +5369,59 @@ siteStatus() {
 ###input
 #$1-user ;
 #$2-domain ;
-#$3-mode: password type - autogenerate/manual/manual;
+#$3-mode: password type - autogenerate/querry/manual;
+#$4-created by
 
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь ftp-уже существует
 #3 - Ошибка передачи параметра mode - manual|querry|autogenerate
+#4 - пользователь created by не существует
 siteAddFtpUser() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
+		#Проверка существования системного пользователя "$1_$2"
+			grep "^$1_$2:" /etc/passwd >/dev/null
 			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
-				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}"
+				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1_$2\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}"
 				return 2
-			#Пользователь $1 существует (конец)
+			#Пользователь $1_$2 существует (конец)
 			else
-			#Пользователь $1 не существует
-			    case "$3" in
-			        manual|querry|autogenerate)
-			            sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
-                        sudo useradd $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false
-                        sudo adduser $1_$2 www-data
-                        #смена пароля на пользователя
-                        userChangePassword $1_$2 $3
-                        return 0
-			            ;;
-			    	*)
-			    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - manual|querry|autogenerate\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}";
-			    	    return 3
-			    	    ;;
-			    esac
+			#Пользователь $1_$2 не существует
+			    #Проверка существования системного пользователя "$4"
+			    	grep "^$4:" /etc/passwd >/dev/null
+			    	if  [ $? -eq 0 ]
+			    	then
+			    	#Пользователь $4 существует
+                        case "$3" in
+                            "manual"|"querry"|"autogenerate")
+                                sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                                sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
+                                sudo adduser $1_$2 www-data
+                                echo -e "${COLOR_GREEN}"$4"${COLOR_NC}"
+                                dbRecordAdd_addUser $1_$2 "$HOMEPATHWEBUSERS"/"$1"/"$2" $4 2
+                                #смена пароля на пользователя
+                                userChangePassword $1_$2 $3
+                                return 0
+                                ;;
+                            *)
+                                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - manual|querry|autogenerate\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}";
+                                return 3
+                                ;;
+                        esac
+                            #Пользователь $4 существует (конец)
+                            else
+                            #Пользователь $4 не существует
+                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}"
+                                return  4
+                            #Пользователь $4 не существует (конец)
+                            fi
+                        #Конец проверки существования системного пользователя $4
 
 			#Пользователь $1 не существует (конец)
 			fi
@@ -5889,6 +5882,9 @@ siteRemove() {
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+
 	#Проверка существования системного пользователя "$2"
 		grep "^$2:" /etc/passwd >/dev/null
 		if  [ $? -eq 0 ]
@@ -5905,18 +5901,19 @@ siteRemove() {
 	#Конец проверки существования системного пользователя $2
 
 	path="$HOMEPATHWEBUSERS"/"$2"/"$1"
+	pathBackup=$BACKUPFOLDER/vds/removed/$2/$1/$date
 	#Параметры запуска существуют
         #Проверка существования каталога "$path"
             case "$3" in
                 createbackup)
-                    backupSiteWebserverConfig $2 $1 error_only;
-                    dbBackupBasesOneDomainAndUser $1 $2 error_only data DeleteBase;
+                    backupSiteWebserverConfig $2 $1 error_only $pathBackup;
+                    dbBackupBasesOneDomainAndUser $1 $2 error_only data DeleteBase $pathBackup;
                     ##TODO сделать проверку успешности выполнения бэкапа
 
                     #Проверка существования каталога "$path"
                     if [ -d $path ] ; then
                         #Каталог "$path" существует
-                        backupSiteFiles $2 $1 createDestFolder
+                        backupSiteFiles $2 $1 createDestFolder $pathBackup
                         #Каталог "$path" существует (конец)
                     fi
                     #Конец проверки существования каталога "$path"
@@ -5943,6 +5940,15 @@ siteRemove() {
                     fi
                     #Конец проверки существования каталога "$path"
 
+                    #Проверка существования системного пользователя "$2_$1"
+                    	grep "^$2_$1:" /etc/passwd >/dev/null
+                    	if  [ $? -eq 0 ]
+                    	then
+                    	#Пользователь $2_$1 существует
+                    		userDelete_system $2_$1
+                    	#Пользователь $2_$1 существует (конец)
+                    	fi
+                    #Конец проверки существования системного пользователя $2_$1
 
 	#Параметры запуска существуют (конец)
 	else
@@ -7607,7 +7613,8 @@ siteChangeWebserverConfigs() {
                            sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
                            sudo grep '#__DOMAIN' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__DOMAIN/'$3'/g' "$path"/"$2"_"$3".conf
                            sudo grep '#__USER' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__USER/'$2'/g' "$path"/"$2"_"$3".conf
-                           sudo grep '#__PORT' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__PORT/'$HTTPNGINXPORT'/g' "$path"/"$2"_"$3".conf
+
+                           sudo grep '#__PORT' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__PORT/'$4'/g' "$path"/"$2"_"$3".conf
                            sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' "$path"/"$2"_"$3".conf
                             return 0
 
