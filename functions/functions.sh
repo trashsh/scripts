@@ -65,7 +65,7 @@ declare -x -f folderExistWithInfo
 declare -x -f fileExistWithInfo
 declare -x -f mkdirWithOwn
 declare -x -f chModAndOwnSiteFileAndFolder
-
+declare -x -f fileAddLineToFile
 ####################################webserver################################
 declare -x -f webserverRestart
 declare -x -f webserverReload
@@ -149,7 +149,6 @@ declare -x -f searchSiteConfig
 declare -x -f searchSiteConfigAllFolder
 
 ####################################testing##########################################
-declare -x -f testFunction
 
 #######################################USERS##########################################
 #Добавление системного пользователя - ввод данных
@@ -456,11 +455,19 @@ userAddSystem()
                                          #sudo -s source /my/scripts/include/inc.sh
                                          mkdir $2
                                          useradd -N -g $4 -d $2 -s $3 $1
+                                         echo "$1:$6" | chpasswd
+                                         fileAddLineToFile $1 "SSH-Пользователь:"
+                                         fileAddLineToFile $1 "Username: $1"
+                                         fileAddLineToFile $1 "Password: $6"
+                                         fileAddLineToFile $1 "Server: $MYSERVER"
+                                         fileAddLineToFile $1 "Port: $SSHPORT"
+                                         fileAddLineToFile $1 "------------------------"
                                          chown $1:$4 $2
                                          chmod 777 $2
 
 
-                                        echo "$1:$6" | chpasswd
+
+                                        fileAddLineToFile $1 info.txt $1
 
                                         #dbSetMyCnfFile $1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777
@@ -649,7 +656,9 @@ userChangePassword() {
 					    ;;
 				esac
 
-				sudo echo "$1:$password" | chpasswd
+				echo "$1:$password" | sudo chpasswd
+				fileAddLineToFile $1 "Username: $1"
+                fileAddLineToFile $1 "Password: $password"
 				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
 				return 0
 			#Пользователь $1 существует (конец)
@@ -1043,6 +1052,7 @@ viewUsersInGroup() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 
 #Добавить пользователя в группу
 #Проверно полностью. 13.03.2019
@@ -1440,6 +1450,39 @@ dbRecordAdd_addUser() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+declare -x -f dbRecordAdd_addDbUser #Добавление записи в базу о добавлении пользователя mysql
+#Добавление записи в базу о добавлении пользователя mysql
+###input
+#$1-user ;
+#$2-homedir ;
+#$3-created_by ;
+#$4-userType (1-system, 2-ftp)
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addDbUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+
+		#mysql-добавление информации о пользователе
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+    dbAddRecordToDb $WEBSERVER_DB db_users username $1 insert
+    dbUpdateRecordToDb $WEBSERVER_DB db_users username $1 created_by $3 update
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addDbUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 declare -x -f dbRecordAdd_addBase #Добавление записи в базу о добавлении пользователя
 #Добавление записи в базу о добавлении пользователя
 ###input
@@ -1632,12 +1675,7 @@ input_dbUseradd() {
     fi
     #Конец проверки существования параметров запуска скрипта
 
-
-
-
 }
-
-
 
 
 #Удаление пользователя mysql
@@ -1808,6 +1846,7 @@ dbCreateBase() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 
 
 #Удаление базы данных mysql
@@ -2962,6 +3001,7 @@ backupSiteWebserverConfig() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
 #Создание бэкапов файлов всех сайтов указанного пользователя
 ###!ПОЛНОСТЬЮ ГОТОВО. 27.03.2019
 ###input
@@ -3122,7 +3162,7 @@ dbBackupBase() {
     	    return 4
     	    ;;
     esac
-    
+
     #Проверка существования базы данных "$1"
     if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
     	then
@@ -3231,7 +3271,7 @@ dbBackupBase() {
             #Конец проверки на успешность выполнения предыдущей команды
 
 
-    	#база $1 - существует (конец)	
+    	#база $1 - существует (конец)
     	else
     	#база $1 - не существует
     	     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbBackupBase\" ${COLOR_NC}"
@@ -3239,7 +3279,7 @@ dbBackupBase() {
     	#база $1 - не существует (конец)
     fi
     #конец проверки существования базы данных $1
-    
+
 
     #Параметры запуска существуют (конец)
     else
@@ -4014,6 +4054,7 @@ dbChangeUserPassword() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
 #######################################Архивация######################################
 
 #архивация файла
@@ -4531,8 +4572,8 @@ chModAndOwnFile() {
 		    		if grep -q $3 /etc/group
 		    		    then
 		    		        #Группа "$3" существует
-		    		            chmod $4 $1
-				                chown $2:$3 $1
+		    		            sudo chmod $4 $1
+				                sudo chown $2:$3 $1
 		    		        #Группа "$3" существует (конец)
 		    		    else
 		    		        #Группа "$3" не существует
@@ -4570,8 +4611,8 @@ chModAndOwnFile() {
 
 #Смена прав,владельца для файлов и каталога сайта
 ###input
-#$1-sitepath ; 
-#$2-wwwfolder ; 
+#$1-sitepath ;
+#$2-wwwfolder ;
 #$3-user ;
 #$4-file permittion ;
 #$5-folder permittion ;
@@ -4583,7 +4624,7 @@ chModAndOwnFile() {
 #4 - пользовтель $3 не существует
 chModAndOwnSiteFileAndFolder() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]  
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
 	then
 	#Параметры запуска существуют
 		#Проверка существования каталога "$1"
@@ -4651,7 +4692,7 @@ chModAndOwnSiteFileAndFolder() {
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #Создание папки и применение ей владельца и прав доступа
@@ -5197,7 +5238,7 @@ siteAdd_php() {
                         else
                             #Каталог сайта "$3" не существует
 
-                            echo "Добавление веб пользователя $1_$2 с домашним каталогом: $3 для домена $2"
+                            #добавление ftp-пользователя
                             siteAddFtpUser $1 $2 autogenerate $6
                             sudo cp -R /etc/skel/* $3
 
@@ -5205,7 +5246,7 @@ siteAdd_php() {
 
                            #nginx
                            sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
-                           sudo chModAndOwnFile /etc/nginx/sites-available/"$1"_"$2".conf $1 www-data 644
+                           chModAndOwnFile /etc/nginx/sites-available/"$1"_"$2".conf $1 www-data 644
 
                            siteChangeWebserverConfigs nginx $1 $2 $HTTPNGINXPORT
 
@@ -5213,19 +5254,26 @@ siteAdd_php() {
 
                             #apache2
                            sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
-                           sudo chModAndOwnFile /etc/apache2/sites-available/"$1"_"$2".conf $1 www-data 644
+                           chModAndOwnFile /etc/apache2/sites-available/"$1"_"$2".conf $1 www-data 644
                             siteChangeWebserverConfigs apache $1 $2 $APACHEHTTPPORT
 
                             siteStatus $1 $2 apache enable
 
                             chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1 644 755
 
-                            dbCreateBase $1_$2 utf8 utf8_general_ci full_info
+                            dbCreateBase $1_$2 utf8 utf8_general_ci error_only
+                            mysqlpassword="$(openssl rand -base64 14)";
+                            dbUseradd $1_$2 $mysqlpassword % pass user
+
+
+
 
 
                             cd $3/$WWWFOLDER
-                            echo -e "\033[32m" Инициализация Git "\033[0;39m"
+                            #echo -e "\033[32m" Инициализация Git "\033[0;39m"
                             git init
+                            git config user.email "$1@$2"
+                            git config user.name "$1"
                             git add .
                             git commit -m "initial commit"
 
@@ -5334,14 +5382,14 @@ siteStatus() {
                     nginx)
                         #Проверка существования файла ""$NGINXENABLED"/"$1_$2.conf""
                         if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
-                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует    
+                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует
                             sudo rm "$NGINXENABLED"/"$1_$2.conf"
                             #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует (конец)
                         else
                             return 5
                         fi
                         #Конец проверки существования файла ""$NGINXENABLED"/"$1_$2.conf""
-                        
+
                         ;;
                 	*)
                 	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: apache/nginx\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
@@ -5400,17 +5448,30 @@ siteAddFtpUser() {
 			    	#Пользователь $4 существует
                         case "$3" in
                             "manual"|"querry"|"autogenerate")
-                                sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                                #Проверка существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
+                                if ! [ -d "$HOMEPATHWEBUSERS"/"$1"/"$2" ] ; then
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует
+                                    sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует (конец)
+                                fi
+                                #Конец проверки существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
+
                                 sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
                                 sudo adduser $1_$2 www-data
-                                echo -e "${COLOR_GREEN}"$4"${COLOR_NC}"
-                                dbRecordAdd_addUser $1_$2 "$HOMEPATHWEBUSERS"/"$1"/"$2" $4 2
+                                dbRecordAdd_addUser $1_$2 "$OMEPATHWEBUSERS"/"$1"/"$2" $4 2
+                                 fileAddLineToFile $1 "FTP-Пользователь:"
+
+
+
                                 #смена пароля на пользователя
                                 userChangePassword $1_$2 $3
+                                 fileAddLineToFile $1 "Server: $MYSERVER"
+                                 fileAddLineToFile $1 "Port: $SSHPORT"
+                                 fileAddLineToFile $1 "------------------------"
                                 return 0
                                 ;;
                             *)
-                                echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - manual|querry|autogenerate\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddFtpUser\"${COLOR_NC}";
+                                echo -e "${LOR_RED}Ошибка передачи параметра ${LOR_GREEN}\"mode - manual|querry|autogenerate\"${LOR_RED} в функцию ${OLOR_GREEN}\"siteAddFtpUser\"${OLOR_NC}";
                                 return 3
                                 ;;
                         esac
@@ -5824,10 +5885,69 @@ fi
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 
+#Добавление строки в файл и его создание при необходимости
+###input
+#$1-user
+#$2-string ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь $1 не существует
+fileAddLineToFile() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+	    #Проверка существования системного пользователя "$1"
+	    	grep "^$1:" /etc/passwd >/dev/null
+	    	if  [ $? -eq 0 ]
+	    	then
+	    	#Пользователь $1 существует
+                path="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                echo `dirname "$path"`
+                #Проверка существования каталога "`dirname $path`"
+                if ! [ -d `dirname "$path"` ] ; then
+                    #Каталог "`dirname $path`" не существует
+                    mkdirWithOwn `dirname "$path"` $1 www-data 777
+                    #Каталог "`dirname $path`" не существует (конец)
+                fi
+                #Конец проверки существования каталога "`dirname $path`"
+
+
+                #Проверка существования файла "$path"
+                if ! [ -f "$path" ] ; then
+                    #Файл "$path" не существует
+                    touchFileWithModAndOwn $path $1 www-data 644
+                    sudo chmod 644 $path $path
+                    sudo chown $1:www-data
+                    #Файл "$path" не существует (конец)
+                fi
+                #Конец проверки существования файла "$path"
+
+                sudo echo "$2" >> $path
+	    	#Пользователь $1 существует (конец)
+	    	else
+	    	#Пользователь $1 не существует
+	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"fileAddLineToFile\"${COLOR_NC}"
+	    		return 2
+	    	#Пользователь $1 не существует (конец)
+	    	fi
+	    #Конец проверки существования системного пользователя $1
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"fileAddLineToFile\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 #Удаление конфигов веб-серверов
 ###input
@@ -5863,7 +5983,7 @@ siteRemoveWebserverConfig() {
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #Удаление сайта
@@ -7090,7 +7210,7 @@ input_dbChangeUserPassword() {
             echo -n -e "${COLOR_BLUE}Введите хост  ${COLOR_YELLOW}\"(localhost/%)\"${COLOR_BLUE}: ${COLOR_NC}"
 	        read host
 
-           dbChangeUserPassword $username $host $password mysql_native_password $1           
+           dbChangeUserPassword $username $host $password mysql_native_password $1
            #Проверка на успешность выполнения предыдущей команды
            if [ $? -eq 0 ]
            	then
@@ -7169,12 +7289,12 @@ input_dbUserDelete_querry() {
                         return 0;
                         break
                         ;;
-                    n|N) 		
+                    n|N)
                         echo -e "${COLOR_YELLOW}Операция отменена пользователем${COLOR_NC}";
                         menuUserMysql $1;
                         return 3;
                         break
-                        ;;           
+                        ;;
                     *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
                        ;;
                 esac
@@ -7596,7 +7716,7 @@ siteChangeWebserverConfigs() {
                 ;;
         	*)
         	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}";
-        	    return 
+        	    return
         	    ;;
         esac
 
@@ -7610,7 +7730,7 @@ siteChangeWebserverConfigs() {
         		    #Файл ""$path"/"$2"_"$3".conf" существует
 
 
-                           sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
+                           #sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
                            sudo grep '#__DOMAIN' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__DOMAIN/'$3'/g' "$path"/"$2"_"$3".conf
                            sudo grep '#__USER' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__USER/'$2'/g' "$path"/"$2"_"$3".conf
 
@@ -7626,7 +7746,7 @@ siteChangeWebserverConfigs() {
         		    #Файл ""$path"/"$2"_"$3".conf" не существует (конец)
         		fi
         		#Конец проверки существования файла ""$path"/"$2"_"$3".conf"
-        		
+
         	#Пользователь $2 существует (конец)
         	else
         	#Пользователь $2 не существует
@@ -7635,7 +7755,7 @@ siteChangeWebserverConfigs() {
         	#Пользователь $2 не существует (конец)
         	fi
         #Конец проверки существования системного пользователя $2
-        
+
 
 	#Параметры запуска существуют (конец)
 	else
@@ -7725,7 +7845,7 @@ siteAddTestIndexFile() {
 				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" не существует (конец)
 				fi
 				#Конец проверки существования каталога "$HOMEPATHWEBUSERS/$1/$2/$3"
-				
+
 			#Пользователь $1 существует (конец)
 			else
 			#Пользователь $1 не существует
@@ -7741,7 +7861,7 @@ siteAddTestIndexFile() {
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
-	#Конец проверки существования параметров запуска скрипта    
+	#Конец проверки существования параметров запуска скрипта
 }
 
 siteExist() {
@@ -7885,8 +8005,8 @@ siteExist() {
 #4 - не существует пользователь $1
 #5 - конфиги для домена уже существуют в настройках сервера
 #6 - каталог для домена уже существует на сервере
+#7 - ошибка mode: querry/lite
 input_SiteAdd_php() {
-    #TODO lite/querry сделать
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ]
 	then
@@ -7933,51 +8053,65 @@ input_SiteAdd_php() {
 
                                 site_path=$HOMEPATHWEBUSERS/$1/$domain
                                 echo ''
-                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
 
-                                ls $TEMPLATES/apache2/
-                                echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
-                                echo -n ": "
-                                read apache_config
-                                #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
-                                if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
-                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует
-                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
-                                    return 2
-                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
-                                fi
-                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+                                case "$2" in
+                                    querry)
+                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+
+                                                ls $TEMPLATES/apache2/
+                                                echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+                                                echo -n ": "
+                                                read apache_config
+                                                #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
+                                                if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
+                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует
+                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                                    return 2
+                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+                                                fi
+                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
 
 
-                                echo ''
-                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
-                                ls $TEMPLATES/nginx/
-                                echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
-                                echo -n ": "
-                                read nginx_config
-                                #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
-                                if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
-                                    #Файл "$TEMPLATES/nginx/$nginx_config" не существует
-                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
-                                    return 3
-                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
-                                fi
-                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+                                                echo ''
+                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+                                                ls $TEMPLATES/nginx/
+                                                echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+                                                echo -n ": "
+                                                read nginx_config
+                                                #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
+                                                if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
+                                                    #Файл "$TEMPLATES/nginx/$nginx_config" не существует
+                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                                    return 3
+                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+                                                fi
+                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
 
-                                echo ''
-                                echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
-                                echo -n ": "
-                                read item
-                                case "$item" in
-                                    y|Y) echo
-                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                        exit 0
+                                                echo ''
+                                                echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+                                                echo -n ": "
+                                                read item
+                                                case "$item" in
+                                                    y|Y) echo
+                                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                                        exit 0
+                                                        ;;
+                                                    *) echo "Выход..."
+                                                        exit 0
+                                                        ;;
+                                                esac
+                                                #Параметры запуска существуют (конец)
+                                                        ;;
+                                    lite)
+                                            apache_config="php_base.conf"
+                                            nginx_config="php_base.conf"
+                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
                                         ;;
-                                    *) echo "Выход..."
-                                        exit 0
-                                        ;;
+                                	*)
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: querry/lite\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}";
+                                	    return 7
+                                	    ;;
                                 esac
-                                #Параметры запуска существуют (конец)
 
                         		#каталог не существует (конец)
                         fi
@@ -8479,17 +8613,4 @@ searchSiteConfigAllFolder() {
 	#Параметры запуска отсутствуют (конец)
 	fi
 	#Конец проверки существования параметров запуска скрипта
-}
-
-
-################################################TESTING####################################################
-testFunction() {
-    dbViewAllUsers
-
-    read  user
-
-    dbBackupBasesOneUser user
-
-    echo ""
-    echo $?
 }
