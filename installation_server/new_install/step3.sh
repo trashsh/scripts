@@ -1,4 +1,7 @@
 
+
+sed -i '$ a source /my/scripts/include/inc.sh'  /root/.bashrc
+
 bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem root $USERLAMER"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroupSudo $USERLAMER"
 bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSudo 1 update"
@@ -21,33 +24,43 @@ bash -c "source $SCRIPTS/include/inc.sh; sshKeyAddToUser $USERLAMER users $SETTI
 bash -c "source $SCRIPTS/include/inc.sh; viewUserFullInfo $USERLAMER"
 
 
+#ssh
+sed -i -e "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
+#sed -i -e "s/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/" /etc/ssh/sshd_config
+#sed -i '$ a \\nAuthenticationMethods publickey,password publickey,keyboard-interactive'  /etc/ssh/sshd_config
+#sed -i -e "s/@include common-auth/#@include common-auth/" /etc/pam.d/sshd
 
-sed -i '$ a alias start=\"sudo -s source \/my\/scripts\/include\/inc.sh && \/my\/scripts\/menu\"'  /etc/profile
-sed -i '$ a alias inc_func=sudo bash -c \"source \/my\/scripts\/include\/inc.sh\"'  /etc/profile
+sed -i -e "s/PermitRootLogin yes/PermitRootLogin no/" /etc/ssh/sshd_config
+sed -i '$ a \\nAuthenticationMethods publickey'  /etc/ssh/sshd_config
+sed -i -e "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
+sed -i -e "s/#AuthorizedKeysFile/AuthorizedKeysFile/" /etc/ssh/sshd_config
+sed -i '$ a \\nAllowGroups ssh-access'  /etc/ssh/sshd_config
+sed -i '$ a \\n#Banner /etc/banner'  /etc/ssh/sshd_config
+cp $TEMPLATES/ssh/banner/banner /etc/banner
+chown root:root /etc/banner
+chmod 644 /etc/banner
+service sshd restart
 
 
-#mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
-#cp /my/scripts/.config/templates/nginx/nginx_default_site /etc/nginx/sites-available/default
-#/etc/init.d/nginx restart
+
+###Еще не сделал
+echo "webmin settings"
+sed -i -e "s/ssl=1/ssl=0/" /etc/webmin/miniserv.conf
+sed -i '$ a referers=wm.mmgx.ru'  /etc/webmin/config
+#cp /my/scripts/.config/settings/webmin/apache/wm.mmgx.ru.conf $APACHEAVAILABLE/wm.mmgx.ru.conf
+systemctl restart webmin
+
+#a2ensite wm.mmgx.ru
+systemctl restart apache2
 
 
-#sudo rm /etc/nginx/sites-enabled/default
-#nano /etc/nginx/sites-available/test1.alixi.ru.conf
-#userAddSystem $USERLAMER
+#apt-get install automysqlbackup
+#info
+##wm.mmgx.ru:7000
 
 
-echo "ufw settings"
-ufw enable
-ufw default allow outgoing
-ufw default deny incoming
-ufw allow 6666/tcp comment 'SSH'
-ufw allow 80/tcp comment 'HTTP-Nginx'
-ufw allow 443/tcp comment 'HTTPS-Nginx'
-ufw allow 10081/tcp comment 'ProFTPd'
-ufw allow 8080/tcp comment 'HTTP-Apache'
-ufw allow 8443/tcp comment 'HTTPS-Apacne'
-ufw allow 7000/tcp comment 'Webmin from Home'
-ufw allow 3306/tcp comment 'Mysql server'
 
-mkdir -p /var/backups/vds/removed/
+
+
+
 

@@ -45,7 +45,6 @@ declare -x -f dbUpdateRecordToDb
 declare -x -f dbDeleteRecordFromDb
 declare -x -f dbExistTable
 declare -x -f dbChangeUserPassword
-declare -x -f dbViewNewUserInfo
 declare -x -f dbUserChangeAccess
 declare -x -f dbBackupBasesOneDomain
 
@@ -230,7 +229,7 @@ input_userAddSystem() {
                                 #переменная имеет пустое значение (конец)
                             else
                                 #переменная имеет не пустое значение
-                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users ssh $password  $1
+                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users $password  $1
                                 input_userAddToGroupSudo $1 $username
                                 input_sshSettings $username
 
@@ -269,7 +268,6 @@ input_userAddSystem() {
                                 done
 
                                 dbUseradd $username $passwordSql $host pass user
-                                dbViewNewUserInfo $username $passwordSql $host
 
                                 #TODO добавить админский ключ
                             fi
@@ -400,9 +398,8 @@ input_userAddToGroupSudo() {
 #$2-homedir ;
 #$3-путь к интерпритатору команд ;
 #$4 - основная группа пользователей;
-#$5 - type (ssh/ftp),
-#$6 - password,
-#$7 системный пользователь, который выполняет команду
+#$5 - password,
+#$6 системный пользователь, который выполняет команду
 ###return:
 #0 - выполненоуспешно
 #1 - отпутствуют параметры,
@@ -410,12 +407,11 @@ input_userAddToGroupSudo() {
 #3 - каталог пользователя уже существует
 #4 - интерпритатор не существует,
 #5 - группа не существует,
-#6 - ошибка передачи параметра type
-#7 - не существует системный пользователь, от которого запускается скрипт
+#6 - не существует системный пользователь, от которого запускается скрипт
 userAddSystem()
 {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ] && [ -n "$7" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
 	then
 	#Параметры запуска существуют
 
@@ -440,18 +436,16 @@ userAddSystem()
 		        #Проверка существования интерпритатора "$3"
 		        if [ -f $3 ] ; then
 		            #интерпритатор "$3" существует
-		            #Проверка существования системного пользователя "$7"
-		            	grep "^$7:" /etc/passwd >/dev/null
+		            #Проверка существования системного пользователя "$6"
+		            	grep "^$6:" /etc/passwd >/dev/null
 		            	if  [ $? -eq 0 ]
 		            	then
-		            	#Пользователь $7 существует
+		            	#Пользователь $6 существует
 
                             #Проверка существования системной группы пользователей "$4"
                             if grep -q $4 /etc/group
                                 then
                                     #Группа "$4" существует
-                                     case "$5" in
-                                         ssh|ftp)
                                          #sudo -s source /my/scripts/include/inc.sh
                                          mkdir $2
                                          useradd -N -g $4 -d $2 -s $3 $1
@@ -462,41 +456,27 @@ userAddSystem()
                                          fileAddLineToFile $1 "Server: $MYSERVER"
                                          fileAddLineToFile $1 "Port: $SSHPORT"
                                          fileAddLineToFile $1 "------------------------"
-                                         chown $1:$4 $2
-                                         chmod 777 $2
+                                         sudo chown $1:$4 $2
+                                         sudo chmod 777 $2
 
 
 
-                                        fileAddLineToFile $1 info.txt $1
 
                                         #dbSetMyCnfFile $1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
 
-                                        dbRecordAdd_addUser $1 $2 $7 1
+                                        dbRecordAdd_addUser $1 $2 $6 1
 
 
-
-                                            case "$5" in
-                                                ssh)
                                                     touchFileWithModAndOwn $2/.bashrc $1 $4 666
                                                     touchFileWithModAndOwn $2/.sudo_as_admin_successful $1 $4 644
                                                     echo "source /etc/profile" >> $2/.bashrc
                                                     sudo chmod 644 $2/.bashrc
                                                     #sed -i '$ a source $SCRIPTS/include/inc.sh'  $2/.bashrc
                                                    # sed -i '$ a $SCRIPTS/menu'  $2/.bashrc
-                                                    ;;
-                                                ftp)
-                                                    echo "ftp"
-                                                    ;;
-                                            esac
-                                             ;;
-                                        *)
-                                            echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"type\"${COLOR_RED} в функцию ${COLOR_GREEN}\"userAddSystemo\"${COLOR_NC}";
-                                            return 6
-                                            ;;
-                                     esac
+
                                     #Группа "$4" существует (конец)
 
                                     viewUserFullInfo $1
@@ -508,14 +488,14 @@ userAddSystem()
                                 fi
                             #Конец проверки существования системного пользователя $4
 
-		            	#Пользователь $7 существует (конец)
+		            	#Пользователь $6 существует (конец)
 		            	else
-		            	#Пользователь $7 не существует
-		            	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$7\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-		            		return 7
+		            	#Пользователь $6 не существует
+		            	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$6\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
+		            		return 6
 		            	#Пользователь $7 не существует (конец)
 		            	fi
-		            #Конец проверки существования системного пользователя $7
+		            #Конец проверки существования системного пользователя $6
 		            #интерпритатор "$3" существует (конец)
 		        else
 		            #интерпритатор "$3" не существует
@@ -1377,6 +1357,13 @@ dbUseradd() {
                     #Пользователь mysql "$1" существует
                         echo -e "${COLOR_GREEN}\nПользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
                         dbAddRecordToDb lamer_webserver db_users username $1 insert
+                        fileAddLineToFile $1 "Mysql-User:"
+                        fileAddLineToFile $1 "Username: $1"
+                        fileAddLineToFile $1 "Password: $2"
+                        fileAddLineToFile $1 "Host: $3"
+                        fileAddLineToFile $1 "Server: $MYSERVER"
+                        fileAddLineToFile $1 "Port: 3306"
+                        fileAddLineToFile $1 "------------------------"
 
                         #Проверка существования системного пользователя "$1"
                         	grep "^$1:" /etc/passwd >/dev/null
@@ -1647,7 +1634,6 @@ input_dbUseradd() {
                                 clear
                                 echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} успешно добавлен${COLOR_YELLOW}\"\"${COLOR_GREEN}  ${COLOR_NC}"
                                 dbViewAllUsers
-                                dbViewNewUserInfo $username $password $host
                                 #dbCreateBase $username utf8 utf8_general_ci full_info
 
                             break
@@ -2284,50 +2270,6 @@ dbViewUserInfo() {
 
 
 
-#Вывод информации о созданном пользователе mysql
-###input
-#$1-username ;
-#$2-password ;
-#$3-allow host;
-#$4-server;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-dbViewNewUserInfo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-	echo -e "${COLOR_GREEN}\nРеквизиты доступа пользователя mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}"
-	echo -e "${COLOR_YELLOW}Пользователь: ${COLOR_GREEN}$1"
-	echo -e "${COLOR_YELLOW}Пароль: ${COLOR_GREEN}$2"
-	echo -e "${COLOR_YELLOW}Подключение разрешено с: ${COLOR_GREEN}$3"
-
-    #Проверка на существование параметров запуска скрипта
-    if [ -n "$4" ]
-    then
-    #Параметры запуска существуют
-        echo -e "${COLOR_YELLOW}Server: ${COLOR_GREEN}$4"
-    #Параметры запуска существуют (конец)
-    else
-    #Параметры запуска отсутствуют
-        echo -e "${COLOR_YELLOW}Server: ${COLOR_GREEN}$MYSERVER"
-    #Параметры запуска отсутствуют (конец)
-    fi
-    #Конец проверки существования параметров запуска скрипта
-
-    echo -e "${COLOR_YELLOW}PhpMyAdmin: ${COLOR_GREEN}http://$MYSERVER:8080/$PHPMYADMINFOLDER"
-		return 0
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewNewUserInfo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
 #Отобразить список всех баз данных, владельцем которой является пользователь mysql $1_% (по имени)
 #Полностью готово. 13.03.2019
 ###input
@@ -2439,7 +2381,7 @@ dbAddRecordToDb() {
                                                             return 0
                                                             ;;
                                                         *)
-                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbUpdateRecordToDb\"${COLOR_NC}"
+                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_NC}"
                                                             return 5
                                                             ;;
                                                     esac
@@ -2449,7 +2391,7 @@ dbAddRecordToDb() {
                         	else
                         	#столбец $2 не существует
 
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
                         	    return 4
                         	#столбец $2 не существует (конец)
                         fi
@@ -2457,7 +2399,7 @@ dbAddRecordToDb() {
 					#таблица $2 существует (конец)
 					else
 					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
 					     return 3
 					#таблица $2 не существует (конец)
 				fi
@@ -2465,7 +2407,7 @@ dbAddRecordToDb() {
 			#база $1 - существует (конец)
 			else
 			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
 			     return 2
 			#база $1 - не существует (конец)
 		fi
@@ -2475,7 +2417,7 @@ dbAddRecordToDb() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -5459,15 +5401,15 @@ siteAddFtpUser() {
                                 sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
                                 sudo adduser $1_$2 www-data
                                 dbRecordAdd_addUser $1_$2 "$OMEPATHWEBUSERS"/"$1"/"$2" $4 2
-                                 fileAddLineToFile $1 "FTP-Пользователь:"
+                                fileAddLineToFile $1 "FTP-Пользователь:"
 
 
 
                                 #смена пароля на пользователя
                                 userChangePassword $1_$2 $3
-                                 fileAddLineToFile $1 "Server: $MYSERVER"
-                                 fileAddLineToFile $1 "Port: $SSHPORT"
-                                 fileAddLineToFile $1 "------------------------"
+                                fileAddLineToFile $1 "Server: $MYSERVER ($2)"
+                                fileAddLineToFile $1 "Port: $FTPPORT"
+                                fileAddLineToFile $1 "------------------------"
                                 return 0
                                 ;;
                             *)
@@ -5908,7 +5850,6 @@ fileAddLineToFile() {
 	    	then
 	    	#Пользователь $1 существует
                 path="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-                echo `dirname "$path"`
                 #Проверка существования каталога "`dirname $path`"
                 if ! [ -d `dirname "$path"` ] ; then
                     #Каталог "`dirname $path`" не существует
@@ -7159,8 +7100,23 @@ input_userDelete_system() {
                     echo -n ": "
                     case "$REPLY" in
                     y|Y) userDelete_system $username;
-                         input_dbUserDeleteBase $username;
-                           break
+                         #Проверка на существование пользователя mysql "$username"
+                         if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
+                         then
+                         #Пользователь mysql "$username" существует
+                             input_dbUserDeleteBase $username;
+                             while true; do
+                                read -p "Удалить пользователя mysql $1 (y/n)?: " yn
+                                case $yn in
+                                    [Yy]* ) dbUserdel $username drop; break;;
+                                    [Nn]* ) break;;
+                                    * ) echo "Please answer yes or no.";;
+                                esac
+                            done
+                         #Пользователь mysql "$username" существует (конец)
+                         fi
+                         #Конец проверки на существование пользователя mysql "$username"
+
                     ;;
                     n|N)  echo -e "${COLOR_YELLOW}Операция удаления пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} отменена ${COLOR_NC}";
                               return 3;
@@ -7215,7 +7171,6 @@ input_dbChangeUserPassword() {
            if [ $? -eq 0 ]
            	then
            		#предыдущая команда завершилась успешно
-           		dbViewNewUserInfo $username $password $host
            		#Проверка существования системного пользователя "$username"
            			grep "^$username:" /etc/passwd >/dev/null
            			if  [ $? -eq 0 ]
@@ -7311,8 +7266,9 @@ input_dbUserDelete_querry() {
 }
 
 #смена прав доступа на сервер для пользователя
+###!ПОЛНОСТЬЮ ГОТОВО. 29.03.2019
 ###input
-#$1-type ;
+#$1-type ; 1 - grant , 2 - admin , 3 - user
 #$2-host ;
 #$3-username ;
 ###return
@@ -7363,20 +7319,34 @@ dbUserChangeAccess() {
         then
         #Параметры запуска существуют
             case "$1" in
+#                    1)
+#                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT USAGE ON *.* TO '$username'@'$2' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+#                        mysql -e "REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$username'@'$2';";
+#                        mysql -e "FLUSH PRIVILEGES;"
+#                        ;;
+#                    2)
+#                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT RELOAD, PROCESS,  SHOW DATABASES, SUPER, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO '$username'@'$2' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+#                        mysql -e "FLUSH PRIVILEGES;"
+#                        ;;
+#                    3)
+#                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO '$username'@'$2' REQUIRE NONE WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+#                        mysql -e "FLUSH PRIVILEGES;"
+#                        ;;
+
                     1)
-                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT USAGE ON *.* TO '$username'@'$2' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
-                        mysql -e "REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$username'@'$2';";
+                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT ALL PRIVILEGES ON *.* TO '$username'@'$2' WITH GRANT OPTION;";
                         mysql -e "FLUSH PRIVILEGES;"
                         ;;
+
                     2)
-                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM 'lamer4'@'%'; GRANT RELOAD, PROCESS,  SHOW DATABASES, SUPER, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'lamer4'@'%' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, EVENT, TRIGGER, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EXECUTE ON *.* TO '$username'@'$2' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
                         mysql -e "FLUSH PRIVILEGES;"
                         ;;
                     3)
-                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'lamer4'@'%' REQUIRE NONE WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+                        mysql -e "REVOKE ALL PRIVILEGES ON *.* FROM '$username'@'$2'; REVOKE GRANT OPTION ON *.* FROM '$username'@'$2'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, FILE, INDEX, ALTER, CREATE TEMPORARY TABLES, CREATE VIEW, EVENT, TRIGGER, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EXECUTE ON *.* TO '$username'@'$2' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
                         mysql -e "FLUSH PRIVILEGES;"
                         ;;
-                    *)
+                   *)
                         echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_dbUserChangeAccess\"${COLOR_NC}";
                         return 4
                         ;;
@@ -7394,6 +7364,98 @@ dbUserChangeAccess() {
 	#Конец проверки существования параметров запуска скрипта
 
 
+}
+
+
+declare -x -f dbUserSetAccessToBase
+#установка прав доступа пользователю на базу
+###input
+#$1-mysql user ;
+#$2-dbname ;
+#$3-type - lanAccess (localhost/%) ;
+#4 - type-standart/adminGrant/select_only
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь mysql не существует
+#3 - база данных не существует
+#4 - ошибка передачи параметра lanAccess (localhost/%) ;
+dbUserSetAccessToBase() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+
+	    case "$3" in
+	        %)
+	            lanAccess="%"
+	            ;;
+	        localhost)
+	            lanAccess="localhost"
+	            ;;
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode lanAccess (localhost/%)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"dbUserSetAccessToBase\"${COLOR_NC}";
+	    	    return 4
+	    	    ;;
+	    esac
+
+		#Проверка на существование пользователя mysql "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+		then
+		#Пользователь mysql "$1" существует
+            #Проверка существования базы данных "$2"
+            if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$2'" 2>&1`" ]];
+            	then
+            	#база $2 - существует
+            		case "$4" in
+            		    standart)
+                            mysql -e "REVOKE ALL PRIVILEGES ON \`$2\`.* FROM '$1'@'$lanAccess';";
+                            mysql -e "GRANT USAGE ON \`$2\`.* TO '$1'@'$lanAccess';";
+                            #mysql -e "GRANT OPTION FROM '$1'@'$lanAccess';";
+                            mysql -e "FLUSH PRIVILEGES;"
+            		        ;;
+            		    adminGrant)
+                            mysql -e "REVOKE ALL PRIVILEGES ON \`$2\`.* FROM '$1'@'$lanAccess';";
+                            mysql -e "GRANT ALL PRIVILEGES ON \`$2\`.* TO '$1'@'$lanAccess' WITH GRANT OPTION;";
+                            mysql -e "FLUSH PRIVILEGES;"
+            		        ;;
+            			select_only)
+            			    mysql -e "REVOKE ALL PRIVILEGES ON \`$2\`.* FROM '$1'@'$lanAccess';";
+            			    #mysql -e "REVOKE GRANT OPTION ON \`$2\`.* FROM '$1'@'$lanAccess';";
+                            mysql -e "GRANT SELECT ON \`$2\`.* TO '$1'@'$lanAccess';";
+                            mysql -e "FLUSH PRIVILEGES;"
+
+            				;;
+            			*)
+            			    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+            			    ;;
+            		esac
+            	#база $2 - существует (конец)
+            	else
+            	#база $2 - не существует
+            	     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"\" ${COLOR_NC}"
+            	     return 3
+            	#база $2 - не существует (конец)
+            fi
+            #конец проверки существования базы данных $2
+
+
+		#Пользователь mysql "$1" существует (конец)
+		else
+		#Пользователь mysql "$1" не существует
+		    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUserSetAccessToBase\" ${COLOR_NC}"
+		    return 2
+		#Пользователь mysql "$1" не существует (конец)
+		fi
+		#Конец проверки на существование пользователя mysql "$1"
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUserSetAccessToBase\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
 }
 
 #запрос имени пользователя для того, чтобы сделать из пользователя администратора
@@ -7481,7 +7543,7 @@ input_dbUserChangeAccess() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-	    echo -n -e "${COLOR_YELLOW}Введите тип доступа для пользователя.${COLOR_GREEN}1${COLOR_YELLOW}-user, ${COLOR_GREEN}2${COLOR_YELLOW}-admin, ${COLOR_GREEN}3${COLOR_YELLOW}-admin with grant${COLOR_NC}: "
+	    echo -n -e "${COLOR_YELLOW}Введите тип доступа для пользователя.${COLOR_GREEN}1${COLOR_YELLOW}-admin grant, ${COLOR_GREEN}2${COLOR_YELLOW}-admin, ${COLOR_GREEN}3${COLOR_YELLOW}-user${COLOR_NC}: "
 	    read typeAccess
 	#Параметры запуска отсутствуют (конец)
 	fi

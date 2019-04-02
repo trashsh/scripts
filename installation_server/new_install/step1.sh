@@ -30,6 +30,7 @@ sed -i '$ a export BACKUPFOLDER_EMPTY=\"$BACKUPFOLDER\/vds\/empty\"'  /etc/profi
 sed -i '$ a export BACKUPFOLDER_INSTALLED=\"$BACKUPFOLDER\/vds\/empty\/_installed\"'  /etc/profile
 sed -i '$ a export BACKUPFOLDER_DAYS=\"$BACKUPFOLDER\/vds\/days\"'  /etc/profile
 sed -i '$ a export BACKUPFOLDER_IMPORTANT=\"$BACKUPFOLDER\/vds\/important\"'  /etc/profile
+sed -i '$ a export BACKUPFOLDER_REMOVED=\"$BACKUPFOLDER\/vds\/removed\"'  /etc/profile
 sed -i '$ a export HOMEPATHSYSUSERS=\"\/home\/system\"'  /etc/profile
 sed -i '$ a export HOMEPATHWEBUSERS=\"\/home\/webusers\"'  /etc/profile
 sed -i '$ a export NGINXAVAILABLE=\"\/etc\/nginx\/sites-available\"'  /etc/profile
@@ -40,16 +41,14 @@ sed -i '$ a export HTTPNGINXPORT=80'  /etc/profile
 sed -i '$ a export HTTPSNGINXPORT=443'  /etc/profile
 sed -i '$ a export HTTPAPACHEPORT=8080'  /etc/profile
 sed -i '$ a export HTTPSAPACHEPORT=8081'  /etc/profile
-sed -i '$ a PATH=$PATH:\/my\/scripts\/system/'  /etc/profile
-sed -i '$ a PATH=$PATH:\/my\/scripts\/users/'  /etc/profile
-sed -i '$ a PATH=$PATH:\/my\/scripts\/webserver/'  /etc/profile
-sed -i '$ a PATH=$PATH:\/my\/scripts/'  /etc/profile
+
 source /etc/profile
 sed -i '$ a export SCRIPTS=\'$MYFOLDER'\/scripts'  /etc/profile
 sed -i '$ a export MENU=\'$MYFOLDER'\/scripts\/.menu'  /etc/profile
 sed -i '$ a PATH=$PATH:'$HOMEPATHSYSUSERS\/$USERLAMER'\/.composer\/vendor\/bin'  /etc/profile
 sed -i '$ a export TEMPLATES="\/my'$MYFOlDER'\/scripts\/.config\/templates"'  /etc/profile
 sed -i '$ a export SETTINGS="\/my'$MYFOlDER'\/scripts\/.config\/settings"'  /etc/profile
+sed -i '$ a alias start=\"sudo -s source \/my\/scripts\/include\/inc.sh && \/my\/scripts\/menu\"'  /etc/profile
 source /etc/profile
 sed -i "$ a export COLOR_NC='\\\e[0m'"  /etc/profile
 sed -i "$ a export COLOR_WHITE='\\\e[1;37m'"  /etc/profile
@@ -75,11 +74,13 @@ mkdir -p $BACKUPFOLDER_INSTALLED
 mkdir -p $BACKUPFOLDER_DAYS
 mkdir -p $BACKUPFOLDER_IMPORTANT
 mkdir -p $BACKUPFOLDER_IMPORTANT/ssh
+mkdir -p $BACKUPFOLDER_REMOVED
 mkdir -p $MYFOLDER
 mkdir -p $HOMEPATHSYSUSERS
 mkdir -p $HOMEPATHWEBUSERS
 mkdir -p $TEMPLATES
 mkdir -p $SETTINGS
+
 mkdir /etc/skel/logs
 mkdir /etc/skel/tmp
 mkdir /etc/skel/$WWWFOLDER
@@ -118,7 +119,7 @@ sed -i -e "s/# GROUP=100/GROUP=100/" /etc/default/useradd
 #sed -i 's|'# HOME=\/home'|HOME=$HOMEPATHSYSUSERS|g' /etc/default/useradd
 
 echo "install soft"
-apt -y install mc git git-core composer  wget zip unzip unrar arj putty-tools nano ufw proftpd  
+apt -y install mc git git-core composer  wget zip unzip unrar arj putty-tools nano ufw proftpd
 
 groupadd admin-access
 groupadd ftp-access
@@ -138,7 +139,7 @@ mysql_secure_installation
 service mysql restart
 
 
-  
+
 echo "install apache2"
 apt -y install apache2
 tar -czvf $BACKUPFOLDER_INSTALLED/apache2.tar.gz /etc/apache2
@@ -199,7 +200,7 @@ tar -czvf $BACKUPFOLDER_INSTALLED/php_01.tar.gz /etc/php/
 
 
 echo "install nginx"
-apt -y install nginx 
+apt -y install nginx
 
 echo "make backups"
 #cp -R /etc/mc/ $BACKUPFOLDER_EMPTY/
@@ -312,6 +313,38 @@ ufw allow 7000/tcp comment 'Webmin from Home'
 ufw allow 3306/tcp comment 'Mysql server'
 
 
+apt -y install proftpd
+tar -czvf $BACKUPFOLDER_INSTALLED/proftpd.tar.gz /etc/proftpd/
+echo "proftpd settings"
+sed -i -e "s/# DefaultRoot/DefaultRoot/" /etc/proftpd/proftpd.conf
+sed -i -e "s/Port\t\t\t\t21/Port\t\t\t\t10081/" /etc/proftpd/proftpd.conf
+echo '/bin/false' >> /etc/shells
+#AuthUserFile /etc/proftpd/ftpd.passwd
+service proftpd restart
+
+
+tar -czvf $BACKUPFOLDER_INSTALLED/phpmydmin_usr_share.tar.gz /usr/share/phpmyadmin
+#################вручную
+phpmyadmin’s library try to count some parameter. At this line 532, I found this code in this path
+file name : $ /usr/share/phpmyadmin/libraries/plugin_interface.lib.php
+Find this line :
+if ($options != null && count($options) > 0) {
+Replace with :
+if ($options != null && count((array)$options) > 0) {
+It can’t use count() or sizeof() with un array type. Force parameter to array is easy way to solve this bug
+#################вручную (конец)
+
+/etc/nginx/sites-available/default
+заменить в
+	index index.html index.htm index.nginx-debian.html;
+на
+    index index.php index.html index.htm index.nginx-debian.html;
+
+
 mysql -e "CREATE DATABASE IF NOT EXISTS lamer_webserver CHARACTER SET utf8 COLLATE utf8_general_ci;"
 mysql lamer_webserver < $SCRIPTS/.config/templates/db/webserver/webserver.sql
+bash -c "source $SCRIPTS/include/inc.sh; dbUserChangeAccess 2 % $USERLAMER"
 
+
+sed -i -e "s/#Port 22/Port 6666/" /etc/ssh/sshd_config
+service ssh restart

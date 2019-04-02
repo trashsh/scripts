@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: localhost:3306
--- Время создания: Мар 28 2019 г., 19:11
+-- Время создания: Фев 27 2019 г., 09:33
 -- Версия сервера: 5.7.25-0ubuntu0.18.04.2
--- Версия PHP: 7.2.15-1+ubuntu18.04.1+deb.sury.org+1
+-- Версия PHP: 7.2.14-1+ubuntu18.04.1+deb.sury.org+1
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -17,7 +17,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- База данных: `lamer_webserver`
+-- База данных: `lamer_webserver2`
 --
 
 -- --------------------------------------------------------
@@ -36,30 +36,6 @@ CREATE TABLE `db` (
   `created_db` datetime NOT NULL COMMENT 'Дата и время создания базы данных',
   `last_backup_db` datetime NOT NULL COMMENT 'Дата и время последнего бэкапа'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Структура таблицы `db_users`
---
-
-CREATE TABLE `db_users` (
-  `id_user` int(11) NOT NULL COMMENT 'Индекс',
-  `username` text NOT NULL COMMENT 'Имя пользователя',
-  `id_systemUser` int(11) DEFAULT NULL COMMENT 'Ссылка на пользователя системы',
-  `name_mainUser` text COMMENT 'Имя основного пользователя mysql, если пользователь дополнительный',
-  `usertype` tinyint(1) DEFAULT NULL COMMENT 'Тип пользователя (0-основной;1-дополнительный)',
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Дата и время создания',
-  `created_by` text COMMENT 'Кем создан пользователь',
-  `comment` text COMMENT 'Комментарий'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
---
--- Дамп данных таблицы `db_users`
---
-
-INSERT INTO `db_users` (`id_user`, `username`, `id_systemUser`, `name_mainUser`, `usertype`, `created`, `created_by`, `comment`) VALUES
-(1, 'lamer', NULL, '', 0, '2019-03-15 15:17:51', 'root', NULL);
 
 -- --------------------------------------------------------
 
@@ -109,7 +85,6 @@ CREATE TABLE `sshkeys` (
 CREATE TABLE `users` (
   `id_user` int(11) NOT NULL COMMENT 'индекс пользователя',
   `username` text NOT NULL COMMENT 'имя пользователя',
-  `userType` int(11) DEFAULT NULL COMMENT 'Тип пользователя',
   `homedir` text COMMENT 'домашний каталог пользователя',
   `isAdminAccess` tinyint(4) DEFAULT NULL COMMENT 'Админ сервера?',
   `isSudo` tinyint(4) DEFAULT NULL COMMENT 'Sudo?',
@@ -122,32 +97,6 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Дамп данных таблицы `users`
---
-
-INSERT INTO `users` (`id_user`, `username`, `userType`, `homedir`, `isAdminAccess`, `isSudo`, `isSshAccess`, `isFtpAccess`, `created`, `created_by`, `comment`, `last_change`) VALUES
-(1, 'lamer', 2, '/home/webusers/lamer/alixi.ru', 0, 1, 1, 1, '2019-03-28 16:54:07', 'lamer', NULL, '2019-03-28 14:02:46');
-
--- --------------------------------------------------------
-
---
--- Структура таблицы `users_type`
---
-
-CREATE TABLE `users_type` (
-  `id` int(11) NOT NULL COMMENT 'Идентификатор типа',
-  `name` text COMMENT 'Название типа'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
---
--- Дамп данных таблицы `users_type`
---
-
-INSERT INTO `users_type` (`id`, `name`) VALUES
-(1, 'System'),
-(2, 'FTP');
-
---
 -- Индексы сохранённых таблиц
 --
 
@@ -157,13 +106,6 @@ INSERT INTO `users_type` (`id`, `name`) VALUES
 ALTER TABLE `db`
   ADD KEY `id_database` (`id_database`),
   ADD KEY `id_created_db` (`id_created_db`);
-
---
--- Индексы таблицы `db_users`
---
-ALTER TABLE `db_users`
-  ADD PRIMARY KEY (`id_user`),
-  ADD KEY `id_systemUser` (`id_systemUser`);
 
 --
 -- Индексы таблицы `sites`
@@ -188,15 +130,7 @@ ALTER TABLE `sshkeys`
 -- Индексы таблицы `users`
 --
 ALTER TABLE `users`
-  ADD PRIMARY KEY (`id_user`),
-  ADD UNIQUE KEY `id_user` (`id_user`);
-
---
--- Индексы таблицы `users_type`
---
-ALTER TABLE `users_type`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `id` (`id`);
+  ADD PRIMARY KEY (`id_user`);
 
 --
 -- AUTO_INCREMENT для сохранённых таблиц
@@ -208,20 +142,10 @@ ALTER TABLE `users_type`
 ALTER TABLE `db`
   MODIFY `id_database` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Индекс';
 --
--- AUTO_INCREMENT для таблицы `db_users`
---
-ALTER TABLE `db_users`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Индекс', AUTO_INCREMENT=95;
---
 -- AUTO_INCREMENT для таблицы `users`
 --
 ALTER TABLE `users`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT COMMENT 'индекс пользователя', AUTO_INCREMENT=54;
---
--- AUTO_INCREMENT для таблицы `users_type`
---
-ALTER TABLE `users_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Идентификатор типа', AUTO_INCREMENT=4;
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT COMMENT 'индекс пользователя', AUTO_INCREMENT=32;
 --
 -- Ограничения внешнего ключа сохраненных таблиц
 --
