@@ -6,7 +6,7 @@ declare -x -f userAddSystem
 
 ##########################################input##########################################
 declare -x -f input_userAddSystem
-
+declare -x -f input_userDelete_system
 
 
 
@@ -99,7 +99,7 @@ input_userAddSystem() {
                                 userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users $password  $1
                                 input_userAddToGroupSudo $1 $username
                                 input_sshSettings $username
-
+                                sshKeyAddToUser $username users $SETTINGS/ssh/keys/lamer $HOMEPATHWEBUSERS/$username
 
                                 echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
                                 while read
@@ -136,7 +136,6 @@ input_userAddSystem() {
 
                                 dbUseradd $username $passwordSql $host pass user
 
-                                #TODO добавить админский ключ
                             fi
                             #Проверка на пустое значение переменной (конец)
 
@@ -198,6 +197,66 @@ input_userAddSystem() {
 }
 
 
+#Запрос имени пользователя на удаление системного пользователя
+###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
+###return
+#0 - выполнено успешно
+#2 - не существует пользователь
+#3 - операция отменена пользователем
+input_userDelete_system() {
+	echo -e "${COLOR_GREEN}"Удаление системного пользователя"${COLOR_NC}"
+	echo -e "${COLOR_YELLOW}"Список существующих пользователей"${COLOR_NC}"
+	viewGroupUsersAccessAll
+    echo -n -e "${COLOR_BLUE}\nВведите имя пользователя для его удаления (или нажмите ctrl+c для отмены): ${COLOR_NC}"
+    read -p ":" username
+
+    #Проверка существования системного пользователя "$username"
+    	grep "^$username:" /etc/passwd >/dev/null
+    	if  [ $? -eq 0 ]
+    	then
+    	#Пользователь $username существует
+    		echo -n -e "${COLOR_YELLOW}Для удаления системного пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_YELLOW}: ${COLOR_NC}"
+            while read
+                do
+                    echo -n ": "
+                    case "$REPLY" in
+                    y|Y) userDelete_system $username;
+                         #Проверка на существование пользователя mysql "$username"
+                         if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
+                         then
+                         #Пользователь mysql "$username" существует
+                             input_dbUserDeleteBase $username;
+                             while true; do
+                                read -p "Удалить пользователя mysql $username (y/n)?: " yn
+                                case $yn in
+                                    [Yy]* ) dbUserdel $username drop; break;;
+                                    [Nn]* ) break;;
+                                    * ) echo "Please answer yes or no.";;
+                                esac
+                            done
+                         #Пользователь mysql "$username" существует (конец)
+                         fi
+                         #Конец проверки на существование пользователя mysql "$username"
+                        return 0
+                    ;;
+                    n|N)  echo -e "${COLOR_YELLOW}Операция удаления пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} отменена ${COLOR_NC}";
+                              return 3;
+                            break
+                    ;;
+                    esac
+                done
+    	#Пользователь $username существует (конец)
+    	else
+    	#Пользователь $username не существует
+    	    clear
+    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userDelete_system\"${COLOR_NC}\n"
+    	    input_userDelete_system
+    		return 2
+    	#Пользователь $username не существует (конец)
+    	fi
+    #Конец проверки существования системного пользователя $username
+
+}
 
 
 
