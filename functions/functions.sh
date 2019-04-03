@@ -1,11 +1,10 @@
 #!/bin/bash
 ####################################users#######################
-declare -x -f userAddSystem
-declare -x -f userDelete_system
-declare -x -f userAddToGroupSudo
-declare -x -f viewGroupUsersAccessAll
 
-declare -x -f viewUserFullInfo
+declare -x -f userDelete_system
+
+
+
 
 
 declare -x -f userExistInGroup
@@ -39,15 +38,21 @@ declare -x -f dbViewAllBases
 declare -x -f dbViewBasesByTextContain
 declare -x -f dbViewAllUsersByContainName
 declare -x -f dbViewUserInfo
-declare -x -f dbViewBasesByUsername
-declare -x -f dbAddRecordToDb
-declare -x -f dbUpdateRecordToDb
+
+
+
 declare -x -f dbDeleteRecordFromDb
 declare -x -f dbExistTable
 declare -x -f dbChangeUserPassword
 declare -x -f dbUserChangeAccess
 declare -x -f dbBackupBasesOneDomain
+declare -x -f dbSetUpdateInfoAccessToBase
+declare -x -f dbRecordAdd_addBase
+declare -x -f dbRecordAdd_addDbUser
 
+declare -x -f dbUserSetAccessToBase
+declare -x -f input_dbChangeUserPassword
+declare -x -f input_dbUserDeleteBase
 
 ####################################Архивация########################
 declare -x -f tarFile
@@ -59,12 +64,11 @@ declare -x -f tarFolder
 declare -x -f chModAndOwnFile
 declare -x -f chOwnFolderAndFiles
 declare -x -f chModAndOwnFolderAndFiles
-declare -x -f touchFileWithModAndOwn
 declare -x -f folderExistWithInfo
 declare -x -f fileExistWithInfo
-declare -x -f mkdirWithOwn
+
 declare -x -f chModAndOwnSiteFileAndFolder
-declare -x -f fileAddLineToFile
+
 ####################################webserver################################
 declare -x -f webserverRestart
 declare -x -f webserverReload
@@ -83,7 +87,10 @@ declare -x -f siteRemoveLogs
 declare -x -f siteAddFtpUser
 declare -x -f input_siteAddFtpUser
 declare -x -f siteStatus
-
+declare -x -f accessDetails
+declare -x -f input_siteExist
+declare -x -f siteExist
+declare -x -f siteChangeWebserverConfigs
 ############################ufw#############################
 declare -x -f ufwAddPort
 declare -x -f ufwOpenPorts
@@ -133,13 +140,12 @@ declare -x -f input_viewGroupAdminAccessByName
 declare -x -f input_viewGroupSudoAccessByName
 declare -x -f input_viewUserInGroupUsersByPartName
 declare -x -f input_viewGroup
-declare -x -f input_sshSettings
+
 declare -x -f input_userDelete_system
-declare -x -f input_userAddSystem
 declare -x -f input_dbUseradd
 declare -x -f input_dbUserDelete_querry
 declare -x -f input_dbUserChangeAccess
-declare -x -f input_userAddToGroupSudo
+
 
 
 ####################################search##########################################
@@ -149,383 +155,17 @@ declare -x -f searchSiteConfigAllFolder
 
 ####################################testing##########################################
 
+
+
 #######################################USERS##########################################
-#Добавление системного пользователя - ввод данных
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input:
-#1 - имя добавляющего пользователя,
-#2 - имя добавляемого пользователя
-###return:
-#0 - выполнено успешно,
-#1 - отсутствуют параметры запуска,
-#2 - добавляющий пользователь $1 не существует
-#3 - добавляемый пользователь $2 уже существует
-#4 - пользователь отменил создание пользователя $1
-#5 - пользователь не создан. Ошибка выполнения функции
-input_userAddSystem() {
-
-    #Проверка на существование параметров запуска скрипта
-    if [ -n "$1" ]
-    then
-    #Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $1 существует
-        		#Проверка на существование параметров запуска скрипта
-        		if [ -n "$2" ]
-        		then
-        		#Параметры запуска существуют
-                    #Проверка существования системного пользователя "$2"
-                    	grep "^$2:" /etc/passwd >/dev/null
-                    	if  [ $? -eq 0 ]
-                    	then
-                    	#Пользователь $2 существует
-                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_YELLOW}  ${COLOR_NC}"
-                    		return 3
-                    	#Пользователь $2 существует (конец)
-                    	else
-                    	#Пользователь $2 не существует
-                    	    username=$2
-                    	#Пользователь $2 не существует (конец)
-                    	fi
-                    #Конец проверки существования системного пользователя $2
-        		#Параметры запуска существуют (конец)
-        		else
-        		#Параметры запуска отсутствуют
-        		    #Если запуск функции происходит без передачи параметров
-                    echo -e "${COLOR_YELLOW}Список имеющихся системных пользователей:${COLOR_NC}"
-                    viewGroupUsersAccessAll
-                    echo -e -n "${COLOR_BLUE}"Введите имя пользователя: "${COLOR_NC}"
-                    read username
-                    #Проверка существования системного пользователя "$username"
-                    	grep "^$username:" /etc/passwd >/dev/null
-                    	if  [ $? -eq 0 ]
-                    	then
-                    	#Пользователь $username существует
-                    		echo -e "${COLOR_YELLOW}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_YELLOW}  ${COLOR_NC}"
-                    		return 3
-                    	#Пользователь $username существует (конец)
-                    	fi
-                    #Конец проверки существования системного пользователя $username
-        		#Параметры запуска отсутствуют (конец)
-        		fi
-        		#Конец проверки существования параметров запуска скрипта
-
-        		echo -n -e "${COLOR_YELLOW}Подтвердите добавление пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введя ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, или для отмены операции ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                while read
-                do
-                    case "$REPLY" in
-                        y|Y)
-                            echo -e "${COLOR_YELLOW}Выполнение операций по созданию пользователя ${COLOR_GREEN}\"$username\"${COLOR_NC}"
-                            echo -n -e "${COLOR_YELLOW}Установите пароль пользователя ${COLOR_GREEN}$username: ${COLOR_NC}: "
-                            read password
-
-                            #Проверка на пустое значение переменной
-                            if [[ -z "$password" ]]; then
-                                #переменная имеет пустое значение
-                                echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя"${COLOR_NC}"
-                                #переменная имеет пустое значение (конец)
-                            else
-                                #переменная имеет не пустое значение
-                                userAddSystem $username $HOMEPATHWEBUSERS/$username "/bin/bash" users $password  $1
-                                input_userAddToGroupSudo $1 $username
-                                input_sshSettings $username
-
-
-                                echo -n -e "Пароль для пользователя MYSQL ${COLOR_YELLOW}" $username "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                                while read
-                                do
-                                    case "$REPLY" in
-                                    y|Y) passwordSql="$(openssl rand -base64 14)";
-                                         break;;
-                                    n|N) echo -n -e "${COLOR_BLUE} Введите пароль для пользователя MYSQL ${COLOR_NC} ${COLOR_YELLOW}\"$username\":${COLOR_NC}";
-                                         read passwordSql;
-                                         if [[ -z "$passwordSql" ]]; then
-                                            #переменная имеет пустое значение
-                                            echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$username\""${COLOR_NC}"
-                                            return 5
-                                         fi
-                                         break;;
-                                    esac
-                                done
-
-
-                                echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
-                                    while read
-                                    do
-                                        case "$REPLY" in
-                                            localhost)
-                                                host=localhost;
-                                                break;;
-                                            %)
-                                                host="%";
-                                                break;;
-                                            *)
-                                                 echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
-                                        esac
-                                done
-
-                                dbUseradd $username $passwordSql $host pass user
-
-                                #TODO добавить админский ключ
-                            fi
-                            #Проверка на пустое значение переменной (конец)
-
-                            break
-                            ;;
-                        n|N)
-                            echo -e "${COLOR_RED}Отмена создания пользователя ${COLOR_GREEN}\"$username\"${COLOR_NC}"
-                            return 4
-                            break
-                            ;;
-                        *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
-                           ;;
-                    esac
-                done
-
-                #Проверка существования системного пользователя "$username"
-                	grep "^$username:" /etc/passwd >/dev/null
-                	if  [ $? -eq 0 ]
-                	then
-                	#Пользователь $username существует
-                		echo -e "${COLOR_GREEN}Пользователь ${COLOR_YELLOW}\"$username\"${COLOR_GREEN} создан успешно.${COLOR_NC}"
-                		return 0
-                	#Пользователь $username существует (конец)
-                	else
-                	#Пользователь $username не существует
-                	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не создан. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_NC}"
-                		return 5
-                	#Пользователь $username не существует (конец)
-                	fi
-                #Конец проверки существования системного пользователя $username
-
-
-        	#Пользователь $1 существует (конец)
-        	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $1 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $1
-    #Параметры запуска существуют (конец)
-    else
-    #Параметры запуска отсутствуют
-        echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_userAddSystem\"${COLOR_RED} ${COLOR_NC}"
-        return 1
-    #Параметры запуска отсутствуют (конец)
-    fi
-    #Конец проверки существования параметров запуска скрипта
-}
-
-
-
-#запрос добавления пользователя в группу sudo
-###input
-#$1-запускающий процесс пользователь ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - запускающий пользователь $1 не существует
-#3 - добавляемый в группу пользователь не существует
-#4 - пользователь отменил добавление
-input_userAddToGroupSudo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				#Проверка существования системного пользователя "$2"
-					grep "^$2:" /etc/passwd >/dev/null
-					if  [ $? -eq 0 ]
-					then
-					#Пользователь $2 существует
-                        echo -n -e "${COLOR_YELLOW}Хотите добавить пользователя ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} в группу sudo? Введите для подтверждения ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                            while read
-                            do
-                                case "$REPLY" in
-                                    y|Y)
-                                        userAddToGroupSudo $2;
-                                        break
-                                        ;;
-                                    n|N)
-                                        dbUpdateRecordToDb $WEBSERVER_DB users username $2 isSudo 0 update
-                                        return 4;
-                                        break
-                                        ;;
-                                    *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
-                                       ;;
-                                esac
-                            done
-					#Пользователь $2 существует (конец)
-					else
-					#Пользователь $2 не существует
-					    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddToGroupSudo\"${COLOR_NC}"
-						return 3
-					#Пользователь $2 не существует (конец)
-					fi
-				#Конец проверки существования системного пользователя $2
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_userAddToGroupSudo\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_userAddToGroupSudo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
-
-#Выполенние операций по созданию системного пользователя
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input:
-#$1-username ;
-#$2-homedir ;
-#$3-путь к интерпритатору команд ;
-#$4 - основная группа пользователей;
-#$5 - password,
-#$6 системный пользователь, который выполняет команду
-###return:
-#0 - выполненоуспешно
-#1 - отпутствуют параметры,
-#2 -пользователь существует,
-#3 - каталог пользователя уже существует
-#4 - интерпритатор не существует,
-#5 - группа не существует,
-#6 - не существует системный пользователь, от которого запускается скрипт
-userAddSystem()
-{
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
-	then
-	#Параметры запуска существуют
-
-	#Проверка существования системного пользователя "$1"
-		grep "^$1:" /etc/passwd >/dev/null
-		if  [ $? -eq 0 ]
-		then
-		#Пользователь $1 существует
-			echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Операция прервана. Функция ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED}  ${COLOR_NC}"
-			return 2
-		#Пользователь $1 существует (конец)
-		else
-		#Пользователь $1 не существует
-		    #Проверка существования каталога "$2"
-		    if [ -d $2 ] ; then
-		        #Каталог "$2" существует
-		        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} уже существует. Операция прервана. Функция ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED}  ${COLOR_NC}"
-		        return 3
-		        #Каталог "$2" существует (конец)
-		    else
-		        #Каталог "$2" не существует
-		        #Проверка существования интерпритатора "$3"
-		        if [ -f $3 ] ; then
-		            #интерпритатор "$3" существует
-		            #Проверка существования системного пользователя "$6"
-		            	grep "^$6:" /etc/passwd >/dev/null
-		            	if  [ $? -eq 0 ]
-		            	then
-		            	#Пользователь $6 существует
-
-                            #Проверка существования системной группы пользователей "$4"
-                            if grep -q $4 /etc/group
-                                then
-                                    #Группа "$4" существует
-                                         #sudo -s source /my/scripts/include/inc.sh
-                                         mkdir $2
-                                         useradd -N -g $4 -d $2 -s $3 $1
-                                         echo "$1:$6" | chpasswd
-                                         fileAddLineToFile $1 "SSH-Пользователь:"
-                                         fileAddLineToFile $1 "Username: $1"
-                                         fileAddLineToFile $1 "Password: $6"
-                                         fileAddLineToFile $1 "Server: $MYSERVER"
-                                         fileAddLineToFile $1 "Port: $SSHPORT"
-                                         fileAddLineToFile $1 "------------------------"
-                                         sudo chown $1:$4 $2
-                                         sudo chmod 777 $2
 
 
 
 
-                                        #dbSetMyCnfFile $1 $1 $6
-                                        mkdirWithOwn $2/.backups $1 $4 777
-                                        mkdirWithOwn $2/.backups/auto $1 $4 755
-                                        mkdirWithOwn $2/.backups/manually $1 $4 755
-
-                                        dbRecordAdd_addUser $1 $2 $6 1
 
 
-                                                    touchFileWithModAndOwn $2/.bashrc $1 $4 666
-                                                    touchFileWithModAndOwn $2/.sudo_as_admin_successful $1 $4 644
-                                                    echo "source /etc/profile" >> $2/.bashrc
-                                                    sudo chmod 644 $2/.bashrc
-                                                    #sed -i '$ a source $SCRIPTS/include/inc.sh'  $2/.bashrc
-                                                   # sed -i '$ a $SCRIPTS/menu'  $2/.bashrc
-
-                                    #Группа "$4" существует (конец)
-
-                                    viewUserFullInfo $1
-                                else
-                                    #Группа "$4" не существует
-                                    echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-                                    return 5
-                                    #Группа "$4" не существует (конец)
-                                fi
-                            #Конец проверки существования системного пользователя $4
-
-		            	#Пользователь $6 существует (конец)
-		            	else
-		            	#Пользователь $6 не существует
-		            	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$6\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-		            		return 6
-		            	#Пользователь $7 не существует (конец)
-		            	fi
-		            #Конец проверки существования системного пользователя $6
-		            #интерпритатор "$3" существует (конец)
-		        else
-		            #интерпритатор "$3" не существует
-		            echo -e "${COLOR_RED}Интерпритатор ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-		            return 4
-		            #интерпритатор "$3" не существует (конец)
-		        fi
-		        #Конец проверки существования интерпритатора "$3"
 
 
-		        #Каталог "$2" не существует (конец)
-		    fi
-		    #Конец проверки существования каталога "$2"
-
-
-		#Пользователь $1 не существует (конец)
-		fi
-	#Конец проверки существования системного пользователя $1
-
-
-        return 0
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 ###input
@@ -637,8 +277,9 @@ userChangePassword() {
 				esac
 
 				echo "$1:$password" | sudo chpasswd
-				fileAddLineToFile $1 "Username: $1"
-                fileAddLineToFile $1 "Password: $password"
+				infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+				fileAddLineToFile $infoFile "Username: $1"
+                fileAddLineToFile $infoFile "Password: $password"
 				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
 				return 0
 			#Пользователь $1 существует (конец)
@@ -660,90 +301,8 @@ userChangePassword() {
 }
 
 
-#Вывод всех пользователей группы users
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input:
-#$1 - может быть выведен дополнительно текст, предшествующий выводу списка пользователей
-###return:
-#0 - успешно,
-#1 - неуспешно, параметр $1 передан,
-#2 - неуспешно, параметр $1 не передан
-viewGroupUsersAccessAll(){
-    #Проверка на существование параметров запуска скрипта
-    if [ -n "$1" ]
-    then
-    #Параметры запуска существуют
-        echo -e "${COLOR_YELLOW}$1${COLOR_NC}"
-        cat /etc/passwd | grep ":100::" | highlight magenta ":100::"
-        #Проверка на успешность выполнения предыдущей команды
-        if [ $? -eq 0 ]
-        	then
-        		#предыдущая команда завершилась успешно
-        		return  0
-        		#предыдущая команда завершилась успешно (конец)
-        	else
-        		#предыдущая команда завершилась с ошибкой
-        		return 1
-        		#предыдущая команда завершилась с ошибкой (конец)
-        fi
-        #Конец проверки на успешность выполнения предыдущей команды
-    #Параметры запуска существуют (конец)
-    else
-    #Параметры запуска отсутствуют
-        cat /etc/passwd | grep ":100::" | highlight magenta ":100::"
-        #Проверка на успешность выполнения предыдущей команды
-        if [ $? -eq 0 ]
-        	then
-        		#предыдущая команда завершилась успешно
-        		return 0
-        		#предыдущая команда завершилась успешно (конец)
-        	else
-        		#предыдущая команда завершилась с ошибкой
-        		return 2
-        		#предыдущая команда завершилась с ошибкой (конец)
-        fi
-        #Конец проверки на успешность выполнения предыдущей команды
-    #Параметры запуска отсутствуют (конец)
-    fi
-    #Конец проверки существования параметров запуска скрипта
-}
 
-#Отображение полной информации о пользователе
-###input:
-#$1-user ;
-###return:
-#0 - выполнено успешно,
-#1 - отсутствуют параметры запуска функции
-#2 - пользователь $1 не существует
-viewUserFullInfo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				echo "Описать функцию viewUserFullInfo. Пользователь $1 существует"
-				return 0
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Функция ${COLOR_GREEN}\"viewUserFullInfo\"${COLOR_NC}"
-                return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUserFullInfo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
+
 
 
 #Функция проверяет состоит ли пользователь $1 в группе $2
@@ -1147,44 +706,7 @@ userAddToGroup() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Добавление пользователя $1 в группу sudo
-#Протестировано 15.03.2019
-###РАБОТАЕТ
-###input
-#$1-username ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-userAddToGroupSudo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				usermod -a -G sudo $1
-				dbUpdateRecordToDb $WEBSERVER_DB users username $1 isSudo 1 update
-				return 0
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddToGroupSudo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
+
 
 #Удаление пользователя $1 из группы $2
 #Полностью проверено. 13.03.2019
@@ -1357,13 +879,17 @@ dbUseradd() {
                     #Пользователь mysql "$1" существует
                         echo -e "${COLOR_GREEN}\nПользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
                         dbAddRecordToDb lamer_webserver db_users username $1 insert
-                        fileAddLineToFile $1 "Mysql-User:"
-                        fileAddLineToFile $1 "Username: $1"
-                        fileAddLineToFile $1 "Password: $2"
-                        fileAddLineToFile $1 "Host: $3"
-                        fileAddLineToFile $1 "Server: $MYSERVER"
-                        fileAddLineToFile $1 "Port: 3306"
-                        fileAddLineToFile $1 "------------------------"
+                        infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+
+                        fileAddLineToFile $infoFile "---
+                        "
+                        fileAddLineToFile $infoFile "Mysql-User:"
+                        fileAddLineToFile $infoFile "Username: $1"
+                        fileAddLineToFile $infoFile "Password: $2"
+                        fileAddLineToFile $infoFile "Host: $3"
+                        fileAddLineToFile $infoFile "Server: $MYSERVER"
+                        fileAddLineToFile $infoFile "Port: 3306"
+                        fileAddLineToFile $infoFile "------------------------"
 
                         #Проверка существования системного пользователя "$1"
                         	grep "^$1:" /etc/passwd >/dev/null
@@ -1371,6 +897,8 @@ dbUseradd() {
                         	then
                         	#Пользователь $1 существует
                         	    dbSetMyCnfFile $1 $1 $2
+
+                        	    dbSetUpdateInfoAccessToBase $WEBSERVER_DB $1 $3
                         	#Пользователь $1 существует (конец)
                         	fi
                         #Конец проверки существования системного пользователя $1
@@ -1401,44 +929,10 @@ dbUseradd() {
 }
 
 
-declare -x -f dbRecordAdd_addUser #Добавление записи в базу о добавлении пользователя
-#Добавление записи в базу о добавлении пользователя
-###input
-#$1-user ;
-#$2-homedir ;
-#$3-created_by ;
-#$4-userType (1-system, 2-ftp)
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-dbRecordAdd_addUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-
-		#mysql-добавление информации о пользователе
-    datetime=`date +%Y-%m-%d\ %H:%M:%S`
-    dbAddRecordToDb $WEBSERVER_DB users username $1 insert
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$datetime" update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created_by "$3" update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isAdminAccess 0 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isFtpAccess 1 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 userType $4 update
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addUser\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
-declare -x -f dbRecordAdd_addDbUser #Добавление записи в базу о добавлении пользователя mysql
+
+
 #Добавление записи в базу о добавлении пользователя mysql
 ###input
 #$1-user ;
@@ -1470,7 +964,7 @@ dbRecordAdd_addDbUser() {
 }
 
 
-declare -x -f dbRecordAdd_addBase #Добавление записи в базу о добавлении пользователя
+
 #Добавление записи в базу о добавлении пользователя
 ###input
 #$1-dbname ;
@@ -1952,6 +1446,59 @@ dbSetFullAccessToBase() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+#обновление инфомрации в базе данных:
+###input:
+#$1-dbname ;
+#$2-user ;
+#$3-host ;
+###return:
+#0 - выполнено успешно;
+#1 - отсутствуют параметры;
+#2 - пользователь не существует;
+#3 - База данных не существует
+dbSetUpdateInfoAccessToBase() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		#проверка на существование пользователя mysql "$2"
+		if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$2'" 2>&1`" ]];
+		then
+		#Пользователь mysql "$2" существует
+		    #проверка существования базы данных "$1"
+		    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+		    	then
+		    	#база $1 - существует
+				mysql -e "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$1\`.* TO '$2'@'$3';"
+				return 0
+		    	#база $1 - существует (конец)
+		    	else
+		    	#база $1 - не существует
+		    	     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbSetUpdateInfoAccessToBase\" ${COLOR_NC}"
+		    	     return 3
+		    	#база $1 - не существует (конец)
+		    fi
+		    #конец проверки существования базы данных $1
+
+		#Пользователь mysql "$2" существует (конец)
+		else
+		#Пользователь mysql "$2" не существует
+		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbSetUpdateInfoAccessToBase\" ${COLOR_NC}"
+		    return 2
+		#Пользователь mysql "$2" не существует (конец)
+		fi
+		#Конец проверки на существование пользователя mysql "$2"
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbSetUpdateInfoAccessToBase\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 ###Полностью готово. Не трогать. 07.03.2019 г.
 #Смена пароля и создание файла ~/.my.cnf (только файл)
 ###input:
@@ -2270,268 +1817,12 @@ dbViewUserInfo() {
 
 
 
-#Отобразить список всех баз данных, владельцем которой является пользователь mysql $1_% (по имени)
-#Полностью готово. 13.03.2019
-###input
-#$1-user;
-#$2-mode(full_info/error_only/success_only)
-#return
-#0 - базы данных найдены,
-#1 - не переданы параметры,
-#2 - базы данных не найдены
-#3 - ошибка параметра mode(full_info/error_only/success_only)
-dbViewBasesByUsername() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		#проверка на пустой результат
-				if [[ $(mysql -e "SHOW DATABASES LIKE '$1\_%';") ]]; then
-					#непустой результат
-					case "$2" in
-					        full_info)
-					            echo -e "${COLOR_YELLOW}Перечень баз данных MYSQL пользователя ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
-                                mysql -e "SHOW DATABASES LIKE '$1\_%';"
-                                return 0
-					            ;;
-					        error_only)
-					            return 0
-					            ;;
-					    	success_only)
-					    		echo -e "${COLOR_YELLOW}Перечень баз данных MYSQL пользователя ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
-                                mysql -e "SHOW DATABASES LIKE '$1\_%';"
-                                return 0
-                                ;;
-					    	*)
-					    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
-					    	    return 3
-					    	    ;;
-					    esac
-
-					#непустой результат (конец)
-				else
-				    #пустой результат
-					    case "$2" in
-					        full_info)
-					            echo -e "${COLOR_YELLOW}\nБазы данных пользователя ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствуют${COLOR_NC}"
-					            return 2
-					            ;;
-					        error_only)
-					            echo -e "${COLOR_YELLOW}\nБазы данных пользователя ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствуют${COLOR_NC}"
-					            return 2
-					            ;;
-					    	success_only)
-					    		return 2
-					    		;;
-					    	*)
-					    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
-					    	    return 3
-					    	    ;;
-					    esac
-
-					#пустой результат (конец)
-				fi
-		#Конец проверки на пустой результат
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewBasesByUsername\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
-#добавление записи в таблицу
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input:
-#$1-dbname ;
-#$2-table;
-#$3 - столбец для вставки;
-#$4 - текст вставки;
-#$5-подтверждение "insert"
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры запуска
-#2 - не существует база данных $2
-#3 - таблица не существует
-#4 - столбец не существует для поиска
-#5  - отсутствует подтверждение
-dbAddRecordToDb() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-				#Проверка существования таблицы в базе денных $1
-				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-					then
-					#таблица $2 существует
-                        #Проверка существования столбца $3 в таблице $2
-                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                        	then
-
-                                				 case "$5" in
-                                                        insert)
-                                                            mysql -e "INSERT INTO $1.$2 ($3) VALUES ('$4');"
-                                                            return 0
-                                                            ;;
-                                                        *)
-                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_NC}"
-                                                            return 5
-                                                            ;;
-                                                    esac
 
 
-                        	#столбец $2 существует (конец)
-                        	else
-                        	#столбец $2 не существует
-
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-                        	    return 4
-                        	#столбец $2 не существует (конец)
-                        fi
-                        #Проверка существования столбца $3 в таблице $2 (конец)
-					#таблица $2 существует (конец)
-					else
-					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-					     return 3
-					#таблица $2 не существует (конец)
-				fi
-				#Проверка существования таблицы в базе денных $1 (конец)
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
 
 
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
-#обновление записи в таблице
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input:
-#$1-dbname ;
-#$2-table;
-#$3 - столбец для поиска;
-#$4 - текст для поиска;
-#$5 - обновляемый столбец,
-#$6 - вставляемый текст,
-#$7-подтверждение "update"
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры запуска
-#2 - не существует база данных $2
-#3 - таблица не существует
-#4 - столбец не существует для поиска
-#5 - запись отсутствует
-#6  - отсутствует подтверждение
-#7 - отсутствует столбец для вставки текста
-dbUpdateRecordToDb() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-				#Проверка существования таблицы в базе денных $1
-				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-					then
-					#таблица $2 существует
-                        #Проверка существования столбца $3 в таблице $2
-                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                        	then
-                        	#столбец $2 существует
-                                #Проверка существования записи в базе денных
-                                if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM $1.$2 WHERE $3='$4'" 2>&1`" ]];
-                                	then
-                                	#запись существует
-                                		#Проверка существования столбца $5 в таблице $2
-                                		if [[ ! -z "`mysql -qfsBe "SELECT '$5' FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                                			then
-                                			#столбец $5 существует
-                                				 case "$7" in
-                                                        update)
-                                                            mysql -e "UPDATE $1.$2 SET $5='$6' where $3='$4';"
-                                                            return 0
-                                                            ;;
-                                                        *)
-                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbUpdateRecordToDb\"${COLOR_NC}"
-                                                            return 6
-                                                            ;;
-                                                    esac
-                                			#столбец $5 существует (конец)
-                                			else
-                                			#столбец $5 не существует
-                                			    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$5\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbUpdateRecordToDb\" ${COLOR_NC}"
-                                			    return 7
-                                			#столбец $5 не существует (конец)
-                                		fi
-                                		#Проверка существования столбца $5 в таблице $2 (конец)
-
-                                	#запись существует (конец)
-                                	else
-                                	#запись не существует
-                                        return 5
-                                	#запись не существует
-
-                                fi
-                                #Проверка существования записи в базе денных (конец)
-                        	#столбец $2 существует (конец)
-                        	else
-                        	#столбец $2 не существует
-
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-                        	    return 4
-                        	#столбец $2 не существует (конец)
-                        fi
-                        #Проверка существования столбца $3 в таблице $2 (конец)
-					#таблица $2 существует (конец)
-					else
-					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-					     return 3
-					#таблица $2 не существует (конец)
-				fi
-				#Проверка существования таблицы в базе денных $1 (конец)
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #удаление записи из таблицы
 #Полностью проверено. 13.03.2019
@@ -4637,64 +3928,7 @@ chModAndOwnSiteFileAndFolder() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Создание папки и применение ей владельца и прав доступа
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input
-#$1-путь к папке ;
-#$2-user ;
-#$3-group ;
-#$4-разрешения ;
-###return
-#0 - выполнено успешно,
-#1 - не переданы параметры,
-#2 - пользователь не существует,
-#3 - группа не существует
-mkdirWithOwn() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-		    #Проверка существования системного пользователя "$2"
-		    	grep "^$2:" /etc/passwd >/dev/null
-		    	if  [ $? -eq 0 ]
-		    	then
-		    	#Пользователь $2 существует
-		    		#Проверка существования системной группы пользователей "$3"
-		    		if grep -q $3 /etc/group
-		    		    then
-		    		        #Группа "$3" существует
-		    		            sudo mkdir -p $1
-		    		            sudo chmod $4 $1
-				                sudo chown $2:$3 $1
-				                return 0
 
-		    		        #Группа "$3" существует (конец)
-		    		    else
-		    		        #Группа "$3" не существует
-		    		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"mkdirWithOwn\"${COLOR_NC}"
-                            return 3
-		    				#Группа "$3" не существует (конец)
-		    		    fi
-		    		#Конец проверки существования системного пользователя $3
-		    	#Пользователь $2 существует (конец)
-		    	else
-		    	#Пользователь $2 не существует
-		    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"mkdirWithOwn\"${COLOR_NC}"
-		    	    return 2
-		    	#Пользователь $2 не существует (конец)
-		    	fi
-		    #Конец проверки существования системного пользователя $2
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"mkdirWithOwn\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Смена разрешений на каталог и файлы, а также владельца
 #$1-путь к каталогу; $2-права на каталог ; $3-Права на файлы ; $4-Владелец-user ; $5-Владелец-группа ;
@@ -4823,76 +4057,7 @@ chOwnFolderAndFiles() {
 }
 
 
-#создание файла и применение прав к нему и владельца
-###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
-###input
-#$1-путь к файлу ;
-#$2-user ;
-#$3-group ;
-#$4-права доступ ;
-###return
-#0 - выполнено успешно,
-#1 - отсутствуют параметры запуска,
-#2 - пользователь не существует,
-#3 - группа не существует,
-#4 - файл существовал, применены лишь права
-touchFileWithModAndOwn() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-	then
 
-    #Проверка существования системного пользователя "$2"
-		    		grep "^$2:" /etc/passwd >/dev/null
-		    		if  [ $? -eq 0 ]
-		    		then
-		    		#Пользователь $2 существует
-		    			#Проверка существования системной группы пользователей "$3"
-		    			if grep -q $3 /etc/group
-		    			    then
-		    			    #Проверка существования файла "$1"
-                            if [ -f $1 ] ; then
-                                #Файл "$1" уже существует. Применяются просто права доступа
-                                sudo chmod $4 $1
-		    			        sudo chown $2:$3 $1
-		    			        return 4
-                                #Файл "$1" существует. Применяются просто права доступа (конец)
-                            else
-                                #Файл "$1" не существует
-                                    sudo touch $1
-                                    sudo chmod $4 $1
-		    			            sudo chown $2:$3 $1
-		    			            return 0
-                                #Файл "$1" не существует (конец)
-                            fi
-                            #Конец проверки существования файла "$1"
-
-т
-		    			    else
-		    			        #Группа "$3" не существует
-		    			        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"touchFileWithModAndOwn\"${COLOR_NC}"
-		    					return 3
-		    					#Группа "$3" не существует (конец)
-		    			    fi
-		    			#Конец проверки существования системного пользователя $3
-
-		    		#Пользователь $2 существует (конец)
-		    		else
-		    		#Пользователь $2 не существует
-		    		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"touchFileWithModAndOwn\"${COLOR_NC}"
-		    			return 2
-		    		#Пользователь $2 не существует (конец)
-		    		fi
-		    	#Конец проверки существования системного пользователя $2
-
-
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"touchFileWithModAndOwn\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 #проверка существования папки с выводом информации о ее существовании
@@ -5084,6 +4249,56 @@ viewFtpAccess(){
 		echo -e "${COLOR_RED}Не переданы параметры в функцию ${COLOR_GREEN}\"viewFtpAccess\"${COLOR_RED}. Выполнение скрипта аварийно завершено ${COLOR_NC}"
 		return 1
 	fi
+}
+
+
+#Отобразить реквизиты доступа
+###input
+#$1-user ;
+#$2-mode (full_info);
+
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - ошибка передачи mode
+viewAccessDetail() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		file=$HOMEPATHWEBUSERS/$1/.myconfig/info.txt
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				case "$2" in
+				    full_info)
+				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}"
+				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User | highlight green "Ключевой файл" | highlight green "Использован открытый ключ"
+				        ;;
+					*)
+					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
+					    return 3
+					    ;;
+				esac
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта    
 }
 
 #отобразить реквизиты доступа к серверу SSH
@@ -5401,15 +4616,14 @@ siteAddFtpUser() {
                                 sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
                                 sudo adduser $1_$2 www-data
                                 dbRecordAdd_addUser $1_$2 "$OMEPATHWEBUSERS"/"$1"/"$2" $4 2
-                                fileAddLineToFile $1 "FTP-Пользователь:"
-
-
+                                infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                                fileAddLineToFile $infoFile "FTP-Пользователь:"
 
                                 #смена пароля на пользователя
                                 userChangePassword $1_$2 $3
-                                fileAddLineToFile $1 "Server: $MYSERVER ($2)"
-                                fileAddLineToFile $1 "Port: $FTPPORT"
-                                fileAddLineToFile $1 "------------------------"
+                                fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
+                                fileAddLineToFile $infoFile "Port: $FTPPORT"
+                                fileAddLineToFile $infoFile "------------------------"
                                 return 0
                                 ;;
                             *)
@@ -5598,6 +4812,8 @@ sshKeyImport() {
 			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
+			    infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+
                 echo -e "\n${COLOR_YELLOW} Список возможных ключей для импорта: ${COLOR_NC}"
 			    ls -l $SETTINGS/ssh/keys/
 			    echo -n -e "${COLOR_BLUE} Укажите название открытого ключа, который необходимо применить к текущему пользователю: ${COLOR_NC}"
@@ -5614,6 +4830,7 @@ sshKeyImport() {
 				usermod -G ssh-access -a $1
 				dbUpdateRecordToDb $WEBSERVER_DB users username $1 isSshAccess 1 update
 				echo -e "\n${COLOR_YELLOW} Импорт ключа $COLOR_LIGHT_PURPLE\"$key\"${COLOR_YELLOW} пользователю $COLOR_LIGHT_PURPLE\"$1\"${COLOR_YELLOW} выполнен${COLOR_NC}"
+				fileAddLineToFile $infoFile "Использован открытый ключ - $SETTINGS/ssh/keys/$key"
 			else
 			#Пользователь $1 не существует
 			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_NC}"
@@ -5831,64 +5048,7 @@ fi
 }
 
 
-#Добавление строки в файл и его создание при необходимости
-###input
-#$1-user
-#$2-string ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь $1 не существует
-fileAddLineToFile() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-	    #Проверка существования системного пользователя "$1"
-	    	grep "^$1:" /etc/passwd >/dev/null
-	    	if  [ $? -eq 0 ]
-	    	then
-	    	#Пользователь $1 существует
-                path="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-                #Проверка существования каталога "`dirname $path`"
-                if ! [ -d `dirname "$path"` ] ; then
-                    #Каталог "`dirname $path`" не существует
-                    mkdirWithOwn `dirname "$path"` $1 www-data 777
-                    #Каталог "`dirname $path`" не существует (конец)
-                fi
-                #Конец проверки существования каталога "`dirname $path`"
 
-
-                #Проверка существования файла "$path"
-                if ! [ -f "$path" ] ; then
-                    #Файл "$path" не существует
-                    touchFileWithModAndOwn $path $1 www-data 644
-                    sudo chmod 644 $path $path
-                    sudo chown $1:www-data
-                    #Файл "$path" не существует (конец)
-                fi
-                #Конец проверки существования файла "$path"
-
-                sudo echo "$2" >> $path
-	    	#Пользователь $1 существует (конец)
-	    	else
-	    	#Пользователь $1 не существует
-	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"fileAddLineToFile\"${COLOR_NC}"
-	    		return 2
-	    	#Пользователь $1 не существует (конец)
-	    	fi
-	    #Конец проверки существования системного пользователя $1
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"fileAddLineToFile\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Удаление конфигов веб-серверов
 ###input
@@ -6993,7 +6153,7 @@ input_viewUsersInGroup() {
 }
 
 
-declare -x -f input_dbUserDeleteBase #Запрос подтверждения удаления всех баз данных конкретного пользователя: ($1-username ; $2- ; $3- ; $4- ; $5- ;)
+
 #Запрос подтверждения удаления всех баз данных конкретного пользователя
 ###input
 #$1-username ;
@@ -7137,7 +6297,7 @@ input_userDelete_system() {
 
 }
 
-declare -x -f input_dbChangeUserPassword #запрос данных для смены пароля пользователя mysql
+
 #запрос данных для смены пароля пользователя mysql
 ###input
 #$1-имя системного пользователя;
@@ -7367,7 +6527,7 @@ dbUserChangeAccess() {
 }
 
 
-declare -x -f dbUserSetAccessToBase
+
 #установка прав доступа пользователю на базу
 ###input
 #$1-mysql user ;
@@ -7565,7 +6725,6 @@ input_viewUserFullInfo() {
     	#Пользователь $username существует
     		clear
     		echo -e "${COLOR_YELLOW}Сводная информация о пользователе ${COLOR_GREEN}\"$username\":${COLOR_NC}"
-    		viewUserFullInfo $username
     		return 0
     	#Пользователь $username существует (конец)
     	else
@@ -7630,7 +6789,7 @@ input_viewGroup() {
     #Конец проверки существования системной группы пользователей $groupname
 }
 
-declare -x -f input_siteExist #Проверка наличия сайта:
+
 #Проверка наличия сайта
 ###input
 #$1-username;
@@ -7739,7 +6898,7 @@ input_siteExist() {
 }
 
 
-declare -x -f siteExist #Проверка существования сайта: ($1-username ; $2-domain)
+
 #Проверка существования сайта
 ###input
 #$1-domain
@@ -7750,7 +6909,8 @@ declare -x -f siteExist #Проверка существования сайта:
 #3 - каталог домена имеется в папках пользователей
 
 
-declare -x -f siteChangeWebserverConfigs
+
+
 #Замена переменных в конфигах веб-серверов
 ###input
 #$1-webserver(apache/nginx)
@@ -8202,67 +7362,6 @@ input_SiteAdd_php() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Ввод параметров ssh
-###input
-#$1-username ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - не существует пользователь $1
-#3 - отменено пользователем
-input_sshSettings() {
-	#Проверка на существование параметров запуска скрипта
-	#TODO Сделать запуск функции без параметров.
-	if [ -n "$1" ]
-	then
-
-	username=$1
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$username"
-			grep "^$username:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $username существует
-                echo -n -e "${COLOR_YELLOW}Введите ${COLOR_BLUE}\"g\"${COLOR_YELLOW} для генерации ключа ssh, ${COLOR_BLUE}\"i\"${COLOR_YELLOW} - для импорта ключа ssh, ${COLOR_BLUE}\"n\"${COLOR_YELLOW} - если ключ доступа не генерировать: ${COLOR_NC} "
-                	while read
-                	do
-
-                    	case "$REPLY" in
-                	    	g|G)
-                                sudo bash -c "source $SCRIPTS/include/inc.sh; sshKeyGenerateToUser $username $HOMEPATHWEBUSERS/$username";
-                                viewSshAccess $username $MYSERVER $SSHPORT 1 $HOMEPATHWEBUSERS/$username/.ssh/ssh_$username.ppk
-                		    	break;;
-                		    i|I)
-                                sudo bash -c "source $SCRIPTS/include/inc.sh; sshKeyImport $username";
-
-                			    break;;
-                		    n|N)
-                                echo -e "${COLOR_YELLOW}"Добавление ssh-доступа отменено пользователем"${COLOR_NC}"
-                			    return 3;;
-                			*)
-                                echo -n -e "${COLOR_RED}Ошибка ввода режима генерации ключа ssh в функцию ${COLOR_GREEN}\"input_sshSettings\".${COLOR_YELLOW} Повторите ввод: ${COLOR_NC}";
-                            ;;
-                	    esac
-                	done
-
-
-			#Пользователь $username существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$username\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_sshSettings\"${COLOR_NC}"
-				return 2
-			#Пользователь $username не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $username
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_sshSettings\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 ################################################search####################################################
 #Поиск каталога в указанной папке (с вложением)

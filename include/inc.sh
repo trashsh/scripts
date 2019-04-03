@@ -2,6 +2,8 @@
 
 source /etc/profile
 source $SCRIPTS/functions/functions.sh
+source $SCRIPTS/functions/myFunc.sh
+source $SCRIPTS/functions/ne_trogat_bolshe.sh
 source $SCRIPTS/functions/new_functions.sh
 source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh
 #source $SCRIPTS/functions/backups.sh

@@ -341,9 +341,7 @@ It can’t use count() or sizeof() with un array type. Force parameter to array 
     index index.php index.html index.htm index.nginx-debian.html;
 
 
-mysql -e "CREATE DATABASE IF NOT EXISTS lamer_webserver CHARACTER SET utf8 COLLATE utf8_general_ci;"
-mysql lamer_webserver < $SCRIPTS/.config/templates/db/webserver/webserver.sql
-bash -c "source $SCRIPTS/include/inc.sh; dbUserChangeAccess 2 % $USERLAMER"
+
 
 
 sed -i -e "s/#Port 22/Port 6666/" /etc/ssh/sshd_config
