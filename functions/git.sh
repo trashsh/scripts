@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #Создание коммита
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_commit() {
     echo -n -e "Для создания коммита репозитария ${COLOR_YELLOW}\""$SCRIPTS"\"${COLOR_NC} введите ${COLOR_BLUE}\"y\"${COLOR_NC}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
     while read
@@ -40,6 +41,7 @@ Git_commit() {
 }
 
 #публикация проекта во внешнем репозитарии
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_remotePush() {
     cd $SCRIPTS
     echo -e "\n${COLOR_YELLOW}Публикация репозитария на github.com и Bitbucket.org:${COLOR_NC}"
@@ -52,6 +54,7 @@ Git_remotePush() {
 }
 
 # просмотр удаленных репозитариев
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_remoteView() {
         echo $1
 		cd $SCRIPTS
