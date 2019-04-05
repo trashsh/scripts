@@ -4,17 +4,17 @@ sed -i '$ a source /my/scripts/include/inc.sh'  /root/.bashrc
 
 bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem root $USERLAMER"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroupSudo $USERLAMER"
-bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSudo 1 update"
+#bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSudo 1 update"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroup $USERLAMER admin-access 0"
-bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isAdminAccess 1 update"
+#bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isAdminAccess 1 update"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroup $USERLAMER ssh-access 0"
-bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSshAccess 1 update"
+#bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isSshAccess 1 update"
 bash -c "source $SCRIPTS/include/inc.sh; userAddToGroup $USERLAMER ftp-access 0"
-bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isFtpAccess 1 update"
+#bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver users username $USERLAMER isFtpAccess 1 update"
 
 bash -c "source $SCRIPTS/include/inc.sh; dbUseradd $USERLAMER $USERLAMER % pass adminGrant"
-bash -c "source $SCRIPTS/include/inc.sh; dbAddRecordToDb lamer_webserver db_users username $USERLAMER insert"
-bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver db_users username $USERLAMER created_by root update"
+#bash -c "source $SCRIPTS/include/inc.sh; dbAddRecordToDb lamer_webserver db_users username $USERLAMER insert"
+#bash -c "source $SCRIPTS/include/inc.sh; dbUpdateRecordToDb lamer_webserver db_users username $USERLAMER created_by root update"
 
 bash -c "source $SCRIPTS/include/inc.sh; dbSetMyCnfFile $USERLAMER $USERLAMER $USERLAMER"
 
@@ -60,7 +60,7 @@ systemctl restart apache2
 
 
 
+############
 
-
-
+apt install members
 

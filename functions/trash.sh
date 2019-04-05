@@ -599,3 +599,388 @@ viewMysqlAccess(){
 }
 
 
+
+
+
+
+#Добавление записи в базу о добавлении пользователя
+###input
+#$1-user ;
+#$2-homedir ;
+#$3-created_by ;
+#$4-userType (1-system, 2-ftp)
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+
+		#mysql-добавление информации о пользователе
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+    dbAddRecordToDb $WEBSERVER_DB users username $1 insert
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$datetime" update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created_by "$3" update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isAdminAccess 0 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isFtpAccess 1 update
+    dbUpdateRecordToDb $WEBSERVER_DB users username $1 userType $4 update
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+#добавление записи в таблицу
+###!ПОЛНОСТЬЮ ГОТОВО. 02.04.2019
+###input:
+#$1-dbname ;
+#$2-table;
+#$3 - столбец для вставки;
+#$4 - текст вставки;
+#$5-подтверждение "insert"
+###return
+#0 - выполнено успешно
+#1 - отсутствуют параметры запуска
+#2 - не существует база данных $2
+#3 - таблица не существует
+#4 - столбец не существует для поиска
+#5  - отсутствует подтверждение
+dbAddRecordToDb() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования базы данных "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+			then
+			#база $1 - существует
+				#Проверка существования таблицы в базе денных $1
+				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
+					then
+					#таблица $2 существует
+                        #Проверка существования столбца $3 в таблице $2
+                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
+                        	then
+
+                                				 case "$5" in
+                                                        insert)
+                                                            mysql -e "INSERT INTO $1.$2 ($3) VALUES ('$4');"
+                                                            return 0
+                                                            ;;
+                                                        *)
+                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_NC}"
+                                                            return 5
+                                                            ;;
+                                                    esac
+
+
+                        	#столбец $2 существует (конец)
+                        	else
+                        	#столбец $2 не существует
+
+                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
+                        	    return 4
+                        	#столбец $2 не существует (конец)
+                        fi
+                        #Проверка существования столбца $3 в таблице $2 (конец)
+					#таблица $2 существует (конец)
+					else
+					#таблица $2 не существует
+					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
+					     return 3
+					#таблица $2 не существует (конец)
+				fi
+				#Проверка существования таблицы в базе денных $1 (конец)
+			#база $1 - существует (конец)
+			else
+			#база $1 - не существует
+			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
+			     return 2
+			#база $1 - не существует (конец)
+		fi
+		#конец проверки существования базы данных $1
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+
+#Добавление записи в базу о добавлении пользователя mysql
+###input
+#$1-user ;
+#$2-homedir ;
+#$3-created_by ;
+#$4-userType (1-system, 2-ftp)
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addDbUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+
+		#mysql-добавление информации о пользователе
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+    #dbAddRecordToDb $WEBSERVER_DB db_users username $1 insert
+    dbUpdateRecordToDb $WEBSERVER_DB db_users username $1 created_by $3 update
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addDbUser\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+#удаление записи из таблицы
+#Полностью проверено. 13.03.2019
+###input:
+#$1-dbname ;
+#$2-table;
+#$3 - столбец;
+#$4 - текст для поиска;
+#$5-подтверждение "delete"
+###return
+#0 - выполнено успешно
+#1 - отсутствуют параметры запуска
+#2 - не существует база данных $2
+#3 - таблица не существует
+#4 - столбец не существует
+#5 - запись отсутствует
+#6  - отсутствует подтверждение
+dbDeleteRecordFromDb() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования базы данных "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+			then
+			#база $1 - существует
+				#Проверка существования таблицы в базе денных $1
+				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
+					then
+					#таблица $2 существует
+                        #Проверка существования столбца $3 в таблице $2
+                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
+                        	then
+                        	#столбец $2 существует
+                                #Проверка существования записи в базе денных
+                                if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM $1.$2 WHERE $3='$4'" 2>&1`" ]];
+                                	then
+                                	#запись существует
+                                		case "$5" in
+                                			delete)
+                                				mysql -e "DELETE FROM $2 WHERE $3 = '$4'" $1
+                                				return 0
+                                				;;
+                                			*)
+                                				echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbDeleteRecordFromDb\"${COLOR_NC}"
+                                				return 6
+                                				;;
+                                		esac
+                                	#запись существует (конец)
+                                	else
+                                	#запись не существует
+                                        return 5
+                                	#запись не существует
+                                fi
+                                #Проверка существования записи в базе денных (конец)
+                        	#столбец $2 существует (конец)
+                        	else
+                        	#столбец $2 не существует
+
+                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+                        	    return 4
+                        	#столбец $2 не существует (конец)
+                        fi
+                        #Проверка существования столбца $3 в таблице $2 (конец)
+					#таблица $2 существует (конец)
+					else
+					#таблица $2 не существует
+					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+					     return 3
+					#таблица $2 не существует (конец)
+				fi
+				#Проверка существования таблицы в базе денных $1 (конец)
+			#база $1 - существует (конец)
+			else
+			#база $1 - не существует
+			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+			     return 2
+			#база $1 - не существует (конец)
+		fi
+		#конец проверки существования базы данных $1
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+declare -x -f dbUpdateRecordToDb
+#обновление записи в таблице
+###input:
+#$1-dbname ;
+#$2-table;
+#$3 - столбец для поиска;
+#$4 - текст для поиска;
+#$5 - обновляемый столбец,
+#$6 - вставляемый текст,
+#$7-подтверждение "update"
+###return
+#0 - выполнено успешно
+#1 - отсутствуют параметры запуска
+#2 - не существует база данных $2
+#3 - таблица не существует
+#4 - столбец не существует для поиска
+#5 - запись отсутствует
+#6  - отсутствует подтверждение
+#7 - отсутствует столбец для вставки текста
+dbUpdateRecordToDb() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования базы данных "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+			then
+			#база $1 - существует
+				#Проверка существования таблицы в базе денных $1
+				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
+					then
+					#таблица $2 существует
+                        #Проверка существования столбца $3 в таблице $2
+                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
+                        	then
+                        	#столбец $2 существует
+                                #Проверка существования записи в базе денных
+                                if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM $1.$2 WHERE $3='$4'" 2>&1`" ]];
+                                	then
+                                	#запись существует
+                                		#Проверка существования столбца $5 в таблице $2
+                                		if [[ ! -z "`mysql -qfsBe "SELECT '$5' FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
+                                			then
+                                			#столбец $5 существует
+                                				 case "$7" in
+                                                        update)
+                                                            mysql -e "UPDATE $1.$2 SET $5='$6' where $3='$4';"
+                                                            return 0
+                                                            ;;
+                                                        *)
+                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbUpdateRecordToDb\"${COLOR_NC}"
+                                                            return 6
+                                                            ;;
+                                                    esac
+                                			#столбец $5 существует (конец)
+                                			else
+                                			#столбец $5 не существует
+                                			    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$5\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbUpdateRecordToDb\" ${COLOR_NC}"
+                                			    return 7
+                                			#столбец $5 не существует (конец)
+                                		fi
+                                		#Проверка существования столбца $5 в таблице $2 (конец)
+
+                                	#запись существует (конец)
+                                	else
+                                	#запись не существует
+                                        return 5
+                                	#запись не существует
+
+                                fi
+                                #Проверка существования записи в базе денных (конец)
+                        	#столбец $2 существует (конец)
+                        	else
+                        	#столбец $2 не существует
+
+                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+                        	    return 4
+                        	#столбец $2 не существует (конец)
+                        fi
+                        #Проверка существования столбца $3 в таблице $2 (конец)
+					#таблица $2 существует (конец)
+					else
+					#таблица $2 не существует
+					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+					     return 3
+					#таблица $2 не существует (конец)
+				fi
+				#Проверка существования таблицы в базе денных $1 (конец)
+			#база $1 - существует (конец)
+			else
+			#база $1 - не существует
+			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
+			     return 2
+			#база $1 - не существует (конец)
+		fi
+		#конец проверки существования базы данных $1
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+#Добавление записи в базу о добавлении пользователя
+###input
+#$1-dbname ;
+#$2-characterSetId_db ;
+#$3-collateId_db ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+dbRecordAdd_addBase() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+
+    datetime=`date +%Y-%m-%d\ %H:%M:%S`
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addBase\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}

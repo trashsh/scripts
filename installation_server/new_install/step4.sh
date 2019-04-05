@@ -76,7 +76,7 @@ sed -i "$ a source $SCRIPTS/include/inc.sh"  /etc/profile
 
 usermod -G admin-access -a $USERLAMER
 
-dbUpdateRecordToDb $WEBSERVER_DB users username $username isAdminAccess 1 update
+#dbUpdateRecordToDb $WEBSERVER_DB users username $username isAdminAccess 1 update
 
 
 

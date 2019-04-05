@@ -55,7 +55,7 @@ siteAdd_php() {
                             #Каталог сайта "$3" не существует
 
                             #добавление ftp-пользователя
-                            siteAddFtpUser $1 $2 autogenerate $6
+                            FtpUserAdd $1 $2 autogenerate $6
                             sudo cp -R /etc/skel/* $3
 
                             siteAddTestIndexFile $1 $2 public_html replace phpinfo
@@ -79,7 +79,8 @@ siteAdd_php() {
 
                             dbCreateBase $1_$2 utf8 utf8_general_ci error_only
                             mysqlpassword="$(openssl rand -base64 14)";
-                            dbUseradd $1_$2 $mysqlpassword % pass user
+
+                            dbUseradd $1_$2 $mysqlpassword localhost pass user
 
 
 

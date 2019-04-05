@@ -1,9 +1,6 @@
 #!/bin/bash
 
-declare -x -f dbUpdateRecordToDb
-declare -x -f dbRecordAdd_addUser
-declare -x -f dbAddRecordToDb
-declare -x -f dbViewBasesByUsername
+
 declare -x -f dbCreateBase
 declare -x -f dbDropBase
 
@@ -16,18 +13,83 @@ declare -x -f dbShowTables
 declare -x -f dbViewAllUsers
 declare -x -f dbViewAllBases
 declare -x -f dbViewBasesByTextContain
-declare -x -f dbViewAllUsersByContainName
 declare -x -f dbViewUserInfo
-declare -x -f dbDeleteRecordFromDb
 declare -x -f dbExistTable
 declare -x -f dbChangeUserPassword
 declare -x -f dbUserChangeAccess
 declare -x -f dbBackupBasesOneDomain
 declare -x -f dbSetUpdateInfoAccessToBase
-declare -x -f dbRecordAdd_addBase
-declare -x -f dbRecordAdd_addDbUser
 declare -x -f dbUserSetAccessToBase
 
+
+declare -x -f dbUserdel
+
+#Удаление пользователя mysql
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
+###input:
+#$1-user ;
+#$2-"drop"-подтверждение ;
+###return 0 - выполнено успешно,
+#1 - не переданы параметры;
+#2 - пользователь не существует;
+#3 - подтверждение на удаление не получено
+#$4 - пользователь не удалился
+dbUserdel() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		#Проверка наличия подтверждения на удаление
+		if [ "$2" = "drop" ]
+		then
+		    #Получено подтверждение на удаление
+            #проверка на существование пользователя mysql "$1"
+            if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+            then
+            #Пользователь mysql "$1" существует
+                mysql -e "DROP USER IF EXISTS '$1'@'localhost';"
+				mysql -e "DROP USER IF EXISTS '$1'@'%';"
+
+                #Проверка на существование пользователя mysql "$1"
+                if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+                then
+                #Пользователь mysql "$1" не удалился
+                    return 4
+                #Пользователь mysql "$1" не удалился (конец)
+                else
+                #Пользователь mysql "$1" не существует
+                    echo -e "${COLOR_GREEN}Пользователь mysql ${COLOR_YELLOW}$1${COLOR_GREEN} удален ${COLOR_NC}"
+                    return 0
+                #Пользователь mysql "$1" не существует (конец)
+                fi
+                #Конец проверки на существование пользователя mysql "$1"
+
+
+            #Пользователь mysql "$1" существует (конец)
+            else
+            #Пользователь mysql "$1" не существует
+                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUserdel\" ${COLOR_NC}"
+                return 2
+            #Пользователь mysql "$1" не существует (конец)
+            fi
+            #Конец проверки на существование пользователя mysql "$1"
+            #Получено подтверждение на удаление - конец
+        else
+            #Не получено подтверждение на удаление
+            echo -e "${COLOR_RED}Подтверждение на удаление пользователя ${COLOR_GREEN}\"$1\"${COLOR_RED} не получено. Ошибка выполнения функции ${COLOR_GREEN}\"dbUserdel\"${COLOR_NC}"
+            return 3
+            #Не получено подтверждение на удаление (конец)
+		fi
+		#Проверка наличия подтверждения на удаление (конец)
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUserdel\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 #установка прав доступа пользователю на базу
 ###input
@@ -175,96 +237,6 @@ dbExistTable() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#удаление записи из таблицы
-#Полностью проверено. 13.03.2019
-###input:
-#$1-dbname ;
-#$2-table;
-#$3 - столбец;
-#$4 - текст для поиска;
-#$5-подтверждение "delete"
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры запуска
-#2 - не существует база данных $2
-#3 - таблица не существует
-#4 - столбец не существует
-#5 - запись отсутствует
-#6  - отсутствует подтверждение
-dbDeleteRecordFromDb() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-				#Проверка существования таблицы в базе денных $1
-				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-					then
-					#таблица $2 существует
-                        #Проверка существования столбца $3 в таблице $2
-                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                        	then
-                        	#столбец $2 существует
-                                #Проверка существования записи в базе денных
-                                if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM $1.$2 WHERE $3='$4'" 2>&1`" ]];
-                                	then
-                                	#запись существует
-                                		case "$5" in
-                                			delete)
-                                				mysql -e "DELETE FROM $2 WHERE $3 = '$4'" $1
-                                				return 0
-                                				;;
-                                			*)
-                                				echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbDeleteRecordFromDb\"${COLOR_NC}"
-                                				return 6
-                                				;;
-                                		esac
-                                	#запись существует (конец)
-                                	else
-                                	#запись не существует
-                                        return 5
-                                	#запись не существует
-                                fi
-                                #Проверка существования записи в базе денных (конец)
-                        	#столбец $2 существует (конец)
-                        	else
-                        	#столбец $2 не существует
-
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-                        	    return 4
-                        	#столбец $2 не существует (конец)
-                        fi
-                        #Проверка существования столбца $3 в таблице $2 (конец)
-					#таблица $2 существует (конец)
-					else
-					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-					     return 3
-					#таблица $2 не существует (конец)
-				fi
-				#Проверка существования таблицы в базе денных $1 (конец)
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 #Вывести информацию о пользователе mysql $1. Проверка существования пользователя
@@ -358,42 +330,7 @@ dbViewBasesByTextContain() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Отобразить список всех пользователей mysql,содержащих в названии переменную $1
-###input:
-#$1-переменная для поиска пользователя ;
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры вызова функции
-#2 - пользователи с заданным именем не существуют
-dbViewAllUsersByContainName() {
-	#Проверка на существование параметров запуска скрипта
-		#Проверка на существование параметров запуска скрипта
-		if [ -n "$1" ]
-		then
-		#Параметры запуска существуют
-		    #проверка на пустой результат
-		    		if [[ $(mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv,Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '%%$1%%' ORDER BY User ASC") ]]; then
-		    			#непустой результат
-		    			echo -e "${COLOR_YELLOW}Перечень пользователей MYSQL, содержащих в названии ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
-		                mysql -e "SELECT User,Host,Grant_priv,Create_priv,Drop_priv,Create_user_priv,Delete_priv,account_locked, password_last_changed FROM mysql.user WHERE User like '%%$1%%' ORDER BY User ASC"
-		                return 0
-		    			#непустой результат (конец)
-		    		else
-		    		    #пустой результат
-		    			echo -e "${COLOR_LIGHT_RED}Пользователи, в имени которых содержится значение ${COLOR_YELLOW}\"$1\"${COLOR_LIGHT_RED} отсутствуют. Ошибка вызова функциии ${COLOR_YELLOW}\"dbViewAllUsersByContainName\"${COLOR_NC}"
-		    			return 2
-		    			#пустой результат (конец)
-		    		fi
-		    #Конец проверки на пустой результат
-		#Параметры запуска существуют (конец)
-		else
-		#Параметры запуска отсутствуют
-		    echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewAllUsersByContainName\"${COLOR_RED} ${COLOR_NC}"
-		    return 1
-		#Параметры запуска отсутствуют (конец)
-		fi
-		#Конец проверки существования параметров запуска скрипта
-}
+
 
 #Вывод списка всех пользователей mysql
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
@@ -657,7 +594,7 @@ dbSetFullAccessToBase() {
 		    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
 		    	then
 		    	#база $1 - существует
-				mysql -e "GRANT ALL PRIVILEGES ON $1.* TO $2@$3 REQUIRE NONE WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0; FLUSH PRIVILEGES;"
+				mysql -e "GRANT ALL PRIVILEGES ON \`$1\`.* TO \`$2\`@\`$3\`; FLUSH PRIVILEGES;"
 				return 0
 		    	#база $1 - существует (конец)
 		    	else
@@ -687,66 +624,8 @@ dbSetFullAccessToBase() {
 }
 
 
-#Добавление записи в базу о добавлении пользователя
-###input
-#$1-dbname ;
-#$2-characterSetId_db ;
-#$3-collateId_db ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-dbRecordAdd_addBase() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
 
-    datetime=`date +%Y-%m-%d\ %H:%M:%S`
-    dbAddRecordToDb $WEBSERVER_DB db name_db $1 insert
-    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 characterSetId_db $2 update
-    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 collateId_db $3 update
-    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 collateId_db $3 update
-    dbUpdateRecordToDb $WEBSERVER_DB db name_db $1 created_db "$datetime" update
 
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addBase\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-#Добавление записи в базу о добавлении пользователя mysql
-###input
-#$1-user ;
-#$2-homedir ;
-#$3-created_by ;
-#$4-userType (1-system, 2-ftp)
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-dbRecordAdd_addDbUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-
-		#mysql-добавление информации о пользователе
-    datetime=`date +%Y-%m-%d\ %H:%M:%S`
-    dbAddRecordToDb $WEBSERVER_DB db_users username $1 insert
-    dbUpdateRecordToDb $WEBSERVER_DB db_users username $1 created_by $3 update
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addDbUser\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 #Добавление пользователя mysql
@@ -814,7 +693,7 @@ dbUseradd() {
                     then
                     #Пользователь mysql "$1" существует
                         echo -e "${COLOR_GREEN}\nПользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
-                        dbAddRecordToDb lamer_webserver db_users username $1 insert
+                        #dbAddRecordToDb lamer_webserver db_users username $1 insert
                         infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
 
                         fileAddLineToFile $infoFile "---
@@ -835,7 +714,6 @@ dbUseradd() {
                         	#Пользователь $1 существует
                         	    dbSetMyCnfFile $1 $1 $2
 
-                        	    dbSetUpdateInfoAccessToBase $WEBSERVER_DB $1 $3
                         	#Пользователь $1 существует (конец)
                         	fi
                         #Конец проверки существования системного пользователя $1
@@ -947,7 +825,6 @@ dbCreateBase() {
 	    	     		return 4;;
 	    	     esac
 
-	    	     dbRecordAdd_addBase $1 $2 $3
 	    	#база $1 - не существует (конец)
 
 
@@ -1030,302 +907,14 @@ dbDropBase() {
 }
 
 
-#обновление записи в таблице
-###input:
-#$1-dbname ;
-#$2-table;
-#$3 - столбец для поиска;
-#$4 - текст для поиска;
-#$5 - обновляемый столбец,
-#$6 - вставляемый текст,
-#$7-подтверждение "update"
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры запуска
-#2 - не существует база данных $2
-#3 - таблица не существует
-#4 - столбец не существует для поиска
-#5 - запись отсутствует
-#6  - отсутствует подтверждение
-#7 - отсутствует столбец для вставки текста
-dbUpdateRecordToDb() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-				#Проверка существования таблицы в базе денных $1
-				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-					then
-					#таблица $2 существует
-                        #Проверка существования столбца $3 в таблице $2
-                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                        	then
-                        	#столбец $2 существует
-                                #Проверка существования записи в базе денных
-                                if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM $1.$2 WHERE $3='$4'" 2>&1`" ]];
-                                	then
-                                	#запись существует
-                                		#Проверка существования столбца $5 в таблице $2
-                                		if [[ ! -z "`mysql -qfsBe "SELECT '$5' FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                                			then
-                                			#столбец $5 существует
-                                				 case "$7" in
-                                                        update)
-                                                            mysql -e "UPDATE $1.$2 SET $5='$6' where $3='$4';"
-                                                            return 0
-                                                            ;;
-                                                        *)
-                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbUpdateRecordToDb\"${COLOR_NC}"
-                                                            return 6
-                                                            ;;
-                                                    esac
-                                			#столбец $5 существует (конец)
-                                			else
-                                			#столбец $5 не существует
-                                			    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$5\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbUpdateRecordToDb\" ${COLOR_NC}"
-                                			    return 7
-                                			#столбец $5 не существует (конец)
-                                		fi
-                                		#Проверка существования столбца $5 в таблице $2 (конец)
-
-                                	#запись существует (конец)
-                                	else
-                                	#запись не существует
-                                        return 5
-                                	#запись не существует
-
-                                fi
-                                #Проверка существования записи в базе денных (конец)
-                        	#столбец $2 существует (конец)
-                        	else
-                        	#столбец $2 не существует
-
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-                        	    return 4
-                        	#столбец $2 не существует (конец)
-                        fi
-                        #Проверка существования столбца $3 в таблице $2 (конец)
-					#таблица $2 существует (конец)
-					else
-					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-					     return 3
-					#таблица $2 не существует (конец)
-				fi
-				#Проверка существования таблицы в базе денных $1 (конец)
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
 
 
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbDeleteFromDbUsers\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
-#Добавление записи в базу о добавлении пользователя
-###input
-#$1-user ;
-#$2-homedir ;
-#$3-created_by ;
-#$4-userType (1-system, 2-ftp)
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-dbRecordAdd_addUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]  && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-
-		#mysql-добавление информации о пользователе
-    datetime=`date +%Y-%m-%d\ %H:%M:%S`
-    dbAddRecordToDb $WEBSERVER_DB users username $1 insert
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 homedir $2 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created "$datetime" update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 created_by "$3" update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isAdminAccess 0 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 isFtpAccess 1 update
-    dbUpdateRecordToDb $WEBSERVER_DB users username $1 userType $4 update
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbRecordAdd_addUser\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
-#добавление записи в таблицу
-###!ПОЛНОСТЬЮ ГОТОВО. 02.04.2019
-###input:
-#$1-dbname ;
-#$2-table;
-#$3 - столбец для вставки;
-#$4 - текст вставки;
-#$5-подтверждение "insert"
-###return
-#0 - выполнено успешно
-#1 - отсутствуют параметры запуска
-#2 - не существует база данных $2
-#3 - таблица не существует
-#4 - столбец не существует для поиска
-#5  - отсутствует подтверждение
-dbAddRecordToDb() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования базы данных "$1"
-		if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-			then
-			#база $1 - существует
-				#Проверка существования таблицы в базе денных $1
-				if [[ ! -z "`mysql -qfsBe "SHOW TABLES FROM $1 LIKE '$2'" 2>&1`" ]];
-					then
-					#таблица $2 существует
-                        #Проверка существования столбца $3 в таблице $2
-                        if [[ ! -z "`mysql -qfsBe "SELECT $3 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$2'" 2>&1`" ]];
-                        	then
-
-                                				 case "$5" in
-                                                        insert)
-                                                            mysql -e "INSERT INTO $1.$2 ($3) VALUES ('$4');"
-                                                            return 0
-                                                            ;;
-                                                        *)
-                                                            echo -e "${COLOR_RED}Ошибка передачи подтверждения в функцию ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_NC}"
-                                                            return 5
-                                                            ;;
-                                                    esac
 
 
-                        	#столбец $2 существует (конец)
-                        	else
-                        	#столбец $2 не существует
-
-                        	    echo -e "${COLOR_RED}Столбец ${COLOR_GREEN}\"$2\"${COLOR_RED} в таблице ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-                        	    return 4
-                        	#столбец $2 не существует (конец)
-                        fi
-                        #Проверка существования столбца $3 в таблице $2 (конец)
-					#таблица $2 существует (конец)
-					else
-					#таблица $2 не существует
-					     echo -e "${COLOR_RED}Таблица ${COLOR_GREEN}\"$2\"${COLOR_RED} в базе данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует.Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-					     return 3
-					#таблица $2 не существует (конец)
-				fi
-				#Проверка существования таблицы в базе денных $1 (конец)
-			#база $1 - существует (конец)
-			else
-			#база $1 - не существует
-			     echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbAddRecordToDb\" ${COLOR_NC}"
-			     return 2
-			#база $1 - не существует (конец)
-		fi
-		#конец проверки существования базы данных $1
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbAddRecordToDb\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
-#Отобразить список всех баз данных, владельцем которой является пользователь mysql $1_% (по имени)
-###input
-#$1-user;
-#$2-mode(full_info/error_only/success_only)
-#return
-#0 - базы данных найдены,
-#1 - не переданы параметры,
-#2 - базы данных не найдены
-#3 - ошибка параметра mode(full_info/error_only/success_only)
-dbViewBasesByUsername() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		#проверка на пустой результат
-				if [[ $(mysql -e "SHOW DATABASES LIKE '$1\_%';") ]]; then
-					#непустой результат
-					case "$2" in
-					        full_info)
-					            echo -e "${COLOR_YELLOW}Перечень баз данных MYSQL пользователя ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
-                                mysql -e "SHOW DATABASES LIKE '$1\_%';"
-                                return 0
-					            ;;
-					        error_only)
-					            return 0
-					            ;;
-					    	success_only)
-					    		echo -e "${COLOR_YELLOW}Перечень баз данных MYSQL пользователя ${COLOR_GREEN}\"$1\" ${COLOR_NC}"
-                                mysql -e "SHOW DATABASES LIKE '$1\_%';"
-                                return 0
-                                ;;
-					    	*)
-					    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
-					    	    return 3
-					    	    ;;
-					    esac
-
-					#непустой результат (конец)
-				else
-				    #пустой результат
-					    case "$2" in
-					        full_info)
-					            echo -e "${COLOR_YELLOW}\nБазы данных пользователя ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствуют${COLOR_NC}"
-					            return 2
-					            ;;
-					        error_only)
-					            echo -e "${COLOR_YELLOW}\nБазы данных пользователя ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствуют${COLOR_NC}"
-					            return 2
-					            ;;
-					    	success_only)
-					    		return 2
-					    		;;
-					    	*)
-					    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
-					    	    return 3
-					    	    ;;
-					    esac
-
-					#пустой результат (конец)
-				fi
-		#Конец проверки на пустой результат
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbViewBasesByUsername\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 #Смена пароля пользователю mysql
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019

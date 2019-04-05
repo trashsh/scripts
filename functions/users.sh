@@ -1,18 +1,16 @@
 #!/bin/bash
 declare -x -f existGroup
 declare -x -f viewGroupAdminAccessAll
-declare -x -f viewGroupAdminAccessByName
+
 declare -x -f viewGroupSudoAccessAll
-declare -x -f viewGroupSudoAccessByName
 declare -x -f viewUserInGroupUsersByPartName
-declare -x -f viewUserInGroupByName
-declare -x -f viewUsersInGroup
 declare -x -f userAddToGroup
 declare -x -f userDeleteFromGroup
 declare -x -f userExistInGroup
 declare -x -f userChangePassword
-declare -x -f viewGroupUsersAccessAll
-declare -x -f userAddToGroupSudo
+
+
+
 declare -x -f userAddSystem
 declare -x -f userDelete_system
 
@@ -70,24 +68,7 @@ viewGroupAdminAccessAll(){
 }
 
 
-#Вывод всех пользователей группы admin-access с указанием части имени пользователя
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1 - имя пользователя
-###return
-#1 - не переданы параметры
-viewGroupAdminAccessByName(){
-	if [ -n "$1" ]
-	then
-		echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"admin-access\"${COLOR_YELLOW}, содержащих в имени ${COLOR_GREEN}\"$1\":${COLOR_NC}"
-		more /etc/group | grep -E "admin.*$1" | highlight green "$1" | highlight magenta "admin-access"
-		#Проверка на успешность выполнения предыдущей команды
-		#Конец проверки на успешность выполнения предыдущей команды
-	else
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewGroupAdminAccessByName\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	fi
-}
+
 
 
 
@@ -99,22 +80,7 @@ viewGroupSudoAccessAll(){
 }
 
 
-#Вывод пользователей группы sudo с указанием части имени пользователя
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1 - имя пользователя
-###return
-#1 - не переданы параметры в функцию
-viewGroupSudoAccessByName(){
-	if [ -n "$1" ]
-	then
-		echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"sudo\"${COLOR_YELLOW}, содержащих в названии ${COLOR_GREEN}\"$1\"${COLOR_NC}:${COLOR_NC}"
-		more /etc/group | grep sudo: | highlight green "$1" | highlight magenta "sudo"
-	else
-		echo -e "${COLOR_RED}Не передан параметр в функцию ${COLOR_GREEN}\"viewGroupSudoAccessByName\"${COLOR_RED} в файле $0. Выполнение скрипта аварийно завершено ${COLOR_NC}"
-		return 1
-	fi
-}
+
 
 
 #Вывод списка пользователей, входящих в группу users по части имени пользователя $1
@@ -158,76 +124,9 @@ viewUserInGroupUsersByPartName() {
 }
 
 
-#Вывод групп, в которых состоит указанный пользователь
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1 - имя пользователя
-#return
-#0 - выполнено успешно,
-#1 - не передан параметр
-viewUserInGroupByName(){
-	if [ -n "$1" ]
-		then
-			cat /etc/group | grep -P $1 | highlight green $1 | highlight magenta "ssh-access" | highlight magenta "ftp-access" | highlight magenta "sudo" | highlight magenta "admin-access"
-			userExistInGroup $1 users
-		        #Проверка на успешность выполнения предыдущей команды
-		        if [ $? -eq 0 ]
-		        	then
-		        		#предыдущая команда завершилась успешно
-		        		echo -e "users:x:100:$1" | highlight green "$1" | highlight magenta "users"
-		        		return 0
-		        		#предыдущая команда завершилась успешно (конец)
-		        fi
-		        #Конец проверки на успешность выполнения предыдущей команды
-			return 0
-		else
-			echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUserInGroupByName\"${COLOR_RED} ${COLOR_NC}"
-			return 1
-		fi
-}
 
 
-#Вывод списка пользователей, входящих в группу $1
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input:
-#$1-группа ;
-#return
-#0 - выполнено успешно,
-#1- отсутствуют параметры,
-#2 - группа не существует
-viewUsersInGroup() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системной группы пользователей "$1"
-		if grep -q $1 /etc/group
-		    then
-		        #Группа "$1" существует
-		         echo -e "\n${COLOR_YELLOW}Список пользователей группы ${COLOR_GREEN}\"$1\":${COLOR_NC}"
-	             more /etc/group | grep "$1:" | highlight magenta "$1"
-	             if [ "$1" == "users" ]
-	                then viewGroupUsersAccessAll
-	             fi
-	             return 0
-		        #Группа "$1" существует (конец)
-		    else
-		        #Группа "$1" не существует
-		        echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует${COLOR_NC}"
-				return 2
-				#Группа "$1" не существует (конец)
-		    fi
-		#Конец проверки существования системного пользователя $1
 
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewUsersInGroup\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 #Добавить пользователя в группу
@@ -606,92 +505,9 @@ userChangePassword() {
 }
 
 
-#Вывод всех пользователей группы users
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input:
-#$1 - может быть выведен дополнительно текст, предшествующий выводу списка пользователей
-###return:
-#0 - успешно,
-#1 - неуспешно, параметр $1 передан,
-#2 - неуспешно, параметр $1 не передан
-viewGroupUsersAccessAll(){
-    #Проверка на существование параметров запуска скрипта
-    if [ -n "$1" ]
-    then
-    #Параметры запуска существуют
-        echo -e "${COLOR_YELLOW}$1${COLOR_NC}"
-        cat /etc/passwd | grep ":100::" | highlight magenta ":100::"
-        #Проверка на успешность выполнения предыдущей команды
-        if [ $? -eq 0 ]
-        	then
-        		#предыдущая команда завершилась успешно
-        		return  0
-        		#предыдущая команда завершилась успешно (конец)
-        	else
-        		#предыдущая команда завершилась с ошибкой
-        		return 1
-        		#предыдущая команда завершилась с ошибкой (конец)
-        fi
-        #Конец проверки на успешность выполнения предыдущей команды
-    #Параметры запуска существуют (конец)
-    else
-    #Параметры запуска отсутствуют
-        cat /etc/passwd | grep ":100::" | highlight magenta ":100::"
-        #Проверка на успешность выполнения предыдущей команды
-        if [ $? -eq 0 ]
-        	then
-        		#предыдущая команда завершилась успешно
-        		return 0
-        		#предыдущая команда завершилась успешно (конец)
-        	else
-        		#предыдущая команда завершилась с ошибкой
-        		return 2
-        		#предыдущая команда завершилась с ошибкой (конец)
-        fi
-        #Конец проверки на успешность выполнения предыдущей команды
-    #Параметры запуска отсутствуют (конец)
-    fi
-    #Конец проверки существования параметров запуска скрипта
-}
 
 
-#Добавление пользователя $1 в группу sudo
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1-username ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-userAddToGroupSudo() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				usermod -a -G sudo $1
-				dbUpdateRecordToDb $WEBSERVER_DB users username $1 isSudo 1 update
-				return 0
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddToGroupSudo\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
+
 
 #Выполенние операций по созданию системного пользователя
 ###input:
@@ -766,7 +582,7 @@ userAddSystem()
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
 
-                                        dbRecordAdd_addUser $1 $2 $6 1
+                                        #dbRecordAdd_addUser $1 $2 $6 1
 
 
                                                     touchFileWithModAndOwn $2/.bashrc $1 $4 666
@@ -843,7 +659,6 @@ userDelete_system() {
 			then
 			#Пользователь $1 существует
 				sudo userdel -r $1
-				dbDeleteRecordFromDb lamer_webserver users username $1 delete
 				#Проверка на успешность выполнения предыдущей команды
 				if [ $? -eq 0 ]
 					then
@@ -868,6 +683,130 @@ userDelete_system() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_system\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+declare -x -f FtpUserAdd
+#Добавление ftp-пользователя
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode: password type - autogenerate/querry/manual;
+#$4-created by
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь ftp-уже существует
+#3 - Ошибка передачи параметра mode - manual|querry|autogenerate
+#4 - пользователь created by не существует
+FtpUserAdd() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1_$2"
+			grep "^$1_$2:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1_$2\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
+				return 2
+			#Пользователь $1_$2 существует (конец)
+			else
+			#Пользователь $1_$2 не существует
+			    #Проверка существования системного пользователя "$4"
+			    	grep "^$4:" /etc/passwd >/dev/null
+			    	if  [ $? -eq 0 ]
+			    	then
+			    	#Пользователь $4 существует
+                        case "$3" in
+                            "manual"|"querry"|"autogenerate")
+                                #Проверка существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
+                                if ! [ -d "$HOMEPATHWEBUSERS"/"$1"/"$2" ] ; then
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует
+                                    sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует (конец)
+                                fi
+                                #Конец проверки существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
+
+                                sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
+                                sudo adduser $1_$2 www-data
+                                infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                                fileAddLineToFile $infoFile "FTP-Пользователь:"
+
+                                #смена пароля на пользователя
+                                userChangePassword $1_$2 $3
+                                fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
+                                fileAddLineToFile $infoFile "Port: $FTPPORT"
+                                fileAddLineToFile $infoFile "------------------------"
+                                return 0
+                                ;;
+                            *)
+                                echo -e "${LOR_RED}Ошибка передачи параметра ${LOR_GREEN}\"mode - manual|querry|autogenerate\"${LOR_RED} в функцию ${OLOR_GREEN}\"FtpUserAdd\"${OLOR_NC}";
+                                return 3
+                                ;;
+                        esac
+                            #Пользователь $4 существует (конец)
+                            else
+                            #Пользователь $4 не существует
+                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
+                                return  4
+                            #Пользователь $4 не существует (конец)
+                            fi
+                        #Конец проверки существования системного пользователя $4
+
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+#TODO удалять ftp-пользователей
+declare -x -f userDelete_ftpAll #удаление всех ftp-пользователей для домена: ($1-username ; $2-domain)
+#удаление всех ftp-пользователей для домена
+###input
+#$1-username ;
+#$2-domain ;
+#$3-подтверждение "delete"
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+userDelete_ftpAll() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+	    list=($(members ftp-access))
+
+	    if [ "$3" = "delete" ]
+		then
+
+
+		    #выгрузка баз данных
+            for user in $list; do
+                echo ${user}
+            done
+		else
+		    echo -e "${COLOR_RED}Ошибка передачи подтверждения в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
+		fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi

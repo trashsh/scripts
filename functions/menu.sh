@@ -118,7 +118,7 @@ menuSite() {
             do
                 case "$REPLY" in
                 "1")  menuSiteAdd $1; break;;
-                "2")  input_siteRemove $1;  break;;
+                "2")  input_siteRemove $1; menuSite $1;  break;;
                 "3")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
                 "4")  $MENU/submenu/site_cert.sh $1; break;;
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
@@ -181,8 +181,8 @@ menuUser() {
                     do
                         case "$REPLY" in
                         "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $1"; menuUser $1; break;;
-                        "2")  input_userDelete_system; break;;
-                        "3")  menuUsers_info $1; break;;
+                        "2")  input_userDelete_system; menuUser $1; break;;
+                        "3")  menuUsers_info $1; menuUser $1; break;;
                         "0")  menuMain $1;  break;;
                         "q"|"Q")  exit 0;;
                          *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
@@ -268,7 +268,7 @@ menuMysql() {
         while read
             do
                 case "$REPLY" in
-                "1")   $1; break;;
+                "1") input_dbCreate $1; menuMysql $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
@@ -470,8 +470,8 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") input_SiteAdd_php $1 querry; break;;
-                "2") input_SiteAdd_php $1 lite; break;;
+                "1") input_SiteAdd_php $1 querry; menuSiteAdd $1; break;;
+                "2") input_SiteAdd_php $1 lite; menuSiteAdd $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
 
@@ -584,7 +584,7 @@ menuUsers_info() {
                 "11") input_viewUserFullInfo; menuUsers_info $1; break;;
 
 
-                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "0")  menuUsers_info $1;  break;;
                 "q"|"Q")  exit 0;;
                  *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
                 esac

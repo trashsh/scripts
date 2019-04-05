@@ -3,9 +3,9 @@ declare -x -f input_dbChangeUserPassword
 declare -x -f input_dbUserDeleteBase
 declare -x -f input_dbUserDelete_querry
 declare -x -f input_dbUserChangeAccess
+
+
 declare -x -f input_dbUseradd
-
-
 #Запрос имени пользователя для добавления пользователя mysql (основного пользователя)
 ###input
 #$1 - системный пользователь, запускающий функцию
@@ -100,21 +100,21 @@ input_dbUseradd() {
                                     esac
                                 done
 
-
-                                echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
-                                    while read
-                                    do
-                                        case "$REPLY" in
-                                            localhost)
-                                                host=localhost;
-                                                break;;
-                                            %)
-                                                host="%";
-                                                break;;
-                                            *)
-                                                 echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
-                                        esac
-                                done
+                                host=localhost;
+#                                echo -n -e "${COLOR_YELLOW}Выберите вид доступа пользователя к базам данных mysql ${COLOR_GREEN}\"localhost/%\"${COLOR_NC}: "
+#                                    while read
+#                                    do
+#                                        case "$REPLY" in
+#                                            localhost)
+#                                                host=localhost;
+#                                                break;;
+#                                            %)
+#                                                host="%";
+#                                                break;;
+#                                            *)
+#                                                 echo -e -n "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"host_type\"${COLOR_RED} в функцию  ${COLOR_GREEN}\"input_dbUseradd\"${COLOR_YELLOW}\nПовторите ввод вида доступа пользователя ${COLOR_GREEN}\"localhost/%\":${COLOR_RED}  ${COLOR_NC}";;
+#                                        esac
+#                                done
 
                                 dbUseradd $username $password $host pass user $1
 
@@ -404,7 +404,7 @@ input_dbChangeUserPassword() {
 #2 - пользователь не существует
 #3 - баз данных пользователя не существует
 input_dbUserDeleteBase() {
-	dbViewAllUsers
+	dbViewAllUsersByContainName $1
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ]
 	then
@@ -476,3 +476,70 @@ input_dbUserDeleteBase() {
 	fi
 	#Конец проверки на успешность выполнения предыдущей команды
 }
+
+
+declare -x -f input_dbCreate #Запрос названия базы данных для добавления: ($1-username ; $2-dbname без username)
+#Запрос названия базы данных для добавления
+###input
+#$1-username ;
+#$2-dbname без username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - не существует пользователь mysql
+#3 - база данных уже существует
+input_dbCreate() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка на существование пользователя mysql "$1"
+		if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+		then
+
+		dbViewBasesByUsername $1 full_info
+
+		#Пользователь mysql "$1" существует
+		    echo -n -e "${COLOR_BLUE}Введите название добавлемой базы данных без префикса ${COLOR_YELLOW}\"$1_\"${COLOR_BLUE}: ${COLOR_NC}"
+		    read dbame
+		    fullDbName=$1\_$dbame
+
+		    #Проверка существования базы данных "$fullDbName"
+		    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$fullDbName'" 2>&1`" ]];
+		    	then
+		    	#база $fullDbName - существует
+		    		echo -e "${COLOR_RED}База данных ${COLOR_GREEN}\"$fullDbName\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_dbCreate\" ${COLOR_NC}"
+                    dbViewBasesByTextContain $fullDbName
+                    return 3
+		    	#база $fullDbName - существует (конец)
+		    	else
+		    	#база $fullDbName - не существует
+                    dbCreateBase $fullDbName utf8 utf8_general_ci full_info
+                #    mysql -e "GRANT ALL PRIVILEGES ON \`$1\_$dbame\`.* TO '$1'@'%' WITH GRANT OPTION;";
+                    dbSetFullAccessToBase $fullDbName $1 localhost
+		    	#база $fullDbName - не существует (конец)
+		    fi
+		    #конец проверки существования базы данных $fullDbName
+
+
+
+		#Пользователь mysql "$1" существует (конец)
+		else
+		#Пользователь mysql "$1" не существует
+		    echo -e "${COLOR_RED}Пользователь mysql ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"\" ${COLOR_NC}"
+		    return 2
+		#Пользователь mysql "$1" не существует (конец)
+		fi
+		#Конец проверки на существование пользователя mysql "$1"
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_dbCreate\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
