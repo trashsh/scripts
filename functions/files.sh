@@ -1,24 +1,5 @@
 #!/bin/bash
-
-
-
-
-declare -x -f chOwnFolderAndFiles
-declare -x -f chModAndOwnFolderAndFiles
-declare -x -f folderExistWithInfo
-
 declare -x -f chModAndOwnSiteFileAndFolder
-
-
-
-
-
-
-
-
-
-
-
 #Смена прав,владельца для файлов и каталога сайта
 ###input
 #$1-sitepath ;
@@ -106,7 +87,7 @@ chModAndOwnSiteFileAndFolder() {
 }
 
 
-
+declare -x -f chModAndOwnFolderAndFiles
 #Смена разрешений на каталог и файлы, а также владельца
 #$1-путь к каталогу; $2-права на каталог ; $3-Права на файлы ; $4-Владелец-user ; $5-Владелец-группа ;
 #return 0 - выполнено успешно, 1 - отсутствуют параметры запуска,
@@ -168,6 +149,7 @@ chModAndOwnFolderAndFiles() {
  #Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f chOwnFolderAndFiles
 #Смена владельца на файлы в папке и папку
 ###input
 #$1-path ;
@@ -232,9 +214,3 @@ chOwnFolderAndFiles() {
  fi
  #Конец проверки существования параметров запуска скрипта
 }
-
-
-
-
-
-

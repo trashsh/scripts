@@ -31,6 +31,8 @@ source $SCRIPTS/functions/sites_input.sh
 source $SCRIPTS/functions/ssh.sh
 source $SCRIPTS/functions/ssh_full.sh
 
+source $SCRIPTS/functions/ssh_input.sh
+
 #source $SCRIPTS/functions/ssh.sh
 source $SCRIPTS/functions/ufw.sh
 
@@ -43,6 +45,5 @@ source $SCRIPTS/functions/users_input_full.sh
 source $SCRIPTS/functions/webserver.sh
 source $SCRIPTS/functions/webserver_full.sh
 
-source $SCRIPTS/functions/test.sh
 
 source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh

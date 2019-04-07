@@ -172,6 +172,7 @@ input_userAddSystem() {
 }
 
 
+
 declare -x -f input_userDelete_system
 #Запрос имени пользователя на удаление системного пользователя
 ###!ПОЛНОСТЬЮ ГОТОВО. 18.03.2019
@@ -233,7 +234,6 @@ input_userDelete_system() {
     #Конец проверки существования системного пользователя $username
 
 }
-
 
 
 declare -x -f input_viewUserFullInfo

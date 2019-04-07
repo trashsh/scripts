@@ -38,6 +38,7 @@ dbViewAllUsersByContainName() {
 }
 
 
+
 declare -x -f dbViewBasesByUsername
 #Отобразить список всех баз данных, владельцем которой является пользователь mysql $1_% (по имени)
 ###input

@@ -1,31 +1,6 @@
 #!/bin/bash
+
 declare -x -f menuMain
-
-declare -x -f menuSite
-declare -x -f menuUser
-declare -x -f menuUserMysql
-declare -x -f menuMysql
-declare -x -f menuBackups
-declare -x -f menuGit
-declare -x -f menuServer
-
-declare -x -f menuSiteAdd
-declare -x -f menuSite_cert
-
-declare -x -f menuUsers_info
-
-declare -x -f menuGit_commit
-declare -x -f menuGit_remotePush
-declare -x -f menuGit_remoteView
-
-declare -x -f menuBackups_show
-declare -x -f menuBackups_mysql
-
-declare -x -f menuServer_firewall
-declare -x -f menuServer_quota
-
-
-
 #Вывод главного меню
 #$1-username ;
 #return
@@ -90,6 +65,62 @@ menuMain() {
                 return 0
 }
 
+
+
+declare -x -f menuUser
+#Меню пользователей
+menuUser() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление пользователями===${COLOR_NC}"
+
+                echo '1: Добавить пользователя'
+                echo '2: Удаление пользователя'
+
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $1"; menuUser $1; break;;
+                        "2")  input_userDelete_system; menuUser $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+}
+
+
+declare -x -f menuSite
 #Меню управления сайтами
 ###input
 #$1-username ;
@@ -137,59 +168,8 @@ menuSite() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-#Меню пользователей
-menuUser() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				USERNAME=$1
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		USERNAME=$(whoami)
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
 
- 	            echo ''
-                echo -e "${COLOR_GREEN} ===Управление пользователями===${COLOR_NC}"
-
-                echo '1: Добавить пользователя'
-                echo '2: Удаление пользователя'
-                echo '3: Информация о пользователях'
-
-                echo '0: Назад'
-                echo 'q: Выход'
-                echo ''
-                echo -n 'Выберите пункт меню:'
-
-                while read
-                    do
-                        case "$REPLY" in
-                        "1")  sudo bash -c "source $SCRIPTS/include/inc.sh; input_userAddSystem $1"; menuUser $1; break;;
-                        "2")  input_userDelete_system; menuUser $1; break;;
-                        "3")  menuUsers_info $1; menuUser $1; break;;
-                        "0")  menuMain $1;  break;;
-                        "q"|"Q")  exit 0;;
-                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
-                        esac
-                    done
-}
-
+declare -x -f menuUserMysql
 #Меню управление пользователями mysql
 ###input
 #$1-username ;
@@ -244,6 +224,7 @@ menuUserMysql() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f menuMysql
 #Меню управление базами данных mysql
 ###input
 #$1-username ;
@@ -286,6 +267,7 @@ menuMysql() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f menuBackups
 #Меню управления бэкапами
 ###input
 #$1-username ;
@@ -335,6 +317,7 @@ menuBackups() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f menuGit
 #Вывод меню git
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 #$1-username ;
@@ -393,6 +376,7 @@ menuGit() {
                     return 0
 }
 
+declare -x -f menuServer
 #Меню управления сервером
 ###input
 #$1-username ;
@@ -442,7 +426,7 @@ menuServer() {
 
 
 
-
+declare -x -f menuSiteAdd
 #Меню добавление сайтов
 ###input
 #$1-username ;
@@ -491,6 +475,7 @@ menuSiteAdd() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f menuSite_cert
 #Меню управления сертификатами сайтов
 ###input
 #$1-username ;
@@ -536,7 +521,7 @@ menuSite_cert() {
 }
 
 
-
+declare -x -f menuUsers_info
 #Меню просмотра информации о пользователях
 ###input
 #$1-username ;
@@ -601,12 +586,7 @@ menuUsers_info() {
 }
 
 
-
-
-
-
-
-
+declare -x -f menuBackups_mysql
 #Меню создания бэкапов баз данных mysql
 ###input
 #$1-username ;
@@ -659,7 +639,7 @@ menuBackups_mysql() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f menuBackups_show
 #Меню просмотра бэкапов
 ###input
 #$1-username ;
@@ -713,7 +693,7 @@ menuBackups_show() {
 
 
 
-
+declare -x -f menuServer_firewall
 #Меню управление firewall
 ###input
 #$1-username ;
@@ -758,6 +738,8 @@ menuServer_firewall() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+declare -x -f menuServer_quota
 #Меню управления квотами
 ###input
 #$1-username ;

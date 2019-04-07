@@ -1,4 +1,64 @@
-#!/bin/bash
+
+declare -x -f backupImportantFile
+#Создание бэкапа в папку BACKUPFOLDER_IMPORTANT
+###!Полностью готово. Не трогать больше
+###input:
+#$1-user ;
+#$2-destination_folder (название катала в $BACKUPFOLDER_IMPORTANT);
+#$3-архивируемый файл ;
+###return:
+#0 - выполнено успешно
+#1 - отпутствуют параметры
+#2 - пользователь $2 - не существует
+#3 - файл $3 не найден
+#4 - в процессе архивации возникла ошибка
+backupImportantFile() {
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+	    #Проверка существования системного пользователя "$1"
+	    	grep "^$1:" /etc/passwd >/dev/null
+	    	if  [ $? -eq 0 ]
+	    	then
+	    	#Пользователь $1 существует
+                #Проверка существования файла "$3"
+                if [ -f $3 ] ; then
+                    #Файл "$3" существует
+                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1"/"$date"
+                    if ! [ -d "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1"/"$date" ] ; then
+                        sudo mkdir -p $BACKUPFOLDER_IMPORTANT/$2/$1/$date
+                    fi
+                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1" (конец)
+                        tarFile $3 $BACKUPFOLDER_IMPORTANT/$2/$1/$date/$2.$1__$datetime.tar.gz str silent rewrite $1 users 644 && return 0 || return 4
+                    #Файл "$3" существует (конец)
+                else
+                    #Файл "$3" не существует
+                    echo -e "${COLOR_RED} Файл ${COLOR_YELLOW}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_YELLOW}\"backupImportantFile\"${COLOR_NC}"
+                    return 3
+                    #Файл "$3" не существует (конец)
+                fi
+                #Конец проверки существования файла "$3"
+	    	#Пользователь $1 существует (конец)
+	    	else
+	    	#Пользователь $1 не существует
+	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupImportantFile\"${COLOR_NC}"
+	    		return 2
+	    	#Пользователь $1 не существует (конец)
+	    	fi
+	    #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupImportantFile\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 
 
 declare -x -f dbBackupBase
@@ -170,67 +230,6 @@ dbBackupBase() {
     #Параметры запуска отсутствуют (конец)
     fi
     #Конец проверки существования параметров запуска скрипта
-}
-
-
-declare -x -f backupImportantFile
-#Создание бэкапа в папку BACKUPFOLDER_IMPORTANT
-###!Полностью готово. Не трогать больше
-###input:
-#$1-user ;
-#$2-destination_folder (название катала в $BACKUPFOLDER_IMPORTANT);
-#$3-архивируемый файл ;
-###return:
-#0 - выполнено успешно
-#1 - отпутствуют параметры
-#2 - пользователь $2 - не существует
-#3 - файл $3 не найден
-#4 - в процессе архивации возникла ошибка
-backupImportantFile() {
-	date=`date +%Y.%m.%d`
-    datetime=`date +%Y.%m.%d-%H.%M.%S`
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-	    #Проверка существования системного пользователя "$1"
-	    	grep "^$1:" /etc/passwd >/dev/null
-	    	if  [ $? -eq 0 ]
-	    	then
-	    	#Пользователь $1 существует
-                #Проверка существования файла "$3"
-                if [ -f $3 ] ; then
-                    #Файл "$3" существует
-                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1"/"$date"
-                    if ! [ -d "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1"/"$date" ] ; then
-                        sudo mkdir -p $BACKUPFOLDER_IMPORTANT/$2/$1/$date
-                    fi
-                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$1" (конец)
-                        tarFile $3 $BACKUPFOLDER_IMPORTANT/$2/$1/$date/$2.$1__$datetime.tar.gz str silent rewrite $1 users 644 && return 0 || return 4
-                    #Файл "$3" существует (конец)
-                else
-                    #Файл "$3" не существует
-                    echo -e "${COLOR_RED} Файл ${COLOR_YELLOW}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_YELLOW}\"backupImportantFile\"${COLOR_NC}"
-                    return 3
-                    #Файл "$3" не существует (конец)
-                fi
-                #Конец проверки существования файла "$3"
-	    	#Пользователь $1 существует (конец)
-	    	else
-	    	#Пользователь $1 не существует
-	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupImportantFile\"${COLOR_NC}"
-	    		return 2
-	    	#Пользователь $1 не существует (конец)
-	    	fi
-	    #Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupImportantFile\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
 }
 
 

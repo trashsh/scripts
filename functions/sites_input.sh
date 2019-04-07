@@ -1,9 +1,5 @@
 #!/bin/bash
-declare -x -f input_SiteAdd_php
-declare -x -f input_siteExist
 declare -x -f input_siteRemove
-
-
 #удаление сайта
 ###input
 #$1-username ;
@@ -50,7 +46,7 @@ input_siteRemove() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f input_SiteAdd_php
 #Форма ввода данных для добавления сайта php
 ###input
 #$1-username ;
@@ -198,7 +194,7 @@ input_SiteAdd_php() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f input_siteExist
 #Проверка наличия сайта
 ###input
 #$1-username;

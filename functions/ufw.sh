@@ -1,7 +1,5 @@
 #!/bin/bash
 declare -x -f ufwAddPort
-declare -x -f ufwOpenPorts
-
 #Добавление порта с исключением в firewall ufw
 #TODO Добавить INPUT в меню
 ###input
@@ -28,6 +26,7 @@ ufwAddPort() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f ufwOpenPorts
 #Вывод открытых портов ufw
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 #TODO Добавить INPUT в меню

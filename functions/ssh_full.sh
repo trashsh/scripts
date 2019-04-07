@@ -1,5 +1,62 @@
 #!/bin/bash
 
+declare -x -f sshKeyImport
+#Импорт ssh-ключа
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+sshKeyImport() {
+    #TODO сделать проверки на наличие файла, цикл и т.п., бэкап файла
+
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+			    infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+
+                echo -e "\n${COLOR_YELLOW} Список возможных ключей для импорта: ${COLOR_NC}"
+			    ls -l $SETTINGS/ssh/keys/
+			    echo -n -e "${COLOR_BLUE} Укажите название открытого ключа, который необходимо применить к текущему пользователю: ${COLOR_NC}"
+			    read -p ":" key
+				mkdir -p $HOMEPATHWEBUSERS/$1/.ssh
+				cat $SETTINGS/ssh/keys/$key >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				echo "" >> $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				DATE=`date '+%Y-%m-%d__%H-%M'`
+				mkdir -p $BACKUPFOLDER_IMPORTANT/ssh/$1
+				chmod 700 $HOMEPATHWEBUSERS/$1/.ssh
+				chmod 600 $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				chown $1:users $HOMEPATHWEBUSERS/$1/.ssh
+				chown $1:users $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
+				usermod -G ssh-access -a $1
+				echo -e "\n${COLOR_YELLOW} Импорт ключа $COLOR_LIGHT_PURPLE\"$key\"${COLOR_YELLOW} пользователю $COLOR_LIGHT_PURPLE\"$1\"${COLOR_YELLOW} выполнен${COLOR_NC}"
+				fileAddLineToFile $infoFile "Использован открытый ключ - $SETTINGS/ssh/keys/$key"
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
 declare -x -f sshKeyAddToUser
 #Добавление существующего ключа $2 пользователю $1
 ###!Полностью готово. Не трогать больше
@@ -109,4 +166,3 @@ sshKeyAddToUser()
     fi
     #Конец проверки существования параметров запуска скрипта
 }
-

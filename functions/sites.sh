@@ -1,19 +1,57 @@
 #!/bin/bash
-declare -x -f viewSiteConfigsByName
-declare -x -f viewSiteFoldersByName
-declare -x -f viewFtpAccess
+
 declare -x -f viewAccessDetail
-declare -x -f viewSshAccess
-declare -x -f siteStatus
-declare -x -f siteRemoveLogs
-declare -x -f siteRemove
-declare -x -f siteRemoveWebserverConfig
-declare -x -f siteChangeWebserverConfigs
-declare -x -f siteAddTestIndexFile
-declare -x -f siteExist
+#Отобразить реквизиты доступа
+###input
+#$1-user ;
+#$2-mode (full_info);
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь не существует
+#3 - ошибка передачи mode
+viewAccessDetail() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		file=$HOMEPATHWEBUSERS/$1/.myconfig/info.txt
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				case "$2" in
+				    full_info)
+				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}"
+				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User | highlight green "Ключевой файл" | highlight green "Использован открытый ключ"
+				        ;;
+					*)
+					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
+					    return 3
+					    ;;
+				esac
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
 declare -x -f siteAdd_php
-
-
 #Добавление php-сайта
 ###input
 #$1-username-кому добавляется сайт ;
@@ -146,7 +184,7 @@ siteAdd_php() {
 }
 
 
-
+declare -x -f siteExist
 #Проверка существования сайта
 ###input
 #$1-domain
@@ -279,8 +317,7 @@ siteExist() {
 
 }
 
-
-
+declare -x -f siteAddTestIndexFile
 #Добавление тестового индексного файла при добавлении домена
 ###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
@@ -375,7 +412,7 @@ siteAddTestIndexFile() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f siteChangeWebserverConfigs
 #Замена переменных в конфигах веб-серверов
 ###input
 #$1-webserver(apache/nginx)
@@ -453,8 +490,7 @@ siteChangeWebserverConfigs() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
-
+declare -x -f siteRemoveWebserverConfig
 #Удаление конфигов веб-серверов
 ###input
 #$1-user ;
@@ -492,8 +528,7 @@ siteRemoveWebserverConfig() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
-
+declare -x -f siteRemove
 #Удаление сайта
 ###input
 #$1-domain ;
@@ -591,7 +626,7 @@ siteRemove() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f siteRemoveLogs
 #Удаление логов с сайта
 ###input
 #$1-user ;
@@ -631,7 +666,7 @@ fi
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f siteStatus
 #включение-выключение сайта
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 ###input
@@ -716,7 +751,7 @@ siteStatus() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f viewSiteConfigsByName
 #Вывод перечня сайтов указанного пользователя (конфиги веб-сервера)
 ###input
 #$1 - имя пользователя
@@ -751,6 +786,7 @@ viewSiteConfigsByName(){
 	fi
 }
 
+declare -x -f viewSiteFoldersByName
 #Вывод перечня сайтов указанного пользователя
 ###input
 # $1 - имя пользователя
@@ -775,6 +811,7 @@ viewSiteFoldersByName(){
 	fi
 }
 
+declare -x -f viewFtpAccess
 #отобразить реквизиты доступа к серверу FTP
 #Полностью готово. 13.03.2019 г.
 ###input
@@ -801,56 +838,7 @@ viewFtpAccess(){
 	fi
 }
 
-
-#Отобразить реквизиты доступа
-###input
-#$1-user ;
-#$2-mode (full_info);
-
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - ошибка передачи mode
-viewAccessDetail() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		file=$HOMEPATHWEBUSERS/$1/.myconfig/info.txt
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				case "$2" in
-				    full_info)
-				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}"
-				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User | highlight green "Ключевой файл" | highlight green "Использован открытый ключ"
-				        ;;
-					*)
-					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
-					    return 3
-					    ;;
-				esac
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
+declare -x -f viewSshAccess
 #отобразить реквизиты доступа к серверу SSH
 ###input
 #$1 - user

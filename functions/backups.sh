@@ -1,7 +1,5 @@
 #!/bin/bash
-
-
-
+declare -x -f dbBackupBasesOneDomainAndUser
 #Выгрузка всех баз данных, принадлежащих к определенному домену
 ###input
 #$1-domain ;
@@ -130,7 +128,7 @@ dbBackupBasesOneDomainAndUser() {
 }
 
 
-
+declare -x -f dbBackupBasesOneDomain
 #Выгрузка всех баз данных, принадлежащих к определенному домену
 ###input
 #$1-domain ;
@@ -256,5 +254,3 @@ dbBackupBasesOneDomain() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
-
-

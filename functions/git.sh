@@ -1,5 +1,6 @@
 #!/bin/bash
 
+declare -x -f Git_commit
 #Создание коммита
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_commit() {
@@ -40,6 +41,7 @@ Git_commit() {
         menuGit $1
 }
 
+declare -x -f Git_remotePush
 #публикация проекта во внешнем репозитарии
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_remotePush() {
@@ -53,6 +55,7 @@ Git_remotePush() {
     menuGit $1
 }
 
+declare -x -f Git_remoteView
 # просмотр удаленных репозитариев
 ###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 Git_remoteView() {

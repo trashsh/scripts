@@ -1,8 +1,5 @@
 #!/bin/bash
 declare -x -f searchSiteFolder
-declare -x -f searchSiteConfig
-declare -x -f searchSiteConfigAllFolder
-
 #Поиск каталога в указанной папке (с вложением)
 ###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
@@ -154,7 +151,7 @@ searchSiteFolder() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
+declare -x -f searchSiteConfig
 #Вывод списка конфигов apache2
 ###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
@@ -334,6 +331,7 @@ searchSiteConfig() {
 	fi
 }
 
+declare -x -f searchSiteConfigAllFolder
 #Поиск файла конфигурации сайта в каталогах серверов apache2, nginx
 ###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
 ###input
