@@ -773,10 +773,7 @@ FtpUserAdd() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-
-
-#TODO удалять ftp-пользователей
-declare -x -f userDelete_ftpAll #удаление всех ftp-пользователей для домена: ($1-username ; $2-domain)
+declare -x -f userDelete_ftpAll
 #удаление всех ftp-пользователей для домена
 ###input
 #$1-username ;
@@ -790,15 +787,17 @@ userDelete_ftpAll() {
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
-	    list=($(members ftp-access))
+	    array=($(members ftp-access))
+	    #echo ${array[@]}
 
 	    if [ "$3" = "delete" ]
 		then
 
+            for user in ${array[@]}; do
+                 if [[ "$user" =~ ^$1_$2$ ]] || [[ "$user" =~ ^$1_$2-- ]]; then
+                   sudo userdel -r $user
+                fi
 
-		    #выгрузка баз данных
-            for user in $list; do
-                echo ${user}
             done
 		else
 		    echo -e "${COLOR_RED}Ошибка передачи подтверждения в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"

@@ -43,4 +43,6 @@ source $SCRIPTS/functions/users_input_full.sh
 source $SCRIPTS/functions/webserver.sh
 source $SCRIPTS/functions/webserver_full.sh
 
+source $SCRIPTS/functions/test.sh
+
 source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh
