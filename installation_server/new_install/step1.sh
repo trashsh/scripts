@@ -320,6 +320,8 @@ sed -i -e "s/# DefaultRoot/DefaultRoot/" /etc/proftpd/proftpd.conf
 sed -i -e "s/Port\t\t\t\t21/Port\t\t\t\t10081/" /etc/proftpd/proftpd.conf
 echo '/bin/false' >> /etc/shells
 #AuthUserFile /etc/proftpd/ftpd.passwd
+sed -i -e "s/# PassivePorts                  49152 65534/PassivePorts                  50000 50050/" /etc/proftpd/proftpd.conf
+ufw allow 50000:50500/tcp comment 'ProFTPd PassivePorts'
 service proftpd restart
 
 
@@ -341,8 +343,8 @@ It can’t use count() or sizeof() with un array type. Force parameter to array 
     index index.php index.html index.htm index.nginx-debian.html;
 
 
-
-
-
 sed -i -e "s/#Port 22/Port 6666/" /etc/ssh/sshd_config
 service ssh restart
+
+
+
