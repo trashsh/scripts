@@ -1,5 +1,4 @@
 #!/bin/bash
-
 declare -x -f input_sshSettings
 #Ввод параметров ssh
 ###input

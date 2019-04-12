@@ -1,57 +1,4 @@
 #!/bin/bash
-
-declare -x -f viewAccessDetail
-#Отобразить реквизиты доступа
-###input
-#$1-user ;
-#$2-mode (full_info);
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - ошибка передачи mode
-viewAccessDetail() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		file=$HOMEPATHWEBUSERS/$1/.myconfig/info.txt
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				case "$2" in
-				    full_info)
-				        clear;
-				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}";
-				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User| highlight yellow FTP-User | highlight green "Ключевой файл" | highlight green "Тип подключения:" | highlight green "Phpmyadmin" | highlight green "Использован открытый ключ"
-				        ;;
-					*)
-					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
-					    return 3
-					    ;;
-				esac
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-
-
 declare -x -f siteAdd_php
 #Добавление php-сайта
 ###input
@@ -178,6 +125,351 @@ siteAdd_php() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_php\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
+declare -x -f siteChangeWebserverConfigs
+#Замена переменных в конфигах веб-серверов
+###input
+#$1-webserver(apache/nginx)
+#$2-username ;
+#$3-domain ;
+#$4-port ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - ошибка передачи параметра mode:webserver(apache/nginx)
+#3 - пользователь $2 не существует
+#4 - файл "$path"/"$2"_"$3".conf не существует
+siteChangeWebserverConfigs() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+        case "$1" in
+            apache)
+                path="/etc/apache2/sites-available"
+                ;;
+            nginx)
+                path="/etc/nginx/sites-available"
+                ;;
+        	*)
+        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}";
+        	    return
+        	    ;;
+        esac
+
+        #Проверка существования системного пользователя "$2"
+        	grep "^$2:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $2 существует
+        		#Проверка существования файла ""$path"/"$2"_"$3".conf"
+        		if [ -f "$path"/"$2"_"$3".conf ] ; then
+        		    #Файл ""$path"/"$2"_"$3".conf" существует
+
+
+                           #sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
+                           sudo grep '#__DOMAIN' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__DOMAIN/'$3'/g' "$path"/"$2"_"$3".conf
+                           sudo grep '#__USER' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__USER/'$2'/g' "$path"/"$2"_"$3".conf
+
+                           sudo grep '#__PORT' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__PORT/'$4'/g' "$path"/"$2"_"$3".conf
+                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' "$path"/"$2"_"$3".conf
+                            return 0
+
+        		    #Файл ""$path"/"$2"_"$3".conf" существует (конец)
+        		else
+        		    #Файл ""$path"/"$2"_"$3".conf" не существует
+        		    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\""$path"/"$2"_"$3".conf\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
+        		    return 4
+        		    #Файл ""$path"/"$2"_"$3".conf" не существует (конец)
+        		fi
+        		#Конец проверки существования файла ""$path"/"$2"_"$3".conf"
+
+        	#Пользователь $2 существует (конец)
+        	else
+        	#Пользователь $2 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
+        		return 3
+        	#Пользователь $2 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $2
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteStatus
+#включение-выключение сайта
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
+###input
+#$1-user;
+#$2-domain;
+#$3-mode: apache/nginx ;
+#$4-mode: enable/disable ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - ошибка передачи параметра mode: enable/disable
+#3 - ошибка передачи параметра mode: apache/nginx
+#4 - файл /etc/nginx/sites-available/$1_$2.conf не существует
+#5 - файл $NGINXENABLED"/"$1_$2.conf уже не существует
+siteStatus() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
+	then
+	#Параметры запуска существуют
+		case "$4" in
+		    enable)
+                case "$3" in
+                    apache)
+                        sudo a2ensite $1_$2.conf
+                        ;;
+                    nginx)
+                        #Проверка существования файла ""$NGINXAVAILABLE"/"$1_$2.conf""
+                        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
+                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" существует
+                            sudo ln -s "$NGINXAVAILABLE"/"$1_$2.conf" $NGINXENABLED
+                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" существует (конец)
+                        else
+                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" не существует
+                            echo -e "${COLOR_RED}Конфигурация сайта ${COLOR_GREEN}\""$NGINXAVAILABLE"/"$1_$2.conf"\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}"
+                            return 4
+                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" не существует (конец)
+                        fi
+                        #Конец проверки существования файла ""$NGINXAVAILABLE"/"$1_$2.conf""
+                        ;;
+                	*)
+                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: apache/nginx\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
+                	    return 3
+                	    ;;
+                esac
+		        ;;
+		    disable)
+                case "$3" in
+                    apache)
+                        sudo a2dissite $1_$2.conf
+                        ;;
+                    nginx)
+                        #Проверка существования файла ""$NGINXENABLED"/"$1_$2.conf""
+                        if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
+                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует
+                            sudo rm "$NGINXENABLED"/"$1_$2.conf"
+                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует (конец)
+                        else
+                            return 5
+                        fi
+                        #Конец проверки существования файла ""$NGINXENABLED"/"$1_$2.conf""
+
+                        ;;
+                	*)
+                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: apache/nginx\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
+                	    return 3
+                	    ;;
+                esac
+		        ;;
+			*)
+			    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: enable/disable\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
+			    return 2
+			    ;;
+		esac
+		webserverReload
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteStatus\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteRemove
+#Удаление сайта
+###input
+#$1-domain ;
+#$2-user ;
+#$3-mode:createbackup/nocreatebackup ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - не найден каталог сайта $2
+#3 - ошибка передачи параметра mode:createbackup/nocreatebackup
+#4 пользователь $2 не существует
+siteRemove() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+
+	#Проверка существования системного пользователя "$2"
+		grep "^$2:" /etc/passwd >/dev/null
+		if  [ $? -eq 0 ]
+		then
+		#Пользователь $2 существует
+			true
+		#Пользователь $2 существует (конец)
+		else
+		#Пользователь $2 не существует
+		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}"
+			return 4
+		#Пользователь $2 не существует (конец)
+		fi
+	#Конец проверки существования системного пользователя $2
+
+	path="$HOMEPATHWEBUSERS"/"$2"/"$1"
+	pathBackup=$BACKUPFOLDER/vds/removed/$2/$1/$date
+	#Параметры запуска существуют
+        #Проверка существования каталога "$path"
+            case "$3" in
+                createbackup)
+                    backupSiteWebserverConfig $2 $1 error_only $pathBackup;
+                    ##TODO сделать проверку успешности выполнения бэкапа
+                    #Проверка существования каталога "$path"
+                    if [ -d $path ] ; then
+                        #Каталог "$path" существует
+                        backupSiteFiles $2 $1 createDestFolder $pathBackup
+                        #Каталог "$path" существует (конец)
+                    fi
+                    #Конец проверки существования каталога "$path"
+
+                    dbBackupBasesOneDomainAndUser $1 $2 full_info data DeleteBase $pathBackup;
+                    ;;
+                nocreatebackup)
+                    true
+                    ;;
+            	*)
+            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: createbackup/nocreatebackup\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}";
+            	    return 3
+            	    ;;
+            esac
+
+                    siteStatus $2 $1 apache disable;
+                    siteStatus $2 $1 nginx disable;
+                    siteRemoveWebserverConfig $2 $1;
+                    siteRemoveLogs $2 $1;
+
+                    #Проверка существования каталога "$path"
+                    if [ -d $path ] ; then
+                        #Каталог "$path" существует
+                        sudo rm -Rf $path
+                        #Каталог "$path" существует (конец)
+                    fi
+                    #Конец проверки существования каталога "$path"
+
+                    #Проверка существования системного пользователя "$2_$1"
+                    	grep "^$2_$1:" /etc/passwd >/dev/null
+                    	if  [ $? -eq 0 ]
+                    	then
+                    	#Пользователь $2_$1 существует
+                    		userDelete_system $2_$1
+                    	#Пользователь $2_$1 существует (конец)
+                    	fi
+                    #Конец проверки существования системного пользователя $2_$1
+
+                    #удаление ftp-пользователей
+                    userDelete_ftpAll $2 $1 delete
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemove\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteRemoveWebserverConfig
+#Удаление конфигов веб-серверов
+###input
+#$1-user ;
+#$2-domain ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+siteRemoveWebserverConfig() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
+            sudo rm "$NGINXENABLED"/"$1_$2.conf"
+        fi
+
+        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
+           sudo rm "$NGINXAVAILABLE"/"$1_$2.conf"
+        fi
+
+        if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
+           sudo rm "$APACHEENABLED"/"$1_$2.conf"
+        fi
+
+        if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
+           sudo rm "$APACHEAVAILABLE"/"$1_$2.conf"
+        fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f siteRemoveLogs
+#Удаление логов с сайта
+###input
+#$1-user ;
+#$2-domain ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+siteRemoveLogs() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+
+		path=$HOMEPATHWEBUSERS/$1/$2
+        if [ -f $path/logs/error_apache.log ] ;  then
+           sudo rm $path/logs/error_apache.log
+        fi
+
+        if [ -f $path/logs/access_apache.log ] ;  then
+           sudo rm $path/logs/access_apache.log
+        fi
+
+        if [ -f $path/logs/access_nginx.log ] ;  then
+           rm $path/logs/access_nginx.log
+        fi
+
+        if [ -f $path/logs/error_nginx.log ] ;  then
+           sudo rm $path/logs/error_nginx.log
+fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveLogs\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -318,439 +610,6 @@ siteExist() {
 
 }
 
-declare -x -f siteAddTestIndexFile
-#Добавление тестового индексного файла при добавлении домена
-###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
-###input
-#$1 - user
-#$2-domain ;
-#$3 - wwwfolder_name
-#$4-mode: replace/noreplace ;
-#$5-mode (type index file): phpinfo ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - каталог $HOMEPATHWEBUSERS/$1/$2/$3 не существует
-#4 - ошибка передачи параметра mode: replace/noreplace
-#5 - ошибка передачи параметра mode (type index file): phpinfo
-siteAddTestIndexFile() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				#Проверка существования каталога "$HOMEPATHWEBUSERS/$1/$2/$3"
-				if [ -d $HOMEPATHWEBUSERS/$1/$2/$3 ] ; then
-				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует
-
-				    case "$4" in
-				        replace)
-
-                            case "$5" in
-                                phpinfo)
-                                     sudo cp -f $TEMPLATES/index_php/index.php $HOMEPATHWEBUSERS/$1/$2/$3/index.php
-                                     sudo cp -f $TEMPLATES/index_php/underconstruction.jpg $HOMEPATHWEBUSERS/$1/$2/$3/underconstruction.jpg
-                                     sudo grep '#__DOMAIN' -P -R -I -l  $HOMEPATHWEBUSERS/$1/$2/$3/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $HOMEPATHWEBUSERS/$1/$2/$3/index.php;
-                                     return 0
-                                    ;;
-
-                            	*)
-                            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - (type index file)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
-                            	    return 5
-                            	    ;;
-                            esac
-				            ;;
-				        noreplace)
-                            case "$5" in
-                                phpinfo)
-                                     sudo cp -n $TEMPLATES/index_php/index.php $HOMEPATHWEBUSERS/$1/$2/$3/index.php
-                                     sudo cp -n $TEMPLATES/index_php/underconstruction.jpg $HOMEPATHWEBUSERS/$1/$2/$3/underconstruction.jpg
-                                     sudo grep '#__DOMAIN' -P -R -I -l  $HOMEPATHWEBUSERS/$1/$2/$3/index.php | sudo xargs sed -i 's/#__DOMAIN/'$2'/g' $HOMEPATHWEBUSERS/$1/$2/$3/index.php;
-                                     return 0
-                                    ;;
-
-                            	*)
-                            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode - (type index file)\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
-                            	    return 5
-                            	    ;;
-                            esac
-				            ;;
-				    	*)
-				    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}";
-				    	    return 4
-				    	    ;;
-				    esac
-
-				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" существует (конец)
-				else
-				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" не существует
-				    echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$HOMEPATHWEBUSERS/$1/$2/$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}"
-				    return 3
-				    #Каталог "$HOMEPATHWEBUSERS/$1/$2/$3" не существует (конец)
-				fi
-				#Конец проверки существования каталога "$HOMEPATHWEBUSERS/$1/$2/$3"
-
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAddTestIndexFile\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f siteChangeWebserverConfigs
-#Замена переменных в конфигах веб-серверов
-###input
-#$1-webserver(apache/nginx)
-#$2-username ;
-#$3-domain ;
-#$4-port ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - ошибка передачи параметра mode:webserver(apache/nginx)
-#3 - пользователь $2 не существует
-#4 - файл "$path"/"$2"_"$3".conf не существует
-siteChangeWebserverConfigs() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-        case "$1" in
-            apache)
-                path="/etc/apache2/sites-available"
-                ;;
-            nginx)
-                path="/etc/nginx/sites-available"
-                ;;
-        	*)
-        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: webserver\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}";
-        	    return
-        	    ;;
-        esac
-
-        #Проверка существования системного пользователя "$2"
-        	grep "^$2:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $2 существует
-        		#Проверка существования файла ""$path"/"$2"_"$3".conf"
-        		if [ -f "$path"/"$2"_"$3".conf ] ; then
-        		    #Файл ""$path"/"$2"_"$3".conf" существует
-
-
-                           #sudo echo "Замена переменных в файле "$path"/"$2"_"$3".conf"
-                           sudo grep '#__DOMAIN' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__DOMAIN/'$3'/g' "$path"/"$2"_"$3".conf
-                           sudo grep '#__USER' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__USER/'$2'/g' "$path"/"$2"_"$3".conf
-
-                           sudo grep '#__PORT' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/#__PORT/'$4'/g' "$path"/"$2"_"$3".conf
-                           sudo grep '#__HOMEPATHWEBUSERS' -P -R -I -l  "$path"/"$2"_"$3".conf | sudo xargs sed -i 's/'#__HOMEPATHWEBUSERS'/\/home\/webusers/g' "$path"/"$2"_"$3".conf
-                            return 0
-
-        		    #Файл ""$path"/"$2"_"$3".conf" существует (конец)
-        		else
-        		    #Файл ""$path"/"$2"_"$3".conf" не существует
-        		    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\""$path"/"$2"_"$3".conf\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
-        		    return 4
-        		    #Файл ""$path"/"$2"_"$3".conf" не существует (конец)
-        		fi
-        		#Конец проверки существования файла ""$path"/"$2"_"$3".conf"
-
-        	#Пользователь $2 существует (конец)
-        	else
-        	#Пользователь $2 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_NC}"
-        		return 3
-        	#Пользователь $2 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $2
-
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteChangeWebserverConfigs\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f siteRemoveWebserverConfig
-#Удаление конфигов веб-серверов
-###input
-#$1-user ;
-#$2-domain ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-siteRemoveWebserverConfig() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
-            sudo rm "$NGINXENABLED"/"$1_$2.conf"
-        fi
-
-        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
-           sudo rm "$NGINXAVAILABLE"/"$1_$2.conf"
-        fi
-
-        if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
-           sudo rm "$APACHEENABLED"/"$1_$2.conf"
-        fi
-
-        if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
-           sudo rm "$APACHEAVAILABLE"/"$1_$2.conf"
-        fi
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f siteRemove
-#Удаление сайта
-###input
-#$1-domain ;
-#$2-user ;
-#$3-mode:createbackup/nocreatebackup ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - не найден каталог сайта $2
-#3 - ошибка передачи параметра mode:createbackup/nocreatebackup
-#4 пользователь $2 не существует
-siteRemove() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-
-	date=`date +%Y.%m.%d`
-    datetime=`date +%Y.%m.%d-%H.%M.%S`
-
-	#Проверка существования системного пользователя "$2"
-		grep "^$2:" /etc/passwd >/dev/null
-		if  [ $? -eq 0 ]
-		then
-		#Пользователь $2 существует
-			true
-		#Пользователь $2 существует (конец)
-		else
-		#Пользователь $2 не существует
-		    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$2\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}"
-			return 4
-		#Пользователь $2 не существует (конец)
-		fi
-	#Конец проверки существования системного пользователя $2
-
-	path="$HOMEPATHWEBUSERS"/"$2"/"$1"
-	pathBackup=$BACKUPFOLDER/vds/removed/$2/$1/$date
-	#Параметры запуска существуют
-        #Проверка существования каталога "$path"
-            case "$3" in
-                createbackup)
-                    backupSiteWebserverConfig $2 $1 error_only $pathBackup;
-                    dbBackupBasesOneDomainAndUser $1 $2 error_only data DeleteBase $pathBackup;
-                    ##TODO сделать проверку успешности выполнения бэкапа
-
-                    #Проверка существования каталога "$path"
-                    if [ -d $path ] ; then
-                        #Каталог "$path" существует
-                        backupSiteFiles $2 $1 createDestFolder $pathBackup
-                        #Каталог "$path" существует (конец)
-                    fi
-                    #Конец проверки существования каталога "$path"
-                    ;;
-                nocreatebackup)
-                    true
-                    ;;
-            	*)
-            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: createbackup/nocreatebackup\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteRemove\"${COLOR_NC}";
-            	    return 3
-            	    ;;
-            esac
-
-                    siteStatus $2 $1 apache disable;
-                    siteStatus $2 $1 nginx disable;
-                    siteRemoveWebserverConfig $2 $1;
-                    siteRemoveLogs $2 $1;
-
-                    #Проверка существования каталога "$path"
-                    if [ -d $path ] ; then
-                        #Каталог "$path" существует
-                        sudo rm -Rf $path
-                        #Каталог "$path" существует (конец)
-                    fi
-                    #Конец проверки существования каталога "$path"
-
-                    #Проверка существования системного пользователя "$2_$1"
-                    	grep "^$2_$1:" /etc/passwd >/dev/null
-                    	if  [ $? -eq 0 ]
-                    	then
-                    	#Пользователь $2_$1 существует
-                    		userDelete_system $2_$1
-                    	#Пользователь $2_$1 существует (конец)
-                    	fi
-                    #Конец проверки существования системного пользователя $2_$1
-
-                    #удаление ftp-пользователей
-                    userDelete_ftpAll $2 $1 delete
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemove\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f siteRemoveLogs
-#Удаление логов с сайта
-###input
-#$1-user ;
-#$2-domain ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-siteRemoveLogs() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-
-		path=$HOMEPATHWEBUSERS/$1/$2
-        if [ -f $path/logs/error_apache.log ] ;  then
-           sudo rm $path/logs/error_apache.log
-        fi
-
-        if [ -f $path/logs/access_apache.log ] ;  then
-           sudo rm $path/logs/access_apache.log
-        fi
-
-        if [ -f $path/logs/access_nginx.log ] ;  then
-           rm $path/logs/access_nginx.log
-        fi
-
-        if [ -f $path/logs/error_nginx.log ] ;  then
-           sudo rm $path/logs/error_nginx.log
-fi
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveLogs\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f siteStatus
-#включение-выключение сайта
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1-user;
-#$2-domain;
-#$3-mode: apache/nginx ;
-#$4-mode: enable/disable ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - ошибка передачи параметра mode: enable/disable
-#3 - ошибка передачи параметра mode: apache/nginx
-#4 - файл /etc/nginx/sites-available/$1_$2.conf не существует
-#5 - файл $NGINXENABLED"/"$1_$2.conf уже не существует
-siteStatus() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-	then
-	#Параметры запуска существуют
-		case "$4" in
-		    enable)
-                case "$3" in
-                    apache)
-                        sudo a2ensite $1_$2.conf
-                        ;;
-                    nginx)
-                        #Проверка существования файла ""$NGINXAVAILABLE"/"$1_$2.conf""
-                        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
-                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" существует
-                            sudo ln -s "$NGINXAVAILABLE"/"$1_$2.conf" $NGINXENABLED
-                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" существует (конец)
-                        else
-                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" не существует
-                            echo -e "${COLOR_RED}Конфигурация сайта ${COLOR_GREEN}\""$NGINXAVAILABLE"/"$1_$2.conf"\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}"
-                            return 4
-                            #Файл ""$NGINXAVAILABLE"/"$1_$2.conf"" не существует (конец)
-                        fi
-                        #Конец проверки существования файла ""$NGINXAVAILABLE"/"$1_$2.conf""
-                        ;;
-                	*)
-                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: apache/nginx\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
-                	    return 3
-                	    ;;
-                esac
-		        ;;
-		    disable)
-                case "$3" in
-                    apache)
-                        sudo a2dissite $1_$2.conf
-                        ;;
-                    nginx)
-                        #Проверка существования файла ""$NGINXENABLED"/"$1_$2.conf""
-                        if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
-                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует
-                            sudo rm "$NGINXENABLED"/"$1_$2.conf"
-                            #Файл ""$NGINXENABLED"/"$1_$2.conf"" существует (конец)
-                        else
-                            return 5
-                        fi
-                        #Конец проверки существования файла ""$NGINXENABLED"/"$1_$2.conf""
-
-                        ;;
-                	*)
-                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: apache/nginx\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
-                	    return 3
-                	    ;;
-                esac
-		        ;;
-			*)
-			    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: enable/disable\"${COLOR_RED} в функцию ${COLOR_GREEN}\"siteStatus\"${COLOR_NC}";
-			    return 2
-			    ;;
-		esac
-		webserverReload
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteStatus\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 declare -x -f viewSiteConfigsByName
 #Вывод перечня сайтов указанного пользователя (конфиги веб-сервера)

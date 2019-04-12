@@ -12,6 +12,13 @@ tar -czvf $BACKUPFOLDER_INSTALLED/letsencrypt.tar.gz /etc/letsencrypt
 /etc/init.d/proftpd restart
 
 
+в файле /etc/webmin/miniserv.conf добавить(отредактировать)
+certfile=/etc/letsencrypt/live/alixi.ru/cert.pem
+keyfile=/etc/letsencrypt/live/alixi.ru/privkey.pem
+
+apt install members
+
+
 
 
 mysql -e "CREATE DATABASE IF NOT EXISTS lamer_webserver CHARACTER SET utf8 COLLATE utf8_general_ci;"

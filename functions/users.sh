@@ -1,140 +1,80 @@
 #!/bin/bash
-
-declare -x -f userAddSystem
-#Выполенние операций по созданию системного пользователя
-###input:
-#$1-username ;
-#$2-homedir ;
-#$3-путь к интерпритатору команд ;
-#$4 - основная группа пользователей;
-#$5 - password,
-#$6 системный пользователь, который выполняет команду
-###return:
-#0 - выполненоуспешно
-#1 - отпутствуют параметры,
-#2 -пользователь существует,
-#3 - каталог пользователя уже существует
-#4 - интерпритатор не существует,
-#5 - группа не существует,
-#6 - не существует системный пользователь, от которого запускается скрипт
-userAddSystem()
-{
+declare -x -f FtpUserAdd
+#Добавление ftp-пользователя
+###input
+#$1-user ;
+#$2-domain ;
+#$3-mode: password type - autogenerate/querry/manual;
+#$4-created by
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+#2 - пользователь ftp-уже существует
+#3 - Ошибка передачи параметра mode - manual|querry|autogenerate
+#4 - пользователь created by не существует
+FtpUserAdd() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
-
-	#Проверка существования системного пользователя "$1"
-		grep "^$1:" /etc/passwd >/dev/null
-		if  [ $? -eq 0 ]
-		then
-		#Пользователь $1 существует
-			echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Операция прервана. Функция ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED}  ${COLOR_NC}"
-			exit 2
-		#Пользователь $1 существует (конец)
-		else
-		#Пользователь $1 не существует
-		    #Проверка существования каталога "$2"
-		    if [ -d $2 ] ; then
-		        #Каталог "$2" существует
-		        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$2\"${COLOR_RED} уже существует. Операция прервана. Функция ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED}  ${COLOR_NC}"
-		        exit 3
-		        #Каталог "$2" существует (конец)
-		    else
-		        #Каталог "$2" не существует
-		        #Проверка существования интерпритатора "$3"
-		        if [ -f $3 ] ; then
-		            #интерпритатор "$3" существует
-		            #Проверка существования системного пользователя "$6"
-		            	grep "^$6:" /etc/passwd >/dev/null
-		            	if  [ $? -eq 0 ]
-		            	then
-		            	#Пользователь $6 существует
-
-                            #Проверка существования системной группы пользователей "$4"
-                            if grep -q $4 /etc/group
-                                then
-                                    #Группа "$4" существует
-                                         #sudo -s source /my/scripts/include/inc.sh
-                                         mkdir $2
-                                         useradd -N -g $4 -d $2 -s $3 $1
-                                         echo "$1:$5" | chpasswd
-                                         infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-                                         fileAddLineToFile $infoFile " "
-                                         fileAddLineToFile $infoFile "SSH-Пользователь:"
-                                         fileAddLineToFile $infoFile "Username: $1"
-                                         fileAddLineToFile $infoFile "Password: $5"
-                                         fileAddLineToFile $infoFile "Server: $MYSERVER"
-                                         fileAddLineToFile $infoFile "Port: $SSHPORT"
-                                         sudo chown -R "$1":users $2
-                                         sudo chmod 777 $2
-
-                                        fileAddLineToFile $infoFile " "
-                                        fileAddLineToFile $infoFile "FTP-User:"
-                                        fileAddLineToFile $infoFile "Username: $1"
-                                        fileAddLineToFile $infoFile "Password: $5"
-                                        fileAddLineToFile $infoFile "Server: $MYSERVER"
-                                        fileAddLineToFile $infoFile "Port: $FTPPORT"
-                                        fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
-
-                                        #dbSetMyCnfFile $1 $1 $6
-                                        mkdirWithOwn $2/.backups $1 $4 777
-                                        mkdirWithOwn $2/.backups/auto $1 $4 755
-                                        mkdirWithOwn $2/.backups/manually $1 $4 755
-
-                                        #dbRecordAdd_addUser $1 $2 $6 1
-
-
-                                                    touchFileWithModAndOwn $2/.bashrc $1 $4 666
-                                                    touchFileWithModAndOwn $2/.sudo_as_admin_successful $1 $4 644
-                                                    echo "source /etc/profile" >> $2/.bashrc
-                                                    sudo chmod 644 $2/.bashrc
-                                                    #sed -i '$ a source $SCRIPTS/include/inc.sh'  $2/.bashrc
-                                                   # sed -i '$ a $SCRIPTS/menu'  $2/.bashrc
-
-                                    #Группа "$4" существует (конец)
-
-                                else
-                                    #Группа "$4" не существует
-                                    echo -e "${COLOR_RED}Группа ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-                                    return 5
-                                    #Группа "$4" не существует (конец)
+		#Проверка существования системного пользователя "$1_$2"
+			grep "^$1_$2:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1_$2\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
+				return 2
+			#Пользователь $1_$2 существует (конец)
+			else
+			#Пользователь $1_$2 не существует
+			    #Проверка существования системного пользователя "$4"
+			    	grep "^$4:" /etc/passwd >/dev/null
+			    	if  [ $? -eq 0 ]
+			    	then
+			    	#Пользователь $4 существует
+                        case "$3" in
+                            "manual"|"querry"|"autogenerate")
+                                #Проверка существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
+                                if ! [ -d "$HOMEPATHWEBUSERS"/"$1"/"$2" ] ; then
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует
+                                    sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
+                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует (конец)
                                 fi
-                            #Конец проверки существования системного пользователя $4
+                                #Конец проверки существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
 
-		            	#Пользователь $6 существует (конец)
-		            	else
-		            	#Пользователь $6 не существует
-		            	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$6\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-		            		return 6
-		            	#Пользователь $7 не существует (конец)
-		            	fi
-		            #Конец проверки существования системного пользователя $6
-		            #интерпритатор "$3" существует (конец)
-		        else
-		            #интерпритатор "$3" не существует
-		            echo -e "${COLOR_RED}Интерпритатор ${COLOR_GREEN}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_NC}"
-		            return 4
-		            #интерпритатор "$3" не существует (конец)
-		        fi
-		        #Конец проверки существования интерпритатора "$3"
+                                sudo useradd -c "Ftp-user for user $1 domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
+                                sudo adduser $1_$2 www-data
+                                infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                                fileAddLineToFile $infoFile "FTP-Пользователь:"
 
+                                #смена пароля на пользователя
+                                userChangePassword $1 $3
+                                fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
+                                fileAddLineToFile $infoFile "Port: $FTPPORT"
+                                fileAddLineToFile $infoFile "------------------------"
+                                return 0
+                                ;;
+                            *)
+                                echo -e "${LOR_RED}Ошибка передачи параметра ${LOR_GREEN}\"mode - manual|querry|autogenerate\"${LOR_RED} в функцию ${OLOR_GREEN}\"FtpUserAdd\"${OLOR_NC}";
+                                return 3
+                                ;;
+                        esac
+                            #Пользователь $4 существует (конец)
+                            else
+                            #Пользователь $4 не существует
+                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
+                                return  4
+                            #Пользователь $4 не существует (конец)
+                            fi
+                        #Конец проверки существования системного пользователя $4
 
-		        #Каталог "$2" не существует (конец)
-		    fi
-		    #Конец проверки существования каталога "$2"
-
-
-		#Пользователь $1 не существует (конец)
-		fi
-	#Конец проверки существования системного пользователя $1
-
-
-        return 0
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userAddSystem\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -142,18 +82,20 @@ userAddSystem()
 }
 
 
-
-declare -x -f userDelete_system
+declare -x -f userChangePassword
+#Смена пароля пользователя
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
 ###input
-#$1- username;
+#$1-user ;
+#$2-mode set password: manual/querry/autogenerate ;
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь не существует
-#3 - удаление завершилось с ошибкой
-userDelete_system() {
+#3 - пароль пустой
+userChangePassword() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
+	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
 		#Проверка существования системного пользователя "$1"
@@ -161,23 +103,52 @@ userDelete_system() {
 			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
-				sudo userdel -r $1
-				#Проверка на успешность выполнения предыдущей команды
-				if [ $? -eq 0 ]
-					then
-						#предыдущая команда завершилась успешно
-						return 0
-						#предыдущая команда завершилась успешно (конец)
-					else
-						#предыдущая команда завершилась с ошибкой
-						return 3
-						#предыдущая команда завершилась с ошибкой (конец)
-				fi
-				#Конец проверки на успешность выполнения предыдущей команды
+				case "$2" in
+				    manual)
+                        echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
+                        read password;
+                        if [[ -z "$password" ]]; then
+                              #переменная имеет пустое значение
+                              echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
+                              return 3
+                         fi
+				        ;;
+				    querry)
+				        echo -n -e "Пароль для пользователя ${COLOR_YELLOW}" $1 "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                                while read
+                                do
+                                    case "$REPLY" in
+                                    y|Y) password="$(openssl rand -base64 14)";
+                                         break;;
+                                    n|N) echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
+                                         read password;
+                                         if [[ -z "$password" ]]; then
+                                            #переменная имеет пустое значение
+                                            echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
+                                            return 3
+                                         fi
+                                         break;;
+                                    esac
+                                done
+				        ;;
+					autogenerate)
+                        password="$(openssl rand -base64 14)"
+						;;
+					*)
+					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+					    ;;
+				esac
+
+				echo "$1:$password" | sudo chpasswd
+				infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+				fileAddLineToFile $infoFile "Username: $1"
+                fileAddLineToFile $infoFile "Password: $password"
+				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
+				return 0
 			#Пользователь $1 существует (конец)
 			else
 			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userDelete_system\"${COLOR_NC}"
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_NC}"
 				return 2
 			#Пользователь $1 не существует (конец)
 			fi
@@ -185,7 +156,47 @@ userDelete_system() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_system\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f userDelete_ftpAll
+#удаление всех ftp-пользователей для домена
+###input
+#$1-username ;
+#$2-domain ;
+#$3-подтверждение "delete"
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+userDelete_ftpAll() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+	    array=($(members ftp-access))
+	    #echo ${array[@]}
+
+	    if [ "$3" = "delete" ]
+		then
+
+            for user in ${array[@]}; do
+                 if [[ "$user" =~ ^$1_$2$ ]] || [[ "$user" =~ ^$1_$2-- ]]; then
+                   sudo userdel -r $user
+                fi
+
+            done
+		else
+		    echo -e "${COLOR_RED}Ошибка передачи подтверждения в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
+		fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -586,208 +597,6 @@ userExistInGroup() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"UserExistInGroup\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f userChangePassword
-#Смена пароля пользователя
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-###input
-#$1-user ;
-#$2-mode set password: manual/querry/autogenerate ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - пароль пустой
-userChangePassword() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				case "$2" in
-				    manual)
-                        echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
-                        read password;
-                        if [[ -z "$password" ]]; then
-                              #переменная имеет пустое значение
-                              echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
-                              return 3
-                         fi
-				        ;;
-				    querry)
-				        echo -n -e "Пароль для пользователя ${COLOR_YELLOW}" $1 "${COLOR_NC} сгенерировать или установить вручную? \nВведите ${COLOR_BLUE}\"y\"${COLOR_NC} для автогенерации, для ручного ввода - ${COLOR_BLUE}\"n\"${COLOR_NC}: "
-                                while read
-                                do
-                                    case "$REPLY" in
-                                    y|Y) password="$(openssl rand -base64 14)";
-                                         break;;
-                                    n|N) echo -n -e "${COLOR_BLUE}Установите пароль для пользователя ${COLOR_NC} ${COLOR_YELLOW}\"$1\":${COLOR_NC}";
-                                         read password;
-                                         if [[ -z "$password" ]]; then
-                                            #переменная имеет пустое значение
-                                            echo -e "${COLOR_RED}"Пароль не может быть пустым. Отмена создания пользователя ${COLOR_GREEN}\"$1\""${COLOR_NC}"
-                                            return 3
-                                         fi
-                                         break;;
-                                    esac
-                                done
-				        ;;
-					autogenerate)
-                        password="$(openssl rand -base64 14)"
-						;;
-					*)
-					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
-					    ;;
-				esac
-
-				echo "$1:$password" | sudo chpasswd
-				infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-				fileAddLineToFile $infoFile "Username: $1"
-                fileAddLineToFile $infoFile "Password: $password"
-				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
-				return 0
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userChangePassword\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f FtpUserAdd
-#Добавление ftp-пользователя
-###input
-#$1-user ;
-#$2-domain ;
-#$3-mode: password type - autogenerate/querry/manual;
-#$4-created by
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь ftp-уже существует
-#3 - Ошибка передачи параметра mode - manual|querry|autogenerate
-#4 - пользователь created by не существует
-FtpUserAdd() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1_$2"
-			grep "^$1_$2:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1_$2\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
-				return 2
-			#Пользователь $1_$2 существует (конец)
-			else
-			#Пользователь $1_$2 не существует
-			    #Проверка существования системного пользователя "$4"
-			    	grep "^$4:" /etc/passwd >/dev/null
-			    	if  [ $? -eq 0 ]
-			    	then
-			    	#Пользователь $4 существует
-                        case "$3" in
-                            "manual"|"querry"|"autogenerate")
-                                #Проверка существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
-                                if ! [ -d "$HOMEPATHWEBUSERS"/"$1"/"$2" ] ; then
-                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует
-                                    sudo mkdir -p "$HOMEPATHWEBUSERS"/"$1"/"$2"
-                                    #Каталог ""$HOMEPATHWEBUSERS"/"$1"/"$2"" не существует (конец)
-                                fi
-                                #Конец проверки существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
-
-                                sudo useradd -c "Ftp-user for user $1. domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
-                                sudo adduser $1_$2 www-data
-                                infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-                                fileAddLineToFile $infoFile "FTP-Пользователь:"
-
-                                #смена пароля на пользователя
-                                userChangePassword $1_$2 $3
-                                fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
-                                fileAddLineToFile $infoFile "Port: $FTPPORT"
-                                fileAddLineToFile $infoFile "------------------------"
-                                return 0
-                                ;;
-                            *)
-                                echo -e "${LOR_RED}Ошибка передачи параметра ${LOR_GREEN}\"mode - manual|querry|autogenerate\"${LOR_RED} в функцию ${OLOR_GREEN}\"FtpUserAdd\"${OLOR_NC}";
-                                return 3
-                                ;;
-                        esac
-                            #Пользователь $4 существует (конец)
-                            else
-                            #Пользователь $4 не существует
-                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
-                                return  4
-                            #Пользователь $4 не существует (конец)
-                            fi
-                        #Конец проверки существования системного пользователя $4
-
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
-
-declare -x -f userDelete_ftpAll
-#удаление всех ftp-пользователей для домена
-###input
-#$1-username ;
-#$2-domain ;
-#$3-подтверждение "delete"
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-userDelete_ftpAll() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
-	then
-	#Параметры запуска существуют
-	    array=($(members ftp-access))
-	    #echo ${array[@]}
-
-	    if [ "$3" = "delete" ]
-		then
-
-            for user in ${array[@]}; do
-                 if [[ "$user" =~ ^$1_$2$ ]] || [[ "$user" =~ ^$1_$2-- ]]; then
-                   sudo userdel -r $user
-                fi
-
-            done
-		else
-		    echo -e "${COLOR_RED}Ошибка передачи подтверждения в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
-		fi
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"userDelete_ftpAll\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi

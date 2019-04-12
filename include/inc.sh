@@ -24,8 +24,13 @@ source $SCRIPTS/functions/mysql.sh
 source $SCRIPTS/functions/mysql_full.sh
 
 source $SCRIPTS/functions/mysql_input.sh
+source $SCRIPTS/functions/mysql_input_full.sh
+
 source $SCRIPTS/functions/search.sh
+
 source $SCRIPTS/functions/sites.sh
+source $SCRIPTS/functions/sites_full.sh
+
 source $SCRIPTS/functions/sites_input.sh
 
 source $SCRIPTS/functions/ssh.sh

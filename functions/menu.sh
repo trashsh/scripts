@@ -66,7 +66,6 @@ menuMain() {
 }
 
 
-
 declare -x -f menuUser
 #Меню пользователей
 menuUser() {
@@ -162,6 +161,116 @@ menuSite() {
 	else
 	#Параметры запуска отсутствуют
 		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSite\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+declare -x -f menuGit
+#Вывод меню git
+###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
+#$1-username ;
+#return 0 - выполнено успешно, 2 - нет пользователя
+menuGit() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				USERNAME=$1
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		USERNAME=$(whoami)
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+
+ 	            echo ''
+                echo -e "${COLOR_GREEN} ===Управление Git===${COLOR_NC}"
+
+                echo '1: Git commit'
+                echo '2: Push remote'
+                echo '3: Git remote view'
+
+
+                echo '0: Назад'
+                echo 'q: Выход'
+                echo ''
+                echo -n 'Выберите пункт меню:'
+
+                while read
+                    do
+                        case "$REPLY" in
+                        "1")  Git_commit $1; break;;
+                        "2")  Git_remotePush $1; break;;
+                        "3")  Git_remoteView $1; break;;
+                        "0")  menuMain $1;  break;;
+                        "q"|"Q")  exit 0;;
+                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                        esac
+                    done
+                    return 0
+}
+
+
+declare -x -f menuSiteAdd
+#Меню добавление сайтов
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuSiteAdd() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Добавление сайтов===${COLOR_NC}"
+
+        echo '1: PHP/HTML (с вводом доп.параметров)'
+        echo '2: PHP/HTML (упрощенная настройка)'
+        echo '3: Framework Laravel'
+        echo '4: Framework Laravel (с вводом доп.параметров)'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1") input_SiteAdd_php $1 querry; menuSiteAdd $1; break;;
+                "2") input_SiteAdd_php $1 lite; menuSiteAdd $1; break;;
+                "3")   $1; break;;
+                "4")   $1; break;;
+
+                "0")  menuSite $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSiteAdd\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -317,64 +426,7 @@ menuBackups() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
-declare -x -f menuGit
-#Вывод меню git
-###!ПОЛНОСТЬЮ ГОТОВО. 03.04.2019
-#$1-username ;
-#return 0 - выполнено успешно, 2 - нет пользователя
-menuGit() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
-				USERNAME=$1
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"menuMain\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		USERNAME=$(whoami)
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
 
- 	            echo ''
-                echo -e "${COLOR_GREEN} ===Управление Git===${COLOR_NC}"
-
-                echo '1: Git commit'
-                echo '2: Push remote'
-                echo '3: Git remote view'
-
-
-                echo '0: Назад'
-                echo 'q: Выход'
-                echo ''
-                echo -n 'Выберите пункт меню:'
-
-                while read
-                    do
-                        case "$REPLY" in
-                        "1")  Git_commit $1; break;;
-                        "2")  Git_remotePush $1; break;;
-                        "3")  Git_remoteView $1; break;;
-                        "0")  menuMain $1;  break;;
-                        "q"|"Q")  exit 0;;
-                         *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
-                        esac
-                    done
-                    return 0
-}
 
 declare -x -f menuServer
 #Меню управления сервером
@@ -426,54 +478,6 @@ menuServer() {
 
 
 
-declare -x -f menuSiteAdd
-#Меню добавление сайтов
-###input
-#$1-username ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-menuSiteAdd() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
-	then
-	#Параметры запуска существуют
-        echo ''
-        echo -e "${COLOR_GREEN} ===Добавление сайтов===${COLOR_NC}"
-
-        echo '1: PHP/HTML (с вводом доп.параметров)'
-        echo '2: PHP/HTML (упрощенная настройка)'
-        echo '3: Framework Laravel'
-        echo '4: Framework Laravel (с вводом доп.параметров)'
-
-        echo '0: Назад'
-        echo 'q: Выход'
-        echo ''
-        echo -n 'Выберите пункт меню:'
-
-        while read
-            do
-                case "$REPLY" in
-                "1") input_SiteAdd_php $1 querry; menuSiteAdd $1; break;;
-                "2") input_SiteAdd_php $1 lite; menuSiteAdd $1; break;;
-                "3")   $1; break;;
-                "4")   $1; break;;
-
-                "0")  $MYFOLDER/scripts/menu $1;  break;;
-                "q"|"Q")  exit 0;;
-                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
-                esac
-            done
-        exit 0
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuSiteAdd\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 declare -x -f menuSite_cert
 #Меню управления сертификатами сайтов

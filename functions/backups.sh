@@ -1,4 +1,5 @@
 #!/bin/bash
+
 declare -x -f dbBackupBasesOneDomainAndUser
 #Выгрузка всех баз данных, принадлежащих к определенному домену
 ###input
@@ -84,12 +85,14 @@ dbBackupBasesOneDomainAndUser() {
                                 dbNameMainBase=${dbNameWithDopBase%--$dbNameDopBase}
                                 #echo $dbNameMainBase
                            #  fi
-
+                            sudo chmod 777 $DESTINATION
                              case "$3" in
                                 full_info)
                                     case "$4" in
                                         data)
-                                            dbBackupBase $db full_info data $DESTINATION
+
+                                         #   dbBackupBase $db full_info data $DESTINATION
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info data $DESTINATION";
                                             ;;
                                         structure)
                                             dbBackupBase $db full_info structure $DESTINATION
@@ -99,7 +102,8 @@ dbBackupBasesOneDomainAndUser() {
                                 error_only)
                                     case "$4" in
                                         data)
-                                            dbBackupBase $db error_only data $DESTINATION
+                                            #dbBackupBase $db error_only data $DESTINATION
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only data $DESTINATION";
                                             ;;
                                         structure)
                                             dbBackupBase $db error_only structure $DESTINATION

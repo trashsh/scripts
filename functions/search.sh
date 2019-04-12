@@ -1,4 +1,88 @@
 #!/bin/bash
+
+declare -x -f searchSiteConfigAllFolder
+#Поиск файла конфигурации сайта в каталогах серверов apache2, nginx
+###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
+###input
+#$1-домен ;
+#$2-mode full_info/error_only/success_only/silent ;
+###return
+#0 - Конфигурация существует
+#1 - не переданы параметры в функцию
+#2 - конфигурация отсутствует
+#3 - ошибка передачи параметра mode full_info/error_only/success_only/silent
+searchSiteConfigAllFolder() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+		[ "$(ls -A $APACHEAVAILABLE | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_aa=0; else res_aa=1; folder=$APACHEAVAILABLE; fi
+
+		[ "$(ls -A $APACHEENABLED | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_ae=0; else res_ae=1; folder=$APACHEENABLED; fi
+
+        [ "$(ls -A $NGINXAVAILABLE | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_na=0; else res_na=1; folder=$NGINXAVAILABLE; fi
+
+		[ "$(ls -A $NGINXENABLED | grep "_$1.conf$")" ]
+		 if [ $? -eq 0 ]; then res_ne=0; else res_ne=1; folder=$NGINXENABLED; fi
+
+
+		 if [ $res_aa -eq 0 ] || [ $res_ae -eq 0 ] || [ $res_na -eq 0 ] || [ $res_ne -eq 0 ]
+		 then
+            case "$2" in
+                full_info)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+                    ;;
+                error_only)
+
+                    ;;
+            	success_only)
+            	    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+            		;;
+                silent)
+
+            		;;
+            	*)
+            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+            	    return 3
+            	    ;;
+            esac
+            return 0
+
+         else
+            case "$2" in
+                full_info)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+                    ;;
+                error_only)
+                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+                    ;;
+            	success_only)
+            		;;
+                silent)
+
+            		;;
+            	*)
+            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+            	    return 3
+            	    ;;
+            esac
+            return 2
+		 fi
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 declare -x -f searchSiteFolder
 #Поиск каталога в указанной папке (с вложением)
 ###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
@@ -150,6 +234,7 @@ searchSiteFolder() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
 
 declare -x -f searchSiteConfig
 #Вывод списка конфигов apache2
@@ -331,84 +416,3 @@ searchSiteConfig() {
 	fi
 }
 
-declare -x -f searchSiteConfigAllFolder
-#Поиск файла конфигурации сайта в каталогах серверов apache2, nginx
-###!ПОЛНОСТЬЮ ГОТОВО. 21.03.2019
-###input
-#$1-домен ;
-#$2-mode full_info/error_only/success_only/silent ;
-###return
-#0 - Конфигурация существует
-#1 - не переданы параметры в функцию
-#2 - конфигурация отсутствует
-#3 - ошибка передачи параметра mode full_info/error_only/success_only/silent
-searchSiteConfigAllFolder() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		[ "$(ls -A $APACHEAVAILABLE | grep "_$1.conf$")" ]
-		 if [ $? -eq 0 ]; then res_aa=0; else res_aa=1; folder=$APACHEAVAILABLE; fi
-
-		[ "$(ls -A $APACHEENABLED | grep "_$1.conf$")" ]
-		 if [ $? -eq 0 ]; then res_ae=0; else res_ae=1; folder=$APACHEENABLED; fi
-
-        [ "$(ls -A $NGINXAVAILABLE | grep "_$1.conf$")" ]
-		 if [ $? -eq 0 ]; then res_na=0; else res_na=1; folder=$NGINXAVAILABLE; fi
-
-		[ "$(ls -A $NGINXENABLED | grep "_$1.conf$")" ]
-		 if [ $? -eq 0 ]; then res_ne=0; else res_ne=1; folder=$NGINXENABLED; fi
-
-
-		 if [ $res_aa -eq 0 ] || [ $res_ae -eq 0 ] || [ $res_na -eq 0 ] || [ $res_ne -eq 0 ]
-		 then
-            case "$2" in
-                full_info)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
-                    ;;
-                error_only)
-
-                    ;;
-            	success_only)
-            	    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
-            		;;
-                silent)
-
-            		;;
-            	*)
-            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
-            	    return 3
-            	    ;;
-            esac
-            return 0
-
-         else
-            case "$2" in
-                full_info)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
-                    ;;
-                error_only)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
-                    ;;
-            	success_only)
-            		;;
-                silent)
-
-            		;;
-            	*)
-            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
-            	    return 3
-            	    ;;
-            esac
-            return 2
-		 fi
-
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
