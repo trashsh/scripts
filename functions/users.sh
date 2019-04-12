@@ -60,6 +60,7 @@ userAddSystem()
                                          useradd -N -g $4 -d $2 -s $3 $1
                                          echo "$1:$5" | chpasswd
                                          infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                                         fileAddLineToFile $infoFile " "
                                          fileAddLineToFile $infoFile "SSH-Пользователь:"
                                          fileAddLineToFile $infoFile "Username: $1"
                                          fileAddLineToFile $infoFile "Password: $5"
@@ -68,6 +69,13 @@ userAddSystem()
                                          sudo chown -R "$1":users $2
                                          sudo chmod 777 $2
 
+                                        fileAddLineToFile $infoFile " "
+                                        fileAddLineToFile $infoFile "FTP-User:"
+                                        fileAddLineToFile $infoFile "Username: $1"
+                                        fileAddLineToFile $infoFile "Password: $5"
+                                        fileAddLineToFile $infoFile "Server: $MYSERVER"
+                                        fileAddLineToFile $infoFile "Port: $FTPPORT"
+                                        fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
 
                                         #dbSetMyCnfFile $1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777

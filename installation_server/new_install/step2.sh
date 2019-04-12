@@ -1,3 +1,19 @@
+apt-get update
+apt-get install software-properties-common
+add-apt-repository universe
+add-apt-repository ppa:certbot/certbot
+apt-get update
+apt-get install certbot
+certbot register --email r@gothundead.ru
+apt-get install python-certbot-nginx python-certbot-apache
+certbot --nginx -d alixi.ru -d www.alixi.ru
+cp -R $SCRIPTS/.config/settings/proftpd/myssl.conf /etc/proftpd/conf.d/myssl.conf
+tar -czvf $BACKUPFOLDER_INSTALLED/letsencrypt.tar.gz /etc/letsencrypt
+/etc/init.d/proftpd restart
+
+
+
+
 mysql -e "CREATE DATABASE IF NOT EXISTS lamer_webserver CHARACTER SET utf8 COLLATE utf8_general_ci;"
 mysql lamer_webserver < $SCRIPTS/.config/templates/db/webserver/webserver.sql
 

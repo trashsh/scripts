@@ -1,5 +1,0 @@
-сделать
-/etc/mysql/mysql.conf.d/mysqld.cnf
-bind-address = 127.0.0.1 
-
-

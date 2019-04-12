@@ -23,8 +23,9 @@ viewAccessDetail() {
 			#Пользователь $1 существует
 				case "$2" in
 				    full_info)
-				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}"
-				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User | highlight green "Ключевой файл" | highlight green "Использован открытый ключ"
+				        clear;
+				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}";
+				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User| highlight yellow FTP-User | highlight green "Ключевой файл" | highlight green "Тип подключения:" | highlight green "Phpmyadmin" | highlight green "Использован открытый ключ"
 				        ;;
 					*)
 					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
