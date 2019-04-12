@@ -25,10 +25,11 @@ fileAddLineToFile() {
 	   	            #Каталог "`dirname $1`" не существует (конец)
 	   	        fi
 	   	        sudo touch $1
-	   	        #sudo echo $2 >> $1
+	   	        sudo chmod 666 $1
+	   	        sudo echo $2 >> $1
 	   	        #Файл "$1" не существует (конец)
 	   	    else
-	   	        #sudo chmod 666 $1
+	   	        sudo chmod 666 $1
 	   	        sudo echo $2 >> $1
 	   	    fi
 	   	    #Конец проверки существования файла "$1"

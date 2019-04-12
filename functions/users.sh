@@ -5,7 +5,9 @@ declare -x -f FtpUserAdd
 #$1-user ;
 #$2-domain ;
 #$3-mode: password type - autogenerate/querry/manual;
-#$4-created by
+#$4-mode:system_user/site_user
+#$5-created by
+
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
@@ -14,7 +16,7 @@ declare -x -f FtpUserAdd
 #4 - пользователь created by не существует
 FtpUserAdd() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
 		#Проверка существования системного пользователя "$1_$2"
@@ -27,11 +29,11 @@ FtpUserAdd() {
 			#Пользователь $1_$2 существует (конец)
 			else
 			#Пользователь $1_$2 не существует
-			    #Проверка существования системного пользователя "$4"
-			    	grep "^$4:" /etc/passwd >/dev/null
+			    #Проверка существования системного пользователя "$5"
+			    	grep "^$5:" /etc/passwd >/dev/null
 			    	if  [ $? -eq 0 ]
 			    	then
-			    	#Пользователь $4 существует
+			    	#Пользователь $5 существует
                         case "$3" in
                             "manual"|"querry"|"autogenerate")
                                 #Проверка существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
@@ -48,7 +50,7 @@ FtpUserAdd() {
                                 fileAddLineToFile $infoFile "FTP-Пользователь:"
 
                                 #смена пароля на пользователя
-                                userChangePassword $1 $3
+                                userChangePassword $1_$2 $3
                                 fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
                                 fileAddLineToFile $infoFile "Port: $FTPPORT"
                                 fileAddLineToFile $infoFile "------------------------"
@@ -59,14 +61,14 @@ FtpUserAdd() {
                                 return 3
                                 ;;
                         esac
-                            #Пользователь $4 существует (конец)
+                            #Пользователь $5 существует (конец)
                             else
-                            #Пользователь $4 не существует
-                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
+                            #Пользователь $5 не существует
+                                echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$5\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}"
                                 return  4
-                            #Пользователь $4 не существует (конец)
+                            #Пользователь $5 не существует (конец)
                             fi
-                        #Конец проверки существования системного пользователя $4
+                        #Конец проверки существования системного пользователя $5
 
 			#Пользователь $1 не существует (конец)
 			fi

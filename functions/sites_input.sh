@@ -35,13 +35,31 @@ input_SiteAdd_php() {
                 echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
                 read domain
 
-                searchSiteConfigAllFolder $domain silent
+                searchSiteConfigByUsername $1 $domain silent
                 #Проверка на успешность выполнения предыдущей команды
                 if [ $? -eq 0 ]
                 	then
                 		#Есть конфигурация
                 		echo -e "${COLOR_RED}В настройках сервера уже имеется конфигурация для домена ${COLOR_GREEN}\"$domain\"${COLOR_RED}${COLOR_NC}"
-                		return 5
+
+                		echo -n -e "${COLOR_YELLOW}Для удаления старых настроек веб-серверов введите ${COLOR_GREEN}\"delete\"${COLOR_YELLOW} для отмены операции введите ${COLOR_BLUE}\"n\"${COLOR_YELLOW}${COLOR_NC}: "
+                		    while read
+                		    do
+                		        case "$REPLY" in
+                		            delete|Delete|DELETE)
+                		                siteRemoveWebserverConfig $1 $2;
+                		                break
+                		                ;;
+                		            n|N)
+
+                		                return 5
+                		                ;;
+                		            *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+                		               ;;
+                		        esac
+                		    done
+
+
                 		#Есть конфигурация (конец)
                 	else
                 		#нет конфигурации
@@ -178,6 +196,7 @@ input_siteRemove() {
                 echo ''
 
                 bash -c "source $SCRIPTS/include/inc.sh; siteRemove $domain $1 createbackup";
+                bash -c "source $SCRIPTS/include/inc.sh; dbUserdel $1_$domain drop";
 			#Пользователь $1 существует (конец)
 			else
 			#Пользователь $1 не существует
@@ -223,7 +242,7 @@ input_siteExist() {
                 echo -n -e "${COLOR_BLUE}Введите домен: ${COLOR_NC}"
 	            read domain
 
-	            searchSiteConfigAllFolder $domain success_only
+	            searchSiteConfigByUsername $1 $domain success_only
 	            #Проверка на успешность выполнения предыдущей команды
 	            case "$?" in
 	                0)

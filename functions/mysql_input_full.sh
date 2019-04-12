@@ -61,8 +61,8 @@ input_dbUserDeleteBase() {
                     do
                         case "$REPLY" in
                             y|Y)
-
-                                dbBackupBasesOneUser $username full_info data DeleteBase;
+                                bash -c "source $SCRIPTS/include/inc.sh; dbBackupBasesOneUser $username full_info data DeleteBase;";
+                                #dbBackupBasesOneUser $username full_info data DeleteBase;
                                 break
                                 ;;
                             n|N)
