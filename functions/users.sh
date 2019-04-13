@@ -14,11 +14,22 @@ declare -x -f FtpUserAdd
 #2 - пользователь ftp-уже существует
 #3 - Ошибка передачи параметра mode - manual|querry|autogenerate
 #4 - пользователь created by не существует
+#5 - ошибка mode: system_user/site_user
 FtpUserAdd() {
 	#Проверка на существование параметров запуска скрипта
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
+		case "$4" in
+		    system_user|site_user)
+                true
+		        ;;
+			*)
+			    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: system_user/site_user\"${COLOR_RED} в функцию ${COLOR_GREEN}\"FtpUserAdd\"${COLOR_NC}";
+			    return 5
+			    ;;
+		esac
+
 		#Проверка существования системного пользователя "$1_$2"
 			grep "^$1_$2:" /etc/passwd >/dev/null
 			if  [ $? -eq 0 ]
@@ -44,13 +55,26 @@ FtpUserAdd() {
                                 fi
                                 #Конец проверки существования каталога ""$HOMEPATHWEBUSERS"/"$1"/"$2""
 
+                            case "$4" in
+                                system_user)
+                                    infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+                                    ;;
+                                site_user)
+                                    infoFile="$HOMEPATHWEBUSERS"/"$1"/"$2"/.myconfig/info.txt
+                                    ;;
+                            	*)
+                            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
+                            	    ;;
+                            esac
+
+
                                 sudo useradd -c "Ftp-user for user $1 domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
                                 sudo adduser $1_$2 www-data
-                                infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
+
                                 fileAddLineToFile $infoFile "FTP-Пользователь:"
 
                                 #смена пароля на пользователя
-                                userChangePassword $1_$2 $3
+                                userChangePassword $1_$2 $3 $infoFile
                                 fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
                                 fileAddLineToFile $infoFile "Port: $FTPPORT"
                                 fileAddLineToFile $infoFile "------------------------"
@@ -90,6 +114,7 @@ declare -x -f userChangePassword
 ###input
 #$1-user ;
 #$2-mode set password: manual/querry/autogenerate ;
+#$3-путь к txt-файлу
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
@@ -97,7 +122,7 @@ declare -x -f userChangePassword
 #3 - пароль пустой
 userChangePassword() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
 		#Проверка существования системного пользователя "$1"
@@ -142,9 +167,8 @@ userChangePassword() {
 				esac
 
 				echo "$1:$password" | sudo chpasswd
-				infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
-				fileAddLineToFile $infoFile "Username: $1"
-                fileAddLineToFile $infoFile "Password: $password"
+				fileAddLineToFile $3 "Username: $1"
+                fileAddLineToFile $3 "Password: $password"
 				echo -e "${COLOR_YELLOW}Пользователю ${COLOR_GREEN}\"$1\"${COLOR_YELLOW} установлен пароль ${COLOR_GREEN}\"$password\"${COLOR_YELLOW}  ${COLOR_NC}"
 				return 0
 			#Пользователь $1 существует (конец)

@@ -136,8 +136,9 @@ menuSite() {
 
         echo '1: Добавить сайт на сервер'
         echo '2: Удаление сайта с сервера'
-        echo '3: Список виртуальных хостов на сервере'
-        echo '4: Сертификаты'
+        echo '3: Удаление конфигов с сайта'
+        echo '4: Список виртуальных хостов на сервере'
+        echo '5: Сертификаты'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -149,8 +150,9 @@ menuSite() {
                 case "$REPLY" in
                 "1")  menuSiteAdd $1; break;;
                 "2")  input_siteRemove $1; menuSite $1;  break;;
-                "3")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
-                "4")  $MENU/submenu/site_cert.sh $1; break;;
+                "3")  input_siteConfigRemove $1; menuSite $1; break;;
+                "4")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
+                "5")  $MENU/submenu/site_cert.sh $1; break;;
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
                  *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;

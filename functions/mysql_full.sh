@@ -222,6 +222,124 @@ dbUseradd() {
 }
 
 
+declare -x -f dbUseraddForDomain
+#Добавление пользователя mysql для домена
+#$1-user ;
+#$2-domain ;
+#$3-password ;
+#$4-host ;
+#$5-autentification_type {pass,sha,socket}  ;
+#$6-usertype ; {user, admin, adminGrant}
+#return 0 - выполнено успешно,
+# 1 - отсутствуют параметры запуска
+# 2 - неверный параметр usertype,
+# 3 - пользователь уже существует,
+# 4 - ошибка после выполнения команды на создание пользователя,
+# 5 - неверный параметр autentification_type
+dbUseraddForDomain() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+	then
+	#Параметры запуска существуют
+    #Проверка существования пользователя mysql $1
+
+        #Проверка на существование пользователя mysql "$1"
+        if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+        then
+        #Пользователь mysql "$1" существует
+            echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_NC}"
+            return 3
+        #Пользователь mysql "$1" существует (конец)
+        else
+        #Пользователь mysql "$1" не существует
+            #Проверка правильности параметра $5-autentification_type
+            case "$5" in
+                        "pass")
+                            auth="mysql_native_password";;
+                        "sha")
+                            auth="sha256_password";;
+                        "socket")
+                            auth="auth_socket";;
+                        *)
+                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-autentification_type\"${COLOR_NC}";
+                            return 5;;
+                    esac
+
+                #Проверка правильности параметра $5-autentification_type (конец)
+                    #Проверка правильности параметра $6 - тип пользователя
+                    case "$6" in
+                        "user")  #обычный пользователь
+                            mysql -e "CREATE USER '$1'@'$4' IDENTIFIED BY '$3'; GRANT USAGE ON *.* TO '$1'@'$4' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+                            mysql -e "FLUSH PRIVILEGES;"
+                            ;;
+                        "admin")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$4' IDENTIFIED BY '$3';";
+                            mysql -e "FLUSH PRIVILEGES;";
+                            ;;
+                        "adminGrant")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$4' IDENTIFIED BY '$3' WITH GRANT OPTION;";
+                            mysql -e "FLUSH PRIVILEGES;";
+                            ;;
+                        *)
+                            echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-usertype\"${COLOR_NC}";
+                            return 2;;
+                    esac
+                    #Проверка правильности параметра $6 - тип пользователя(конец)
+
+                    #Проверка на существование пользователя mysql "$1" после выполнения всех действий
+                    if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
+                    then
+                    #Пользователь mysql "$1" существует
+                        echo -e "${COLOR_GREEN}\nПользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
+                        #dbAddRecordToDb lamer_webserver db_users username $1 insert
+                        infoFile="$HOMEPATHWEBUSERS"/"$1"/"$2"/.myconfig/info.txt
+
+                        fileAddLineToFile $infoFile "---"
+                        fileAddLineToFile $infoFile "Mysql-User:"
+                        fileAddLineToFile $infoFile "Phpmyadmin: http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER"
+                        fileAddLineToFile $infoFile "Server: $MYSERVER"
+                        fileAddLineToFile $infoFile "Port: 3306"
+                        fileAddLineToFile $infoFile "Username: $1"
+                        fileAddLineToFile $infoFile "Password: $3"
+                        fileAddLineToFile $infoFile "Host: $4"
+                        fileAddLineToFile $infoFile "------------------------"
+
+                        #Проверка существования системного пользователя "$1"
+                        	grep "^$1:" /etc/passwd >/dev/null
+                        	if  [ $? -eq 0 ]
+                        	then
+                        	#Пользователь $1 существует
+                        	    dbSetMyCnfFile $1 $1 $3
+
+                        	#Пользователь $1 существует (конец)
+                        	fi
+                        #Конец проверки существования системного пользователя $1
+
+                        return 0
+                    #Пользователь mysql "$1" существует (конец)
+                    else
+                    #Пользователь mysql "$1" не существует
+                        echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не был создан. Произошла ошибка. ${COLOR_NC}"
+                        return 4
+                    #Пользователь mysql "$1" не существует (конец)
+                    fi
+                    #Конец проверки на существование пользователя mysql "$1"
+                #Пользователь mysql - $1 не существует (конец)
+        #Пользователь mysql "$1" не существует (конец)
+        fi
+        #Конец проверки на существование пользователя mysql "$1"
+
+
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"dbUseradd\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
+
 declare -x -f dbCreateBase
 #Создание базы данных $1
 ###input
