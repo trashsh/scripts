@@ -177,7 +177,7 @@ userAddSystem()
                                         fileAddLineToFile $infoFile "Port: $FTPPORT"
                                         fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
 
-                                        #dbSetMyCnfFile $1 $1 $6
+                                        #dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $6
                                         mkdirWithOwn $2/.backups $1 $4 777
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
@@ -287,6 +287,7 @@ declare -x -f viewAccessDetail
 ###input
 #$1-user ;
 #$2-mode (full_info);
+#$3 - каталог размещения домашних папок пользователей
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
@@ -294,10 +295,10 @@ declare -x -f viewAccessDetail
 #3 - ошибка передачи mode
 viewAccessDetail() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
-		file=$HOMEPATHWEBUSERS/$1/.myconfig/info.txt
+		file=$3/.myconfig/info.txt
 		#Проверка существования системного пользователя "$1"
 			grep "^$1:" /etc/passwd >/dev/null
 			if  [ $? -eq 0 ]

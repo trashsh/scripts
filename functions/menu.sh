@@ -258,8 +258,8 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") input_SiteAdd_php $1 querry; menuSiteAdd $1; break;;
-                "2") input_SiteAdd_php $1 lite; menuSiteAdd $1; break;;
+                "1") input_SiteAdd_PHP $1 querry; menuSiteAdd $1; break;;
+                "2") input_SiteAdd_PHP $1 lite; menuSiteAdd $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
 

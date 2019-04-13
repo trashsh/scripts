@@ -94,3 +94,47 @@ siteAddTestIndexFile() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
+
+
+declare -x -f siteRemoveWebserverConfig
+###!Полностью готово. Не трогать больше
+#Удаление конфигов веб-серверов
+###input
+#$1-user ;
+#$2-domain ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+siteRemoveWebserverConfig() {
+  #  echo $1_$2.conf
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+#	    echo "$NGINXENABLED"/"$1_$2.conf"
+		if [ -f "$NGINXENABLED"/"$1_$2.conf" ] || [ -L "$NGINXENABLED"/"$1_$2.conf" ]; then
+            sudo rm -f "$NGINXENABLED"/"$1_$2.conf"
+        fi
+
+        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] || [ -L "$NGINXAVAILABLE"/"$1_$2.conf" ]; then
+            sudo rm -f "$NGINXAVAILABLE"/"$1_$2.conf"
+        fi
+
+        if [ -f "$APACHEENABLED"/"$1_$2.conf" ] || [ -L "$APACHEENABLED"/"$1_$2.conf" ]; then
+            sudo rm -f "$APACHEENABLED"/"$1_$2.conf"
+        fi
+
+#        echo "$APACHEAVAILABLE"/"$1_$2.conf"
+        if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] || [ -L "$APACHEAVAILABLE"/"$1_$2.conf" ]; then
+            sudo rm -f "$APACHEAVAILABLE"/"$1_$2.conf"
+        fi
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}

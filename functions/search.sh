@@ -19,58 +19,58 @@ searchSiteConfigByUsername() {
 	then
 	#Параметры запуска существуют
 		[ "$(ls -A $APACHEAVAILABLE | grep "$1_$2.conf$")" ]
-		 if [ $? -eq 0 ]; then res_aa=0; else res_aa=1; folder=$APACHEAVAILABLE; fi
+		 if [ $? -eq 0 ]; then res_aa=0; echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$APACHEAVAILABLE/$1_$2.conf\"${COLOR_RED} уже существует ${COLOR_NC}"; else res_aa=1; folder=$APACHEAVAILABLE; fi
 
 		[ "$(ls -A $APACHEENABLED | grep "$1_$2.conf$")" ]
-		 if [ $? -eq 0 ]; then res_ae=0; else res_ae=1; folder=$APACHEENABLED; fi
+		 if [ $? -eq 0 ]; then res_ae=0; echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$APACHEENABLED/$1_$2.conf\"${COLOR_RED} уже существует ${COLOR_NC}"; else res_ae=1; folder=$APACHEENABLED; fi
 
         [ "$(ls -A $NGINXAVAILABLE | grep "$1_$2.conf$")" ]
-		 if [ $? -eq 0 ]; then res_na=0; else res_na=1; folder=$NGINXAVAILABLE; fi
+		 if [ $? -eq 0 ]; then res_na=0; echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$NGINXAVAILABLE/$1_$2.conf\"${COLOR_RED} уже существует ${COLOR_NC}"; else res_na=1; folder=$NGINXAVAILABLE; fi
 
 		[ "$(ls -A $NGINXENABLED | grep "$1_$2.conf$")" ]
-		 if [ $? -eq 0 ]; then res_ne=0; else res_ne=1; folder=$NGINXENABLED; fi
+		 if [ $? -eq 0 ]; then res_ne=0; echo -e "${COLOR_RED}Конфигурация ${COLOR_GREEN}\"$NGINXENABLED/$1_$2.conf\"${COLOR_RED} уже существует ${COLOR_NC}"; else res_ne=1; folder=$NGINXENABLED; fi
 
 
 		 if [ $res_aa -eq 0 ] || [ $res_ae -eq 0 ] || [ $res_na -eq 0 ] || [ $res_ne -eq 0 ]
 		 then
-            case "$3" in
-                full_info)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
-                    ;;
-                error_only)
-
-                    ;;
-            	success_only)
-            	    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
-            		;;
-                silent)
-
-            		;;
-            	*)
-            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
-            	    return 3
-            	    ;;
-            esac
+#            case "$3" in
+#                full_info)
+#                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+#                    ;;
+#                error_only)
+#
+#                    ;;
+#            	success_only)
+#            	    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} имеется в каталоге ${COLOR_GREEN}\"$folder\"${COLOR_YELLOW} ${COLOR_NC}"
+#            		;;
+#                silent)
+#
+#            		;;
+#            	*)
+#            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+#            	    return 3
+#            	    ;;
+#            esac
             return 0
 
          else
-            case "$3" in
-                full_info)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
-                    ;;
-                error_only)
-                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
-                    ;;
-            	success_only)
-            		;;
-                silent)
-
-            		;;
-            	*)
-            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
-            	    return 3
-            	    ;;
-            esac
+#            case "$3" in
+#                full_info)
+#                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+#                    ;;
+#                error_only)
+#                    echo -e "${COLOR_YELLOW}Конфигурация домена ${COLOR_GREEN}\"$2\"${COLOR_YELLOW} отсутствует в каталогах веб-серверов${COLOR_NC}"
+#                    ;;
+#            	success_only)
+#            		;;
+#                silent)
+#
+#            		;;
+#            	*)
+#            	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"searchSiteConfigAllFolder\"${COLOR_NC}";
+#            	    return 3
+#            	    ;;
+#            esac
             return 2
 		 fi
 

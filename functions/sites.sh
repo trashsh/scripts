@@ -66,7 +66,7 @@ siteAdd_php() {
                             dbCreateBase $1_$2 utf8 utf8_general_ci error_only
                             mysqlpassword="$(openssl rand -base64 14)";
 
-                            dbUseraddForDomain $1 $2 $mysqlpassword localhost pass user
+                            dbUseraddForDomain $1 $mysqlpassword $6 $2 localhost pass user
 
 
 
@@ -80,17 +80,7 @@ siteAdd_php() {
                             git add .
                             git commit -m "initial commit"
 
-                            echo -e "==========================================="
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} Параметры подключения к сайту ${COLOR_NC} (nginx)"
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2" ${COLOR_NC} (nginx)"
-                            echo -e "Сайт доступен по адресу: ${COLOR_YELLOW} http://"$2":8080 ${COLOR_NC} (apache)"
-                            echo -e "Сервер FTP: ${COLOR_YELLOW} "$2":10081 ${COLOR_NC}"
-                            echo -e "FTP User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-                            echo -e "PhpMyAdmin: ${COLOR_YELLOW} https://conf.mmgx.ru/dbase ${COLOR_NC}"
-                            echo -e "Adminer: ${COLOR_YELLOW} https://conf.mmgx.ru/a ${COLOR_NC}"
-                            echo -e "MYSQL User: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-                            echo -e "MYSQL DB: ${COLOR_YELLOW} $1_$2 ${COLOR_NC}"
-
+                            viewAccessDetail $username full_info "$HOMEPATHWEBUSERS"/"$6"
                             #Каталог сайта "$3" не существует (конец)
                         fi
                         #Конец проверки существования каталога "$3"
@@ -397,43 +387,6 @@ siteRemove() {
 }
 
 
-declare -x -f siteRemoveWebserverConfig
-#Удаление конфигов веб-серверов
-###input
-#$1-user ;
-#$2-domain ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-siteRemoveWebserverConfig() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-		if [ -f "$NGINXENABLED"/"$1_$2.conf" ] ; then
-            sudo rm "$NGINXENABLED"/"$1_$2.conf"
-        fi
-
-        if [ -f "$NGINXAVAILABLE"/"$1_$2.conf" ] ; then
-           sudo rm "$NGINXAVAILABLE"/"$1_$2.conf"
-        fi
-
-        if [ -f "$APACHEENABLED"/"$1_$2.conf" ] ; then
-           sudo rm "$APACHEENABLED"/"$1_$2.conf"
-        fi
-
-        if [ -f "$APACHEAVAILABLE"/"$1_$2.conf" ] ; then
-           sudo rm "$APACHEAVAILABLE"/"$1_$2.conf"
-        fi
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteRemoveWebserverConfig\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
 
 
 declare -x -f siteRemoveLogs

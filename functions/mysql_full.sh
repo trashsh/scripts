@@ -190,7 +190,7 @@ dbUseradd() {
                         	if  [ $? -eq 0 ]
                         	then
                         	#Пользователь $1 существует
-                        	    dbSetMyCnfFile $1 $1 $2
+                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $2
 
                         	#Пользователь $1 существует (конец)
                         	fi
@@ -222,14 +222,16 @@ dbUseradd() {
 }
 
 
+
 declare -x -f dbUseraddForDomain
-#Добавление пользователя mysql для домена
-#$1-user ;
-#$2-domain ;
-#$3-password ;
-#$4-host ;
-#$5-autentification_type {pass,sha,socket}  ;
-#$6-usertype ; {user, admin, adminGrant}
+#Добавление пользователя mysql
+#$1-db user ;
+#$2-password ;
+#$3-system user
+#$4-domain
+#$5-host ;
+#$6-autentification_type {pass,sha,socket}  ;
+#$7-usertype ; {user, admin, adminGrant}
 #return 0 - выполнено успешно,
 # 1 - отсутствуют параметры запуска
 # 2 - неверный параметр usertype,
@@ -238,7 +240,7 @@ declare -x -f dbUseraddForDomain
 # 5 - неверный параметр autentification_type
 dbUseraddForDomain() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ] && [ -n "$7" ]
 	then
 	#Параметры запуска существуют
     #Проверка существования пользователя mysql $1
@@ -252,8 +254,8 @@ dbUseraddForDomain() {
         #Пользователь mysql "$1" существует (конец)
         else
         #Пользователь mysql "$1" не существует
-            #Проверка правильности параметра $5-autentification_type
-            case "$5" in
+            #Проверка правильности параметра $6-autentification_type
+            case "$6" in
                         "pass")
                             auth="mysql_native_password";;
                         "sha")
@@ -265,24 +267,24 @@ dbUseraddForDomain() {
                             return 5;;
                     esac
 
-                #Проверка правильности параметра $5-autentification_type (конец)
-                    #Проверка правильности параметра $6 - тип пользователя
-                    case "$6" in
+                #Проверка правильности параметра $6-autentification_type (конец)
+                    #Проверка правильности параметра $7 - тип пользователя
+                    case "$7" in
                         "user")  #обычный пользователь
-                            mysql -e "CREATE USER '$1'@'$4' IDENTIFIED BY '$3'; GRANT USAGE ON *.* TO '$1'@'$4' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
+                            mysql -e "CREATE USER '$1'@'$5' IDENTIFIED BY '$2'; GRANT USAGE ON *.* TO '$1'@'$5' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;";
                             mysql -e "FLUSH PRIVILEGES;"
                             ;;
-                        "admin")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$4' IDENTIFIED BY '$3';";
+                        "admin")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$5' IDENTIFIED BY '$2';";
                             mysql -e "FLUSH PRIVILEGES;";
                             ;;
-                        "adminGrant")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$4' IDENTIFIED BY '$3' WITH GRANT OPTION;";
+                        "adminGrant")  mysql -e "GRANT ALL PRIVILEGES ON *.* To '$1'@'$5' IDENTIFIED BY '$2' WITH GRANT OPTION;";
                             mysql -e "FLUSH PRIVILEGES;";
                             ;;
                         *)
                             echo -e "${COLOR_RED}Ошибка передачи параметра в функцию ${COLOR_GREEN}\"dbUseradd-dbViewUserInfo-usertype\"${COLOR_NC}";
                             return 2;;
                     esac
-                    #Проверка правильности параметра $6 - тип пользователя(конец)
+                    #Проверка правильности параметра $7 - тип пользователя(конец)
 
                     #Проверка на существование пользователя mysql "$1" после выполнения всех действий
                     if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$1'" 2>&1`" ]];
@@ -290,7 +292,7 @@ dbUseraddForDomain() {
                     #Пользователь mysql "$1" существует
                         echo -e "${COLOR_GREEN}\nПользователь mysql ${COLOR_YELLOW}\"$1\"${COLOR_GREEN} успешно создан ${COLOR_NC}"
                         #dbAddRecordToDb lamer_webserver db_users username $1 insert
-                        infoFile="$HOMEPATHWEBUSERS"/"$1"/"$2"/.myconfig/info.txt
+                        infoFile="$HOMEPATHWEBUSERS"/"$3"/"$4"/.myconfig/info.txt
 
                         fileAddLineToFile $infoFile "---"
                         fileAddLineToFile $infoFile "Mysql-User:"
@@ -298,8 +300,8 @@ dbUseraddForDomain() {
                         fileAddLineToFile $infoFile "Server: $MYSERVER"
                         fileAddLineToFile $infoFile "Port: 3306"
                         fileAddLineToFile $infoFile "Username: $1"
-                        fileAddLineToFile $infoFile "Password: $3"
-                        fileAddLineToFile $infoFile "Host: $4"
+                        fileAddLineToFile $infoFile "Password: $2"
+                        fileAddLineToFile $infoFile "Host: $5"
                         fileAddLineToFile $infoFile "------------------------"
 
                         #Проверка существования системного пользователя "$1"
@@ -307,7 +309,7 @@ dbUseraddForDomain() {
                         	if  [ $? -eq 0 ]
                         	then
                         	#Пользователь $1 существует
-                        	    dbSetMyCnfFile $1 $1 $3
+                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$3/$4 $1 $2
 
                         	#Пользователь $1 существует (конец)
                         	fi

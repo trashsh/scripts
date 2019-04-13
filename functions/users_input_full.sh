@@ -276,7 +276,7 @@ input_userAddSystem() {
                 #Проверка существования файла ""$HOMEPATHWEBUSERS"/"$username"/.myconfig/info.txt"
                 if [ -f "$HOMEPATHWEBUSERS"/"$username"/.myconfig/info.txt ] ; then
                     #Файл ""$HOMEPATHWEBUSERS"/"$username"/.myconfig/info.txt" существует
-                    viewAccessDetail $username full_info
+                    viewAccessDetail $username full_info $HOMEPATHWEBUSERS/$username
                     #Файл ""$HOMEPATHWEBUSERS"/"$username"/.myconfig/info.txt" существует (конец)
                 fi
                 #Конец проверки существования файла ""$HOMEPATHWEBUSERS"/"$username"/.myconfig/info.txt"
