@@ -66,7 +66,7 @@ siteAdd_php() {
                             dbCreateBase $1_$2 utf8 utf8_general_ci error_only
                             mysqlpassword="$(openssl rand -base64 14)";
 
-                            dbUseraddForDomain $1 $mysqlpassword $6 $2 localhost pass user
+                            dbUseraddForDomain $1_$2 $mysqlpassword $6 $2 localhost pass user
 
 
 
@@ -80,7 +80,7 @@ siteAdd_php() {
                             git add .
                             git commit -m "initial commit"
 
-                            viewAccessDetail $username full_info "$HOMEPATHWEBUSERS"/"$6"
+                            viewAccessDetail $HOMEPATHWEBUSERS/$6/$2 full_info
                             #Каталог сайта "$3" не существует (конец)
                         fi
                         #Конец проверки существования каталога "$3"

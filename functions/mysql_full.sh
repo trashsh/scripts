@@ -190,7 +190,7 @@ dbUseradd() {
                         	if  [ $? -eq 0 ]
                         	then
                         	#Пользователь $1 существует
-                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $2
+                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $2 $1
 
                         	#Пользователь $1 существует (конец)
                         	fi
@@ -309,7 +309,7 @@ dbUseraddForDomain() {
                         	if  [ $? -eq 0 ]
                         	then
                         	#Пользователь $1 существует
-                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$3/$4 $1 $2
+                        	    dbSetMyCnfFile $HOMEPATHWEBUSERS/$3/$4 $1 $2 $3
 
                         	#Пользователь $1 существует (конец)
                         	fi

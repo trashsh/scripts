@@ -113,7 +113,7 @@ input_dbUseradd() {
 
                                 dbUseradd $username $password $host pass user $1
 
-                                dbSetMyCnfFile $HOMEPATHWEBUSERS/$username $username $password
+                                dbSetMyCnfFile $HOMEPATHWEBUSERS/$username $username $password $username
 
 
 
@@ -362,7 +362,7 @@ input_dbChangeUserPassword() {
            			if  [ $? -eq 0 ]
            			then
            			#Пользователь $username существует
-           				dbSetMyCnfFile $HOMEPATHWEBUSERS/$username $username $password
+           				dbSetMyCnfFile $HOMEPATHWEBUSERS/$username $username $password $username
            			#Пользователь $username существует (конец)
            			fi
            		#Конец проверки существования системного пользователя $username

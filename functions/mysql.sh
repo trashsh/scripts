@@ -6,6 +6,7 @@ declare -x -f dbSetMyCnfFile
 #$1-system user home dir ;
 #$2-mysql user ;
 #$3-mysql password ;
+#$4-system user;
 #return:
 #0 - выполнено успешно,
 #1 - отсутствуют параметры,
@@ -14,7 +15,7 @@ declare -x -f dbSetMyCnfFile
 #4 - пользователь mysql $2 - не существует
 dbSetMyCnfFile() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 
         #Проверка существования каталога "$1"
@@ -27,7 +28,7 @@ dbSetMyCnfFile() {
                     #Проверка существования файла ""$1"/"my.cnf""
                     if [ -f "$1"/"my.cnf" ] ; then
                         #Файл ""$1"/"my.cnf"" существует
-                             backupImportantFile $1 "my.cnf"  $1/.my.cnf
+                             backupImportantFile $4 "my.cnf"  $1/.my.cnf
                              sudo sed -i "s/.*password=.*/password=$3/" $1/.my.cnf
                         #Файл ""$1"/"my.cnf"" существует (конец)
                     else
@@ -49,7 +50,7 @@ dbSetMyCnfFile() {
                             sudo chmod 600 $1/.my.cnf
                             sudo chown $1:users $1/.my.cnf
 
-                            backupImportantFile $1 "my.cnf"  $1/.my.cnf
+                            backupImportantFile $4 "my.cnf"  $1/.my.cnf
 
                             #Финальная проверка существования файла "$1/.my.cnf"
                             if [ -f $1/.my.cnf ] ; then

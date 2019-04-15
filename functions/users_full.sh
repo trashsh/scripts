@@ -177,7 +177,7 @@ userAddSystem()
                                         fileAddLineToFile $infoFile "Port: $FTPPORT"
                                         fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
 
-                                        #dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $6
+                                        #dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $6 $1
                                         mkdirWithOwn $2/.backups $1 $4 777
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
                                         mkdirWithOwn $2/.backups/manually $1 $4 755
@@ -285,9 +285,8 @@ userAddToGroupSudo() {
 declare -x -f viewAccessDetail
 #Отобразить реквизиты доступа
 ###input
-#$1-user ;
+#$1 - каталог размещения домашних папок пользователей
 #$2-mode (full_info);
-#$3 - каталог размещения домашних папок пользователей
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
@@ -295,15 +294,11 @@ declare -x -f viewAccessDetail
 #3 - ошибка передачи mode
 viewAccessDetail() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
-		file=$3/.myconfig/info.txt
+		file=$1/.myconfig/info.txt
 		#Проверка существования системного пользователя "$1"
-			grep "^$1:" /etc/passwd >/dev/null
-			if  [ $? -eq 0 ]
-			then
-			#Пользователь $1 существует
 				case "$2" in
 				    full_info)
 				        clear;
@@ -315,14 +310,6 @@ viewAccessDetail() {
 					    return 3
 					    ;;
 				esac
-			#Пользователь $1 существует (конец)
-			else
-			#Пользователь $1 не существует
-			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}"
-				return 2
-			#Пользователь $1 не существует (конец)
-			fi
-		#Конец проверки существования системного пользователя $1
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
