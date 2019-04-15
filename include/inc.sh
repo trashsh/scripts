@@ -54,5 +54,7 @@ source $SCRIPTS/functions/webserver_full.sh
 source $SCRIPTS/functions/cert.sh
 source $SCRIPTS/functions/cert_full.sh
 
+source $SCRIPTS/functions/cert_input.sh
+
 
 source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh

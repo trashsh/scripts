@@ -247,7 +247,8 @@ menuSiteAdd() {
         echo -e "${COLOR_GREEN} ===Добавление сайтов===${COLOR_NC}"
 
         echo '1: PHP/HTML (с вводом доп.параметров)'
-        echo '2: PHP/HTML (упрощенная настройка)'
+        echo '2: PHP/HTML (Nginx-Frontend, Apache2-Backend)'
+        echo '3: PHP/HTML (Nginx-Port 80, Apache2-Port 8080)'
         echo '3: Framework Laravel'
         echo '4: Framework Laravel (с вводом доп.параметров)'
 
@@ -260,7 +261,8 @@ menuSiteAdd() {
             do
                 case "$REPLY" in
                 "1") input_SiteAdd_PHP $1 querry; menuSiteAdd $1; break;;
-                "2") input_SiteAdd_PHP $1 lite; menuSiteAdd $1; break;;
+                "2") input_SiteAdd_PHP $1 reverseProxy; menuSiteAdd $1; break;;
+                "3") input_SiteAdd_PHP $1 lite; menuSiteAdd $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
 
@@ -497,8 +499,8 @@ menuSite_cert() {
         echo ''
         echo -e "${COLOR_GREEN} ===Управление сертификатами сайтов===${COLOR_NC}"
 
-        echo '1: Добавить сайту SSL-сертификат'
-        echo '2: letsencrypt'
+        echo '1: Добавить сайту SSL-сертификат (NGINX)'
+        echo '2: Добавить сайту SSL-сертификат (APACHE)'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -510,7 +512,7 @@ menuSite_cert() {
                 case "$REPLY" in
                 "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_siteAddSSL $1; menuSite_cert $1";
                   break;;
-                "2")   $1; break;;
+                "2") sudo certbot --apache; menuSite_cert $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
