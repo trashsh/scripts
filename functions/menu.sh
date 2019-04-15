@@ -137,8 +137,9 @@ menuSite() {
         echo '1: Добавить сайт на сервер'
         echo '2: Удаление сайта с сервера'
         echo '3: Удаление конфигов с сайта'
-        echo '4: Список виртуальных хостов на сервере'
-        echo '5: Сертификаты'
+        echo '4: Управление сертификатами'
+        echo '5: Список виртуальных хостов на сервере'
+
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -151,8 +152,8 @@ menuSite() {
                 "1")  menuSiteAdd $1; break;;
                 "2")  input_siteRemove $1; menuSite $1;  break;;
                 "3")  input_siteConfigRemove $1; menuSite $1; break;;
-                "4")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
-                "5")  $MENU/submenu/site_cert.sh $1; break;;
+                "4")  menuSite_cert $1; break;;
+                "5")  $SCRIPTS/info/site_info/show_sites.sh $1; break;;
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
                  *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
@@ -496,7 +497,7 @@ menuSite_cert() {
         echo ''
         echo -e "${COLOR_GREEN} ===Управление сертификатами сайтов===${COLOR_NC}"
 
-        echo '1: certbot certificates'
+        echo '1: Добавить сайту SSL-сертификат'
         echo '2: letsencrypt'
 
         echo '0: Назад'
@@ -507,7 +508,8 @@ menuSite_cert() {
         while read
             do
                 case "$REPLY" in
-                "1")   $1; break;;
+                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_siteAddSSL $1; menuSite_cert $1";
+                  break;;
                 "2")   $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;

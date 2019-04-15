@@ -19,6 +19,8 @@ input_userDelete_system() {
     	if  [ $? -eq 0 ]
     	then
     	#Пользователь $username существует
+
+
     		echo -n -e "${COLOR_YELLOW}Для удаления системного пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_YELLOW}: ${COLOR_NC}"
             while read
                 do

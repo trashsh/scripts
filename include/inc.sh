@@ -32,6 +32,7 @@ source $SCRIPTS/functions/sites.sh
 source $SCRIPTS/functions/sites_full.sh
 
 source $SCRIPTS/functions/sites_input.sh
+source $SCRIPTS/functions/sites_input_full.sh
 
 source $SCRIPTS/functions/ssh.sh
 source $SCRIPTS/functions/ssh_full.sh
@@ -49,6 +50,9 @@ source $SCRIPTS/functions/users_input_full.sh
 
 source $SCRIPTS/functions/webserver.sh
 source $SCRIPTS/functions/webserver_full.sh
+
+source $SCRIPTS/functions/cert.sh
+source $SCRIPTS/functions/cert_full.sh
 
 
 source $SCRIPTS/external_scripts/dev-shell-essentials-master/dev-shell-essentials.sh

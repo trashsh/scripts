@@ -1,4 +1,72 @@
 #!/bin/bash
+
+declare -x -f backupSslCert
+#Создание бэкапа в папку BACKUPFOLDER_IMPORTANT
+###!Полностью готово. Не трогать больше
+###input:
+#$1-user ;
+#$2-домен
+###return:
+#0 - выполнено успешно
+#1 - отпутствуют параметры
+#2 - пользователь $2 - не существует
+#3 - каталог $DIRPATH не найден
+#4 - в процессе архивации возникла ошибка
+backupSslCert() {
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ]
+	then
+	#Параметры запуска существуют
+	    #Проверка существования системного пользователя "$1"
+	    	grep "^$1:" /etc/passwd >/dev/null
+	    	if  [ $? -eq 0 ]
+	    	then
+	    	#Пользователь $1 существует
+                DIRPATH=/etc/letsencrypt/archive/$2
+
+	    	    #Проверка существования каталога "$DIRPATH"
+	    	    if [ -d $DIRPATH ] ; then
+	    	        #Каталог "$DIRPATH" существует
+	    	        DESTDIRPATH=$BACKUPFOLDER_IMPORTANT/SslCert/$1/$2/$date/
+	    	        #Проверка существования каталога "$DESTDIRPATH"
+                    if ! [ -d $DESTDIRPATH ] ; then
+                        sudo mkdir -p $DESTDIRPATH
+                    fi
+                    #Проверка существования каталога "$DESTDIRPATH" (конец)
+
+                    tarFolder $DIRPATH $DESTDIRPATH/SslCert.$1_$2__$datetime.tar.gz str silent rewrite $1 users 600 && return 0 || return 4
+	    	        #Каталог "$DIRPATH" существует (конец)
+	    	    else
+	    	        #Каталог "$DIRPATH" не существует
+	    	        echo -e "${COLOR_RED}Каталог ${COLOR_GREEN}\"$DIRPATH\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupSslCert\"${COLOR_NC}"
+	    	        return 3
+	    	        #Каталог "$DIRPATH" не существует (конец)
+	    	    fi
+	    	    #Конец проверки существования каталога "$DIRPATH"
+
+
+
+	    	#Пользователь $1 существует (конец)
+	    	else
+	    	#Пользователь $1 не существует
+	    	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupSslCert\"${COLOR_NC}"
+	    		return 2
+	    	#Пользователь $1 не существует (конец)
+	    	fi
+	    #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupImportantFolder\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 declare -x -f backupImportantFile
 #Создание бэкапа в папку BACKUPFOLDER_IMPORTANT
 ###!Полностью готово. Не трогать больше

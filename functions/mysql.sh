@@ -514,7 +514,7 @@ dbSetFullAccessToBase() {
 		    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
 		    	then
 		    	#база $1 - существует
-				mysql -e "GRANT ALL PRIVILEGES ON \`$1\`.* TO \`$2\`@\`$3\`; FLUSH PRIVILEGES;"
+				mysql -e "GRANT ALL PRIVILEGES ON \`$1\`.* TO \`$2\`@\`$3\` WITH GRANT OPTION; FLUSH PRIVILEGES;"
 				return 0
 		    	#база $1 - существует (конец)
 		    	else
