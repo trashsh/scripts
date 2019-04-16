@@ -335,7 +335,8 @@ backupSiteWebserverConfig() {
                 #Параметры запуска существуют (конец)
                 else
                 #Параметры запуска отсутствуют
-                    DESTINATION=$BACKUPFOLDER_DAYS/$1/$2/$date
+                    #DESTINATION=$BACKUPFOLDER_DAYS/$1/$2/$date
+                    DESTINATION=$BACKUPFOLDER/vds/removed/$1/$2/$date
                 #Параметры запуска отсутствуют (конец)
                 fi
                 #Конец проверки существования параметров запуска скрипта
@@ -443,6 +444,68 @@ backupSiteWebserverConfig() {
 }
 
 
+declare -x -f backupAllSitesByUsername #создание бэкапа файлов всех сайтов определенного пользователя:
+###!Полностью готово. Не трогать больше
+#создание бэкапа файлов всех сайтов определенного пользователя
+###input
+#$1-username ;
+#$2-если есто параметр, то выгрузка в указанный каталог, если нет - то в $BACKUPFOLDER/vds/removed/$2/${i%%/}/$date
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+backupAllSitesByUsername() {
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+		#Проверка существования системного пользователя "$1"
+			grep "^$1:" /etc/passwd >/dev/null
+			if  [ $? -eq 0 ]
+			then
+			#Пользователь $1 существует
+				#Проверка на существование параметров запуска скрипта
+				if [ -n "$2" ]
+				then
+				#Параметры запуска существуют
+				    for i in $(ls -d $HOMEPATHWEBUSERS/$1/*/ | xargs -n 1 basename)
+				        do
+                            backupSiteFiles $1 ${i%%/} createDestFolder $2;
+                            backupSiteWebserverConfig $1 ${i%%/} full_info
+				    done
+				#Параметры запуска существуют (конец)
+				else
+				#Параметры запуска отсутствуют
+				    for i in $(ls -d $HOMEPATHWEBUSERS/$1/*/ | xargs -n 1 basename)
+				        do backupSiteFiles $1 ${i%%/} createDestFolder $BACKUPFOLDER/vds/removed/$1/${i%%/}/$date
+				        backupSiteWebserverConfig $1 ${i%%/} full_info $BACKUPFOLDER/vds/removed/$1/${i%%/}/$date
+				    done
+				#Параметры запуска отсутствуют (конец)
+				fi
+				#Конец проверки существования параметров запуска скрипта
+
+
+
+			#Пользователь $1 существует (конец)
+			else
+			#Пользователь $1 не существует
+			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"backupAllSitesByUsername\"${COLOR_NC}";
+				return 2
+			#Пользователь $1 не существует (конец)
+			fi
+		#Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupAllSitesByUsername\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
+
 declare -x -f backupSiteFiles
 #Создание бэкапа файлов сайта
 ###!Полностью готово. Не трогать больше
@@ -530,6 +593,15 @@ backupSiteFiles() {
             FILENAME=site.$1==$2__$datetime.tar.gz
             #tar_folder_structure $HOMEPATHWEBUSERS/$1/$2 $DESTINATION/$FILENAME
             tarFolder $HOMEPATHWEBUSERS/$1/$2 $DESTINATION/$FILENAME str silent rewrite $1 www-data 644
+            #Проверка на успешность выполнения предыдущей команды
+            if [ $? -eq 0 ]
+            	then
+            		#предыдущая команда завершилась успешно
+            		echo -e "${COLOR_GREEN}Резервная копия сайта ${COLOR_YELLOW}\"$2\"${COLOR_GREEN} успешно выполнена в архив ${COLOR_YELLOW}\"$DESTINATION/$FILENAME\"${COLOR_GREEN}  ${COLOR_NC}"
+            		#предыдущая команда завершилась успешно (конец)
+            fi
+
+            #Конец проверки на успешность выполнения предыдущей команды
 
             #Проверка существования файла "$DESTINATION/$FILENAME"
             if [ -f $DESTINATION/$FILENAME ] ; then

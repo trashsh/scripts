@@ -28,7 +28,7 @@ input_certGenerate() {
                     do
                         case "$REPLY" in
                             y|Y)
-                                site_AddSSL $username $2;
+                                site_AddSSL $username $2 manual;
                                 break
                                 ;;
                             n|N)

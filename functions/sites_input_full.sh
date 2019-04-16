@@ -30,7 +30,7 @@ input_siteAddSSL() {
                 #Проверка существования каталога "$WEBFOLDER"
                 if [ -d $WEBFOLDER ] ; then
                     #Каталог "$WEBFOLDER" существует
-                    site_AddSSL $1 $domain
+                    site_AddSSL $1 $domain manual
                     #Каталог "$WEBFOLDER" существует (конец)
                 else
                     #Каталог "$WEBFOLDER" не существует

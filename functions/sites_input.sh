@@ -341,7 +341,7 @@ input_siteRemove() {
 				echo "--------------------------------------"
                 echo "Удаление виртуального хоста:"
                 echo "Список имеющихся доменов для пользователя $1:"
-                ls $HOMEPATHWEBUSERS/$1
+                ls -d $HOMEPATHWEBUSERS/$1/*/ | xargs -n 1 basename
                 echo ''
                 echo -n "Введите домен для удаления: "
                 read domain

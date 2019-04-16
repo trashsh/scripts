@@ -8,6 +8,8 @@ declare -x -f input_userDelete_system
 #2 - не существует пользователь
 #3 - операция отменена пользователем
 input_userDelete_system() {
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
 	echo -e "${COLOR_GREEN}"Удаление системного пользователя"${COLOR_NC}"
 	echo -e "${COLOR_YELLOW}"Список существующих пользователей"${COLOR_NC}"
 	viewGroupUsersAccessAll
@@ -20,13 +22,15 @@ input_userDelete_system() {
     	then
     	#Пользователь $username существует
 
-
+            echo -n -e "${COLOR_YELLOW} Удаление пользователя повлечет удаление сайтов пользователя, баз данных, пользователей mysql\n${COLOR_NC}"
     		echo -n -e "${COLOR_YELLOW}Для удаления системного пользователя ${COLOR_GREEN}\"$username\"${COLOR_YELLOW} введите ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для выхода - ${COLOR_BLUE}\"n\"${COLOR_YELLOW}: ${COLOR_NC}"
             while read
                 do
                     echo -n ": "
                     case "$REPLY" in
-                    y|Y) userDelete_system $username;
+                    y|Y) backupAllSitesByUsername $username $BACKUPFOLDER/vds/removed/$2;
+                         dbBackupBasesOneUser $username full_info data DeleteBase;
+                         userDelete_system $username;
                          #Проверка на существование пользователя mysql "$username"
                          if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
                          then

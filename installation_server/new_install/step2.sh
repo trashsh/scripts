@@ -17,6 +17,7 @@ certfile=/etc/letsencrypt/live/alixi.ru/cert.pem
 keyfile=/etc/letsencrypt/live/alixi.ru/privkey.pem
 
 apt install members
+sudo a2enmod actions
 
 
 
