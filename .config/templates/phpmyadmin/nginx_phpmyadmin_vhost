@@ -1,0 +1,20 @@
+server {
+        location /dbase {
+               root /usr/share/phpmyadmin;
+               index index.php index.html index.htm;
+               location ~ ^/dbase/(.+\.php)$ {
+                       try_files $uri =404;
+                       root /usr/share/;
+                       fastcgi_pass 127.0.0.1:9000;
+                       fastcgi_index index.php;
+                       fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                       include /etc/nginx/fastcgi_params;
+               }
+               location ~* ^/dbase/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+                       root /usr/share/phpmyadmin;
+               }
+        }
+        location /dbase {
+               rewrite ^/* /dbase last;
+        }
+}

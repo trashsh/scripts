@@ -105,7 +105,7 @@ sshKeyImport() {
 				chown $1:users $HOMEPATHWEBUSERS/$1/.ssh/authorized_keys
 				usermod -G ssh-access -a $1
 				echo -e "\n${COLOR_YELLOW} Импорт ключа $COLOR_LIGHT_PURPLE\"$key\"${COLOR_YELLOW} пользователю $COLOR_LIGHT_PURPLE\"$1\"${COLOR_YELLOW} выполнен${COLOR_NC}"
-				fileAddLineToFile $infoFile "Использован открытый ключ - $SETTINGS/ssh/keys/$key"
+				#fileAddLineToFile $infoFile "Использован открытый ключ - $SETTINGS/ssh/keys/$key"
 			else
 			#Пользователь $1 не существует
 			    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"sshKeyImport\"${COLOR_NC}"

@@ -4,16 +4,27 @@ declare -x -f input_siteAddSSL #Добавить ssl-сертификат для
 #Добавить ssl-сертификат для сайта
 ###input
 #$1-username ;
+#$2 - mode:manual/auto
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь не существует
 #3 - каталог сайта не существует
+#4 - ошибка передачи mode:manual/auto
 input_siteAddSSL() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ]
+	if [ -n "$1" ] && [ -n "$2" ]
 	then
 	#Параметры запуска существуют
+	    case "$2" in
+	        manual|auto)
+	            true
+	            ;;
+	    	*)
+	    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_siteAddSSL\"${COLOR_NC}";
+	    	    return 4
+	    	    ;;
+	    esac
 		#Проверка существования системного пользователя "$1"
 			grep "^$1:" /etc/passwd >/dev/null
 			if  [ $? -eq 0 ]
@@ -30,7 +41,18 @@ input_siteAddSSL() {
                 #Проверка существования каталога "$WEBFOLDER"
                 if [ -d $WEBFOLDER ] ; then
                     #Каталог "$WEBFOLDER" существует
-                    site_AddSSL $1 $domain manual
+                    case "$2" in
+                        manual)
+                            site_AddSSL $1 $domain manual
+                            ;;
+                        auto)
+                            site_AddSSL $1 $domain auto
+                            ;;
+                    	*)
+                    	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_siteAddSSL\"${COLOR_NC}";
+                    	    ;;
+                    esac
+
                     #Каталог "$WEBFOLDER" существует (конец)
                 else
                     #Каталог "$WEBFOLDER" не существует

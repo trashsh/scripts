@@ -221,20 +221,24 @@ dbBackupBasesOneDomain() {
                                 full_info)
                                     case "$3" in
                                         data)
-                                            dbBackupBase $db full_info data $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info data $DESTINATION";
                                             ;;
                                         structure)
-                                            dbBackupBase $db full_info structure $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info structure $DESTINATION";
                                             ;;
                                     esac
                                     ;;
                                 error_only)
                                     case "$3" in
                                         data)
-                                            dbBackupBase $db error_only data $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only data $DESTINATION";
                                             ;;
                                         structure)
-                                            dbBackupBase $db error_only structure $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only structure $DESTINATION";
                                             ;;
                                     esac
                                     ;;

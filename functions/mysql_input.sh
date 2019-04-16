@@ -425,6 +425,7 @@ input_dbCreate() {
                     dbCreateBase $fullDbName utf8 utf8_general_ci full_info
                 #    mysql -e "GRANT ALL PRIVILEGES ON \`$1\_$dbame\`.* TO '$1'@'%' WITH GRANT OPTION;";
                     dbSetFullAccessToBase $fullDbName $1 localhost
+                    dbSetFullAccessToBase $fullDbName $fullDbName localhost
 		    	#база $fullDbName - не существует (конец)
 		    fi
 		    #конец проверки существования базы данных $fullDbName

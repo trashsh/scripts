@@ -581,7 +581,7 @@ viewMysqlAccess(){
 	then
 		echo -e "${COLOR_YELLOW}"Реквизиты PHPMYADMIN" ${COLOR_NC}"
 		echo -e "Пользователь: ${COLOR_YELLOW}" $1 "${COLOR_NC}"
-		echo -e "Сервер: ${COLOR_YELLOW}" http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER "${COLOR_NC}"
+		echo -e "Сервер: ${COLOR_YELLOW}" http://$CONFSUBDOMAIN/$PHPMYADMINFOLDER "${COLOR_NC}"
 		echo -e "\n${COLOR_YELLOW}Пользователь MySQL:${COLOR_NC}"
 		if [ -f $HOMEPATHWEBUSERS/$1/.my.cnf ] ;  then
             cat $HOMEPATHWEBUSERS/$1/.my.cnf

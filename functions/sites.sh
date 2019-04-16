@@ -63,10 +63,10 @@ siteAdd_php() {
 
                             chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1 644 755
 
-                            dbCreateBase $1_$2 utf8 utf8_general_ci error_only
-                            mysqlpassword="$(openssl rand -base64 14)";
+                            dbCreateBase "$1"_"$2" utf8 utf8_general_ci error_only
+                            mysqlpassword="$(openssl rand -base64 14)"
 
-                            dbUseraddForDomain $1_$2 $mysqlpassword $6 $2 localhost pass user
+                            dbUseraddForDomain "$1"_"$2" $mysqlpassword $6 $2 localhost pass user
 
 
 
@@ -121,6 +121,147 @@ siteAdd_php() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+
+declare -x -f siteAdd_Laravel
+#Добавление laravel-сайта
+###input
+#$1-username-кому добавляется сайт ;
+#$2-domain ;
+#$3-site_path ;
+#$4-apache_config ;
+#$5-nginx_config ;
+#$6-username - кем добавляется сайт;
+###return
+#0 - выполнено успешно
+#1 - отсутствуют параметры
+#2 - пользователь $1 не  существует
+#3 - конфигурация apache не существует
+#4 - конфигурация nginx не существует
+#5 - каталог сайта уже существует
+siteAdd_Laravel() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+	then
+	#Параметры запуска существуют
+        #Проверка существования системного пользователя "$1"
+        	grep "^$1:" /etc/passwd >/dev/null
+        	if  [ $? -eq 0 ]
+        	then
+        	#Пользователь $1 существует
+        		#Проверка существования файла "$TEMPLATES/apache2/$4"
+        		if [ -f $TEMPLATES/apache2/$4 ] ; then
+        		    #Файл "$TEMPLATES/apache2/$4" существует
+        		    #Проверка существования файла "$TEMPLATES/nginx/$5"
+        		    if [ -f $TEMPLATES/nginx/$5 ] ; then
+        		        #Файл "$TEMPLATES/nginx/$5" существует
+                        #Проверка существования каталога "$3"
+                        if [ -d $3 ] ; then
+                            #Каталог сайта "$3" уже существует
+                            echo -e "${COLOR_RED}Каталог сайта ${COLOR_GREEN}\"$3\"${COLOR_RED} уже существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_Laravel\"${COLOR_NC}"
+                            return 5
+                            #Каталог сайта "$3" уже существует (конец)
+                        else
+                            #Каталог сайта "$3" не существует
+
+                            #Проверка существования каталога "$HOMEPATHWEBUSERS/$1/.conposer"
+                            if ! [ -d $HOMEPATHWEBUSERS/$1/.conposer ] ; then
+                                #Каталог "$HOMEPATHWEBUSERS/$1/.conposer" не существует
+                                mkdirWithOwn $HOMEPATHWEBUSERS/$1/.conposer $1 www-data 755
+                                #Каталог "$HOMEPATHWEBUSERS/$1/.conposer" не существует (конец)
+                            fi
+                            #Конец проверки существования каталога ""
+
+                            cd $HOMEPATHWEBUSERS/$1
+
+                            composer create-project --prefer-dist laravel/laravel $2
+
+                            #добавление ftp-пользователя
+                            FtpUserAdd $1 $2 autogenerate site_user $6
+                            sudo cp -R /etc/skel/* $3
+                            sudo rm -rf $3/public_html
+
+                            cd $3
+                            cp -a $3/.env.example $3/.env
+                            php artisan key:generate
+                            php artisan config:cache
+
+                            #siteAddTestIndexFile $1 $2 public_html replace phpinfo
+
+                           #nginx
+                           sudo cp -rf $TEMPLATES/nginx/$5 /etc/nginx/sites-available/"$1"_"$2".conf
+                           chModAndOwnFile /etc/nginx/sites-available/"$1"_"$2".conf $1 www-data 644
+
+                           siteChangeWebserverConfigs nginx $1 $2 $HTTPNGINXPORT
+
+                           siteStatus $1 $2 nginx enable
+
+                            #apache2
+                           sudo cp -rf $TEMPLATES/apache2/$4 /etc/apache2/sites-available/"$1"_"$2".conf
+                           chModAndOwnFile /etc/apache2/sites-available/"$1"_"$2".conf $1 www-data 644
+                            siteChangeWebserverConfigs apache $1 $2 $APACHEHTTPPORT
+
+                            siteStatus $1 $2 apache enable
+
+
+
+                            dbCreateBase "$1"_"$2" utf8 utf8_general_ci error_only
+                            mysqlpassword="$(openssl rand -base64 14)"
+
+                            dbUseraddForDomain "$1"_"$2" $mysqlpassword $6 $2 localhost pass user
+
+                            sudo cp -rf $TEMPLATES/laravel/.gitignore $3/.gitignore
+                            chModAndOwnSiteFileAndFolder $3 public $1 644 755
+                            sudo chmod 777 $3/bootstrap/cache -R
+                            sudo chmod 777 $3/storage -R
+
+                            cd $3/public
+                            #echo -e "\033[32m" Инициализация Git "\033[0;39m"
+                            git init
+                            git config user.email "$1@$2"
+                            git config user.name "$1"
+                            git add .
+                            git commit -m "initial commit"
+
+                            viewAccessDetail $HOMEPATHWEBUSERS/$6/$2 full_info
+                            #Каталог сайта "$3" не существует (конец)
+                        fi
+                        #Конец проверки существования каталога "$3"
+
+        		        #Файл "$TEMPLATES/nginx/$5" существует (конец)
+        		    else
+        		        #Файл "$TEMPLATES/nginx/$5" не существует
+        		        echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$5\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_Laravel\"${COLOR_NC}"
+        		        return 4
+        		        #Файл "$TEMPLATES/nginx/$5" не существует (конец)
+        		    fi
+        		    #Конец проверки существования файла "$TEMPLATES/nginx/$5"
+
+        		    #Файл "$TEMPLATES/apache2/$4" существует (конец)
+        		else
+        		    #Файл "$TEMPLATES/apache2/$4" не существует
+        		    echo -e "${COLOR_RED}Конфигурация apache2 ${COLOR_GREEN}\"$TEMPLATES/apache2/$4\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_Laravel\"${COLOR_NC}"
+        		    return 3
+        		    #Файл "$TEMPLATES/apache2/$4" не существует (конец)
+        		fi
+        		#Конец проверки существования файла "$TEMPLATES/apache2/$4"
+
+        	#Пользователь $1 существует (конец)
+        	else
+        	#Пользователь $1 не существует
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"siteAdd_Laravel\"${COLOR_NC}"
+        		return 2
+        	#Пользователь $1 не существует (конец)
+        	fi
+        #Конец проверки существования системного пользователя $1
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"siteAdd_Laravel\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 
 declare -x -f siteChangeWebserverConfigs

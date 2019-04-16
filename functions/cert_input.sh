@@ -28,7 +28,24 @@ input_certGenerate() {
                     do
                         case "$REPLY" in
                             y|Y)
-                                site_AddSSL $username $2 manual;
+                                echo -n -e "${COLOR_YELLOW}Просто сгенерировать сертификат или прописать его еще и в vhosts?? Введите ${COLOR_BLUE}\"1\"${COLOR_YELLOW} для автоматического исправления vhosts, для простой генерации сертификата введите ${COLOR_BLUE}\"2\"${COLOR_NC}: "
+                                while read
+                                do
+                                    case "$REPLY" in
+                                        1)
+                                            site_AddSSL $username $2 auto;
+                                            break
+                                            ;;
+                                        2)
+                                            site_AddSSL $username $2 manual;
+                                            break
+                                            ;;
+                                        *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+                                           ;;
+                                    esac
+                                done
+
+
                                 break
                                 ;;
                             n|N)

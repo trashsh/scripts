@@ -28,9 +28,8 @@ input_userDelete_system() {
                 do
                     echo -n ": "
                     case "$REPLY" in
-                    y|Y) backupAllSitesByUsername $username $BACKUPFOLDER/vds/removed/$2;
+                    y|Y) #backupAllSitesByUsername $username $BACKUPFOLDER/vds/removed/$2;
                          dbBackupBasesOneUser $username full_info data DeleteBase;
-                         userDelete_system $username;
                          #Проверка на существование пользователя mysql "$username"
                          if [[ ! -z "`mysql -qfsBe "SELECT User FROM mysql.user WHERE User='$username'" 2>&1`" ]];
                          then
@@ -39,13 +38,18 @@ input_userDelete_system() {
                              while true; do
                                 read -p "Удалить пользователя mysql $username (y/n)?: " yn
                                 case $yn in
-                                    [Yy]* ) dbUserdel $username drop; break;;
-                                    [Nn]* ) break;;
+                                    [Yy]* ) dbUserdel $username drop;
+                                            break;;
+                                    [Nn]* ) exit;;
                                     * ) echo "Please answer yes or no.";;
                                 esac
                             done
+                          else
+                            echo "error"
                          #Пользователь mysql "$username" существует (конец)
                          fi
+
+                         userDelete_system $username;
                          #Конец проверки на существование пользователя mysql "$username"
                         return 0
                     ;;

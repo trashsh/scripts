@@ -260,9 +260,9 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") input_SiteAdd_PHP $1 querry; menuSiteAdd $1; break;;
-                "2") input_SiteAdd_PHP $1 reverseProxy; menuSiteAdd $1; break;;
-                "3") input_SiteAdd_PHP $1 lite; menuSiteAdd $1; break;;
+                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 querry;";  menuSiteAdd $1; break;;
+                "2") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 reverseProxy;"; menuSiteAdd $1; break;;
+                "3") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 lite;"; menuSiteAdd $1; break;;
                 "3")   $1; break;;
                 "4")   $1; break;;
 
@@ -399,7 +399,9 @@ menuBackups() {
         echo '1: Создать файловый бэкап сайта'
         echo '2: Восстановить файловый бэкап сайта'
         echo '3: Управление бэкапами баз данных mysql'
+
         echo '5: Просмотр бэкапов'
+        echo '+++6: Создание бэкапа каталога в /etc'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -414,6 +416,7 @@ menuBackups() {
                 "3")  menuBackups_mysql $1; break;;
                 "4")   $1; break;;
                 "5")  menuBackups_show $1; break;;
+                "6")  input_backupEtcFolder $1; menuBackups $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;
@@ -499,8 +502,9 @@ menuSite_cert() {
         echo ''
         echo -e "${COLOR_GREEN} ===Управление сертификатами сайтов===${COLOR_NC}"
 
-        echo '1: Добавить сайту SSL-сертификат (NGINX)'
-        echo '2: Добавить сайту SSL-сертификат (APACHE)'
+        echo '1: Добавить сайту SSL-сертификат (NGINX-manual)'
+        echo '2: Добавить сайту SSL-сертификат (NGINX-auto)'
+        echo '3: Добавить сайту SSL-сертификат (APACHE)'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -510,9 +514,9 @@ menuSite_cert() {
         while read
             do
                 case "$REPLY" in
-                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_siteAddSSL $1; menuSite_cert $1";
-                  break;;
-                "2") sudo certbot --apache; menuSite_cert $1; break;;
+                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_siteAddSSL $1 manual; menuSite_cert $1"; break;;
+                "2") sudo bash -c "source $SCRIPTS/include/inc.sh; input_siteAddSSL $1 auto; menuSite_cert $1"; break;;
+                "3") sudo certbot --apache; menuSite_cert $1; break;;
 
                 "0")  $MYFOLDER/scripts/menu $1;  break;;
                 "q"|"Q")  exit 0;;

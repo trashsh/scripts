@@ -59,7 +59,7 @@ backupSslCert() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupImportantFolder\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupSslCert\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -126,6 +126,55 @@ backupImportantFile() {
 	fi
 	#Конец проверки существования параметров запуска скрипта
 }
+
+
+declare -x -f backupImportantFolder
+#Создание бэкапа в папку BACKUPFOLDER_IMPORTANT
+###!Полностью готово. Не трогать больше
+###input:
+#$1 - username
+#$2-destination_folder (название катала в $BACKUPFOLDER_IMPORTANT);
+#$3-архивируемый каталог ;
+###return:
+#0 - выполнено успешно
+#1 - отпутствуют параметры
+#2 - пользователь $2 - не существует
+#3 - файл $3 не найден
+#4 - в процессе архивации возникла ошибка
+backupImportantFolder() {
+	date=`date +%Y.%m.%d`
+    datetime=`date +%Y.%m.%d-%H.%M.%S`
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
+	then
+	#Параметры запуска существуют
+                #Проверка существования каталога "$3"
+                if [ -d $3 ] ; then
+                    #Каталог "$3" существует
+                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$date"
+                    if ! [ -d "$BACKUPFOLDER_IMPORTANT"/"$2"/"$date" ] ; then
+                        sudo mkdir -p $BACKUPFOLDER_IMPORTANT/$2/$date
+                    fi
+                    #Проверка существования каталога "$BACKUPFOLDER_IMPORTANT"/"$2"/"$date"" (конец)
+                        tarFolder /etc/$2 $BACKUPFOLDER_IMPORTANT/$2/$date/$2__$datetime.tar.gz str full_info rewrite $1 users 644 && return 0 || return 4
+                    #каталог "$3" существует (конец)
+                else
+                    #каталог "$3" не существует
+                    echo -e "${COLOR_RED} Каталог ${COLOR_YELLOW}\"$3\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_YELLOW}\"backupImportantFolder\"${COLOR_NC}"
+                    return 3
+                    #каталог "$3" не существует (конец)
+                fi
+                #Конец проверки существования каталога "$3"
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"backupImportantFolder\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
+
 
 
 declare -x -f dbBackupBase
@@ -224,12 +273,12 @@ dbBackupBase() {
                 data)
                     #пусть к файлу с бэкапом без расширения
                     FILENAME=$DESTINATIONFOLDER/mysql.$dbExtractUser=="$1"__$datetime
-                    sudo mysqldump --databases $1 > $FILENAME.sql
+                    mysqldump --databases $1 > $FILENAME.sql
                     ;;
                 structure)
                     #пусть к файлу с бэкапом без расширения
                     FILENAME=$DESTINATIONFOLDER/mysql.$dbExtractUser=="$1"__$datetime\#str
-                    sudo mysqldump --databases $1 --no-data > $FILENAME.sql
+                    mysqldump --databases $1 --no-data > $FILENAME.sql
                     ;;
             	*)
             	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"\"${COLOR_NC}";
@@ -816,20 +865,25 @@ dbBackupBasesOneUser() {
                                 full_info)
                                     case "$3" in
                                         data)
-                                            dbBackupBase $db full_info data $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info data $DESTINATION"
+
                                             ;;
                                         structure)
-                                            dbBackupBase $db full_info structure $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info structure $DESTINATION"
                                             ;;
                                     esac
                                     ;;
                                 error_only)
                                     case "$2" in
                                         data)
-                                            dbBackupBase $db error_only data $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only data $DESTINATION"
                                             ;;
                                         structure)
-                                            dbBackupBase $db error_only structure $DESTINATION
+
+                                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only structure $DESTINATION"
                                             ;;
                                     esac
                                     ;;
@@ -1125,20 +1179,24 @@ dbBackupAllBases() {
                 full_info)
                     case "$2" in
                         data)
-                            dbBackupBase $db full_info data $DESTINATION
+
+                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info data $DESTINATION"
                             ;;
                         structure)
-                            dbBackupBase $db full_info structure $DESTINATION
+
+                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db full_info structure $DESTINATION"
                             ;;
                     esac
                     ;;
                 error_only)
                     case "$2" in
                         data)
-                            dbBackupBase $db error_only data $DESTINATION
+
+                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only data $DESTINATION"
                             ;;
                         structure)
-                            dbBackupBase $db error_only structure $DESTINATION
+
+                            sudo bash -c "source $SCRIPTS/include/inc.sh; dbBackupBase $db error_only structure $DESTINATION"
                             ;;
                     esac
                     ;;

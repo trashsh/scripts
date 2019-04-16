@@ -177,7 +177,6 @@ dbUseradd() {
 
                         fileAddLineToFile $infoFile "---"
                         fileAddLineToFile $infoFile "Mysql-User:"
-                        fileAddLineToFile $infoFile "Phpmyadmin: http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER"
                         fileAddLineToFile $infoFile "Server: $MYSERVER"
                         fileAddLineToFile $infoFile "Port: 3306"
                         fileAddLineToFile $infoFile "Username: $1"
@@ -360,16 +359,18 @@ dbCreateBase() {
 	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 	then
 	#Параметры запуска существуют
-	    #Проверка существования базы данных "$1"
-	    if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
-	    	then
-	    	#база $1 - существует
-	    		echo -e "${COLOR_RED}Ошибка создания базы данных. База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Функция ${COLOR_GREEN}\"dbCreateBase\" ${COLOR_NC}"
+
+	#Проверка существования базы данных "$1"
+	if [[ ! -z "`mysql -qfsBe "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$1'" 2>&1`" ]];
+		then
+		#база $1 - существует
+			echo -e "${COLOR_RED}Ошибка создания базы данных. База данных ${COLOR_GREEN}\"$1\"${COLOR_RED} уже существует. Функция ${COLOR_GREEN}\"dbCreateBase\" ${COLOR_NC}"
 				return 2
-	    	#база $1 - существует (конец)
-	    	else
-	    	#база $1 - не существует
-	    	     case "$4" in
+		#база $1 - существует (конец)
+		else
+		#база $1 - не существует
+
+		     case "$4" in
 	    	     	silent)
 	    	     		mysql -e "CREATE DATABASE IF NOT EXISTS \`$1\` CHARACTER SET \`$2\` COLLATE \`$3\`;";
 	    	     		#Финальная проверка существования базы данных "$1"
@@ -424,11 +425,12 @@ dbCreateBase() {
 	    	     		return 4;;
 	    	     esac
 
-	    	#база $1 - не существует (конец)
+		#база $1 - не существует (конец)
+	fi
+	#конец проверки существования базы данных $1
 
 
-	    fi
-	    #конец проверки существования базы данных $1
+
 
 	#Параметры запуска существуют (конец)
 	else

@@ -32,7 +32,7 @@ input_sshSettings() {
                                 sshKeyGenerateToUser $username $HOMEPATHWEBUSERS/$username;
                                 #viewSshAccess $username $MYSERVER $SSHPORT 1 $HOMEPATHWEBUSERS/$username/.ssh/ssh_$username.ppk
 
-                                fileAddLineToFile $infoFile "Ключевой файл - $HOMEPATHWEBUSERS/$username/.ssh/ssh_$username.ppk"
+                                #fileAddLineToFile $infoFile "Ключевой файл - $HOMEPATHWEBUSERS/$username/.ssh/ssh_$username.ppk"
 
                 		    	break;;
                 		    i|I)

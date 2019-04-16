@@ -69,6 +69,7 @@ userDelete_system() {
 			then
 			#Пользователь $1 существует
 				sudo userdel -r $1
+                sudo htpasswd -D /etc/phpmyadmin/.htpasswd $1
 				#Проверка на успешность выполнения предыдущей команды
 				if [ $? -eq 0 ]
 					then
@@ -158,6 +159,7 @@ userAddSystem()
                                          #sudo -s source /my/scripts/include/inc.sh
                                          mkdir $2
                                          useradd -N -g $4 -d $2 -s $3 $1
+                                         sudo htpasswd -b /etc/phpmyadmin/.htpasswd $1 $5
                                          echo "$1:$5" | chpasswd
                                          infoFile="$HOMEPATHWEBUSERS"/"$1"/.myconfig/info.txt
                                          fileAddLineToFile $infoFile " "
@@ -177,6 +179,11 @@ userAddSystem()
                                         fileAddLineToFile $infoFile "Port: $FTPPORT"
                                         fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
 
+                                        fileAddLineToFile $infoFile " "
+                                        fileAddLineToFile $infoFile "Phpmyadmin:"
+                                        fileAddLineToFile $infoFile "URL: http://$CONFSUBDOMAIN/$PHPMYADMINFOLDER"
+                                        fileAddLineToFile $infoFile "Логин при первичном подключении к phpmyadmin в рамках сессии: $1 ; пароль: $5"
+                                        #todo настроить смену пароля в файле при изменении пароля пользователя
                                         #dbSetMyCnfFile $HOMEPATHWEBUSERS/$1 $1 $6 $1
                                         mkdirWithOwn $2/.backups $1 $4 777
                                         mkdirWithOwn $2/.backups/auto $1 $4 755
@@ -301,10 +308,9 @@ viewAccessDetail() {
 		#Проверка существования системного пользователя "$1"
 				case "$2" in
 				    full_info)
-				        clear;
+				    #    clear;
 				        echo -e "\n${COLOR_PURPLE}Реквизиты доступа для пользователя ${COLOR_YELLOW}\"$1\"${COLOR_GREEN}:${COLOR_NC}";
-				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User| highlight yellow FTP-User | highlight green "Ключевой файл" | highlight green "Тип подключения:" | highlight green "Phpmyadmin" | highlight green "Использован открытый ключ"
-				        ;;
+				        cat $file | highlight green Password | highlight green Username | highlight green Server | highlight green Host| highlight green Port| highlight yellow SSH-Пользователь| highlight yellow Mysql-User| highlight yellow FTP-User | highlight green "Тип подключения:" | highlight green "Phpmyadmin" ;;
 					*)
 					    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode\"${COLOR_RED} в функцию ${COLOR_GREEN}\"viewAccessDetail\"${COLOR_NC}";
 					    return 3
