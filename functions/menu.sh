@@ -249,8 +249,9 @@ menuSiteAdd() {
         echo '1: PHP/HTML (с вводом доп.параметров)'
         echo '2: PHP/HTML (Nginx-Frontend, Apache2-Backend)'
         echo '3: PHP/HTML (Nginx-Port 80, Apache2-Port 8080)'
-        echo '3: Framework Laravel'
-        echo '4: Framework Laravel (с вводом доп.параметров)'
+        echo '4: Laravel (с вводом доп.параметров)'
+        echo '5: Laravel (Nginx-Frontend, Apache2-Backend)'
+        echo '6: Laravel (Nginx-Port 80, Apache2-Port 8080)'
 
         echo '0: Назад'
         echo 'q: Выход'
@@ -260,11 +261,12 @@ menuSiteAdd() {
         while read
             do
                 case "$REPLY" in
-                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 querry;";  menuSiteAdd $1; break;;
-                "2") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 reverseProxy;"; menuSiteAdd $1; break;;
-                "3") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd_PHP $1 lite;"; menuSiteAdd $1; break;;
-                "3")   $1; break;;
-                "4")   $1; break;;
+                "1") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 php querry;";  menuSiteAdd $1; break;;
+                "2") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 php reverseProxy;"; menuSiteAdd $1; break;;
+                "3") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 php lite;"; menuSiteAdd $1; break;;
+                "4") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 laravel querry;";  menuSiteAdd $1; break;;
+                "5") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 laravel reverseProxy;"; menuSiteAdd $1; break;;
+                "6") sudo bash -c "source $SCRIPTS/include/inc.sh; input_SiteAdd $1 laravel lite;"; menuSiteAdd $1; break;;
 
                 "0")  menuSite $1;  break;;
                 "q"|"Q")  exit 0;;

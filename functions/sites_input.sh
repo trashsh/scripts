@@ -1,26 +1,41 @@
 #!/bin/bash
 
-declare -x -f input_SiteAdd_PHP #Ввод информации о добавлении сайта PHP: ($1-username)
+declare -x -f input_SiteAdd #Ввод информации о добавлении сайта PHP: ($1-username)
 #Ввод информации о добавлении сайта PHP
 ###input
 #$1-username ;
-#$2-mode: lite/querry/reverseProxy ;
+#$2-mode: siteType: php/laravel
+#$3-mode: lite/querry/reverseProxy ;
+
 ###return
 #0 - выполнено успешно
 #1 - не переданы параметры в функцию
 #2 - пользователь не существует
 #3 - конфиг существует, пользователь отменил
-input_SiteAdd_PHP() {
+#4 -  ошибка передачи siteType
+input_SiteAdd() {
 	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
+	if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ]
 	then
 	#Параметры запуска существуют
+	case "$2" in
+	    php)
+	        true
+	        ;;
+	     laravel)
+	        true
+	        ;;
+		*)
+		    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"siteType: php/laravel\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
+		    return 4
+		    ;;
+	esac
+
         #Проверка существования системного пользователя "$1"
         	grep "^$1:" /etc/passwd >/dev/null
         	if  [ $? -eq 0 ]
         	then
         	#Пользователь $1 существует
-                clear
                 echo "--------------------------------------"
                 echo "Добавление виртуального хоста."
                 echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
@@ -67,7 +82,7 @@ input_SiteAdd_PHP() {
                     site_path=$HOMEPATHWEBUSERS/$1/$domain
                     echo ''
 
-                    case "$2" in
+                    case "$3" in
                                     querry)
                                                 echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
 
@@ -78,7 +93,7 @@ input_SiteAdd_PHP() {
                                                 #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
                                                 if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
                                                     #Файл "$TEMPLATES/apache2/$apache_config" не существует
-                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
                                                     return 2
                                                     #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
                                                 fi
@@ -94,7 +109,7 @@ input_SiteAdd_PHP() {
                                                 #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
                                                 if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
                                                     #Файл "$TEMPLATES/nginx/$nginx_config" не существует
-                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
+                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
                                                     return 3
                                                     #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
                                                 fi
@@ -105,9 +120,23 @@ input_SiteAdd_PHP() {
                                                 echo -n ": "
                                                 read item
                                                 case "$item" in
-                                                    y|Y) echo
-                                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                                        exit 0
+                                                    y|Y)
+
+                                                        case "$2" in
+                                                            php)
+                                                                siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                                                exit 0
+                                                                ;;
+                                                            laravel)
+                                                                siteAdd_Laravel $1 $domain $site_path $apache_config $nginx_config $1
+                                                                ;;
+                                                        	*)
+                                                        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"sitetype\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
+                                                        	    return 4
+                                                        	    ;;
+                                                        esac
+
+
                                                         ;;
                                                     *) echo "Выход..."
                                                         exit 0
@@ -116,17 +145,46 @@ input_SiteAdd_PHP() {
                                                 #Параметры запуска существуют (конец)
                                                         ;;
                                     lite)
-                                            apache_config="php_base.conf"
-                                            nginx_config="php_base.conf"
-                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                            case "$2" in
+                                                            php)
+                                                                apache_config="php_base.conf"
+                                                                nginx_config="php_base.conf"
+                                                                siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                                                ;;
+                                                            laravel)
+                                                                apache_config="laravel.conf"
+                                                                nginx_config="laravel.conf"
+                                                                siteAdd_Laravel $1 $domain $site_path $apache_config $nginx_config $1
+                                                                ;;
+                                                        	*)
+                                                        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"sitetype\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
+                                                        	    return 4
+                                                        	    ;;
+                                                        esac
+
+
                                         ;;
                                     reverseProxy)
-                                            apache_config="php_rproxy.conf"
-                                            nginx_config="php_rproxy.conf"
-                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                            case "$2" in
+                                                            php)
+                                                                apache_config="php_rproxy.conf"
+                                                                nginx_config="php_rproxy.conf"
+                                                                siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+                                                                ;;
+                                                            laravel)
+                                                                apache_config="laravel_rproxy.conf"
+                                                                nginx_config="laravel_rproxy.conf"
+                                                                siteAdd_Laravel $1 $domain $site_path $apache_config $nginx_config $1
+                                                                ;;
+                                                        	*)
+                                                        	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"sitetype\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
+                                                        	    return 4
+                                                        	    ;;
+                                                        esac
+
                                         ;;
                                 	*)
-                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: querry/lite\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}";
+                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: querry/lite\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
                                 	    return 7
                                 	    ;;
                                 esac
@@ -138,7 +196,7 @@ input_SiteAdd_PHP() {
         	#Пользователь $1 существует (конец)
         	else
         	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_PHP\"${COLOR_NC}"
+        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
         		return 2
         	#Пользователь $1 не существует (конец)
         	fi
@@ -146,7 +204,7 @@ input_SiteAdd_PHP() {
 	#Параметры запуска существуют (конец)
 	else
 	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd_PHP\"${COLOR_RED} ${COLOR_NC}"
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_RED} ${COLOR_NC}"
 		return 1
 	#Параметры запуска отсутствуют (конец)
 	fi
@@ -154,158 +212,158 @@ input_SiteAdd_PHP() {
 }
 
 
-declare -x -f input_SiteAdd_PHP #Ввод информации о добавлении сайта PHP: ($1-username)
-#Ввод информации о добавлении сайта PHP
-###input
-#$1-username ;
-#$2-mode: lite/querry/reverseProxy ;
-###return
-#0 - выполнено успешно
-#1 - не переданы параметры в функцию
-#2 - пользователь не существует
-#3 - конфиг существует, пользователь отменил
-input_SiteAdd_PHP() {
-	#Проверка на существование параметров запуска скрипта
-	if [ -n "$1" ] && [ -n "$2" ]
-	then
-	#Параметры запуска существуют
-        #Проверка существования системного пользователя "$1"
-        	grep "^$1:" /etc/passwd >/dev/null
-        	if  [ $? -eq 0 ]
-        	then
-        	#Пользователь $1 существует
-                clear
-                echo "--------------------------------------"
-                echo "Добавление виртуального хоста."
-                echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
-                read domain
-
-                searchSiteConfigByUsername $1 $domain silent
-                #Проверка на успешность выполнения предыдущей команды
-                if [ $? -eq 0 ]
-                	then
-                		#конфиг существует
-                		echo -n -e "${COLOR_YELLOW}Для удаления старых настроек веб-серверов введите ${COLOR_GREEN}\"d\"${COLOR_YELLOW} для отмены операции введите ${COLOR_BLUE}\"n\"${COLOR_YELLOW}${COLOR_NC}: "
-                		    while read
-                		    do
-                		        case "$REPLY" in
-                		            d|D)
-                		                siteRemoveWebserverConfig $1 $domain;
-                		                break
-                		                ;;
-                		            n|N)
-
-                		                return 5;
-                		                menuSiteAdd $1;
-                		                ;;
-                		            *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
-                		               ;;
-                		        esac
-                		    done
-                		#конфиг уже существует (конец)
-                fi
-                #Конец проверки на успешность выполнения предыдущей команды
-
-            searchSiteFolder $domain $HOMEPATHWEBUSERS silent d 2
-            #Проверка на успешность выполнения предыдущей команды
-            if [ $? -eq 0 ]
-            	then
-            		#предыдущая команда завершилась успешно
-            		echo -e "${COLOR_RED}В настройках сервера уже имеется каталог домена ${COLOR_GREEN}\"$domain\"${COLOR_RED}${COLOR_NC}"
-                    return 6
-                    menuSiteAdd $1
-            		#предыдущая команда завершилась успешно (конец)
-            	else
-            		#предыдущая команда завершилась с ошибкой
-
-                    site_path=$HOMEPATHWEBUSERS/$1/$domain
-                    echo ''
-
-                    case "$2" in
-                                    querry)
-                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
-
-                                                ls $TEMPLATES/apache2/
-                                                echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
-                                                echo -n ": "
-                                                read apache_config
-                                                #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
-                                                if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
-                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует
-                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
-                                                    return 2
-                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
-                                                fi
-                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
-
-
-                                                echo ''
-                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
-                                                ls $TEMPLATES/nginx/
-                                                echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
-                                                echo -n ": "
-                                                read nginx_config
-                                                #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
-                                                if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
-                                                    #Файл "$TEMPLATES/nginx/$nginx_config" не существует
-                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}"
-                                                    return 3
-                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
-                                                fi
-                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
-
-                                                echo ''
-                                                echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
-                                                echo -n ": "
-                                                read item
-                                                case "$item" in
-                                                    y|Y) echo
-                                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                                        exit 0
-                                                        ;;
-                                                    *) echo "Выход..."
-                                                        exit 0
-                                                        ;;
-                                                esac
-                                                #Параметры запуска существуют (конец)
-                                                        ;;
-                                    lite)
-                                            apache_config="php_base.conf"
-                                            nginx_config="php_base.conf"
-                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                        ;;
-                                    reverseProxy)
-                                            apache_config="php_rproxy.conf"
-                                            nginx_config="php_rproxy.conf"
-                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                        ;;
-                                	*)
-                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: querry/lite\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd_php\"${COLOR_NC}";
-                                	    return 7
-                                	    ;;
-                                esac
-
-            		#предыдущая команда завершилась с ошибкой (конец)
-            fi
-            #Конец проверки на успешность выполнения предыдущей команды
-
-        	#Пользователь $1 существует (конец)
-        	else
-        	#Пользователь $1 не существует
-        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd_PHP\"${COLOR_NC}"
-        		return 2
-        	#Пользователь $1 не существует (конец)
-        	fi
-        #Конец проверки существования системного пользователя $1
-	#Параметры запуска существуют (конец)
-	else
-	#Параметры запуска отсутствуют
-		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd_PHP\"${COLOR_RED} ${COLOR_NC}"
-		return 1
-	#Параметры запуска отсутствуют (конец)
-	fi
-	#Конец проверки существования параметров запуска скрипта
-}
+#declare -x -f input_SiteAdd #Ввод информации о добавлении сайта PHP: ($1-username)
+##Ввод информации о добавлении сайта PHP
+####input
+##$1-username ;
+##$2-mode: lite/querry/reverseProxy ;
+####return
+##0 - выполнено успешно
+##1 - не переданы параметры в функцию
+##2 - пользователь не существует
+##3 - конфиг существует, пользователь отменил
+#input_SiteAdd() {
+#	#Проверка на существование параметров запуска скрипта
+#	if [ -n "$1" ] && [ -n "$2" ]
+#	then
+#	#Параметры запуска существуют
+#        #Проверка существования системного пользователя "$1"
+#        	grep "^$1:" /etc/passwd >/dev/null
+#        	if  [ $? -eq 0 ]
+#        	then
+#        	#Пользователь $1 существует
+#                clear
+#                echo "--------------------------------------"
+#                echo "Добавление виртуального хоста."
+#                echo -n -e "${COLOR_BLUE}\nВведите домен для добавления ${COLOR_NC}: "
+#                read domain
+#
+#                searchSiteConfigByUsername $1 $domain silent
+#                #Проверка на успешность выполнения предыдущей команды
+#                if [ $? -eq 0 ]
+#                	then
+#                		#конфиг существует
+#                		echo -n -e "${COLOR_YELLOW}Для удаления старых настроек веб-серверов введите ${COLOR_GREEN}\"d\"${COLOR_YELLOW} для отмены операции введите ${COLOR_BLUE}\"n\"${COLOR_YELLOW}${COLOR_NC}: "
+#                		    while read
+#                		    do
+#                		        case "$REPLY" in
+#                		            d|D)
+#                		                siteRemoveWebserverConfig $1 $domain;
+#                		                break
+#                		                ;;
+#                		            n|N)
+#
+#                		                return 5;
+#                		                menuSiteAdd $1;
+#                		                ;;
+#                		            *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+#                		               ;;
+#                		        esac
+#                		    done
+#                		#конфиг уже существует (конец)
+#                fi
+#                #Конец проверки на успешность выполнения предыдущей команды
+#
+#            searchSiteFolder $domain $HOMEPATHWEBUSERS silent d 2
+#            #Проверка на успешность выполнения предыдущей команды
+#            if [ $? -eq 0 ]
+#            	then
+#            		#предыдущая команда завершилась успешно
+#            		echo -e "${COLOR_RED}В настройках сервера уже имеется каталог домена ${COLOR_GREEN}\"$domain\"${COLOR_RED}${COLOR_NC}"
+#                    return 6
+#                    menuSiteAdd $1
+#            		#предыдущая команда завершилась успешно (конец)
+#            	else
+#            		#предыдущая команда завершилась с ошибкой
+#
+#                    site_path=$HOMEPATHWEBUSERS/$1/$domain
+#                    echo ''
+#
+#                    case "$2" in
+#                                    querry)
+#                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов apache:${COLOR_NC}"
+#
+#                                                ls $TEMPLATES/apache2/
+#                                                echo -e "${COLOR_BLUE}Введите название конфигурации apache (включая расширение):${COLOR_NC}"
+#                                                echo -n ": "
+#                                                read apache_config
+#                                                #Проверка существования файла "$TEMPLATES/apache2/$apache_config"
+#                                                if ! [ -f $TEMPLATES/apache2/$apache_config ] ; then
+#                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует
+#                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/apache2/$apache_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
+#                                                    return 2
+#                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+#                                                fi
+#                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+#
+#
+#                                                echo ''
+#                                                echo -e "${COLOR_YELLOW}Возможные варианты шаблонов nginx:${COLOR_NC}"
+#                                                ls $TEMPLATES/nginx/
+#                                                echo -e "${COLOR_BLUE}Введите название конфигурации nginx (включая расширение):${COLOR_NC}"
+#                                                echo -n ": "
+#                                                read nginx_config
+#                                                #Проверка существования файла "$TEMPLATES/nginx/$nginx_config"
+#                                                if ! [ -f $TEMPLATES/nginx/$nginx_config ] ; then
+#                                                    #Файл "$TEMPLATES/nginx/$nginx_config" не существует
+#                                                    echo -e "${COLOR_RED}Файл ${COLOR_GREEN}\"$TEMPLATES/nginx/$nginx_config\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
+#                                                    return 3
+#                                                    #Файл "$TEMPLATES/apache2/$apache_config" не существует (конец)
+#                                                fi
+#                                                #Конец проверки существования файла "$TEMPLATES/apache2/$apache_config"
+#
+#                                                echo ''
+#                                                echo -e "Для создания домена ${COLOR_YELLOW}\"$domain\"${COLOR_NC}, пользователя ftp ${COLOR_YELLOW}\"$1_$domain\"${COLOR_NC} в каталоге ${COLOR_YELLOW}\"$site_path\"${COLOR_NC} с конфигурацией apache ${COLOR_YELLOW}\"$apache_config\"\033[0;39m и конфирурацией nginx ${COLOR_YELLOW}\"$nginx_config\"${COLOR_NC} введите ${COLOR_BLUE}\"y\" ${COLOR_NC}, для выхода - любой символ: "
+#                                                echo -n ": "
+#                                                read item
+#                                                case "$item" in
+#                                                    y|Y) echo
+#                                                        siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+#                                                        exit 0
+#                                                        ;;
+#                                                    *) echo "Выход..."
+#                                                        exit 0
+#                                                        ;;
+#                                                esac
+#                                                #Параметры запуска существуют (конец)
+#                                                        ;;
+#                                    lite)
+#                                            apache_config="php_base.conf"
+#                                            nginx_config="php_base.conf"
+#                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+#                                        ;;
+#                                    reverseProxy)
+#                                            apache_config="php_rproxy.conf"
+#                                            nginx_config="php_rproxy.conf"
+#                                            siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
+#                                        ;;
+#                                	*)
+#                                	    echo -e "${COLOR_RED}Ошибка передачи параметра ${COLOR_GREEN}\"mode: querry/lite\"${COLOR_RED} в функцию ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}";
+#                                	    return 7
+#                                	    ;;
+#                                esac
+#
+#            		#предыдущая команда завершилась с ошибкой (конец)
+#            fi
+#            #Конец проверки на успешность выполнения предыдущей команды
+#
+#        	#Пользователь $1 существует (конец)
+#        	else
+#        	#Пользователь $1 не существует
+#        	    echo -e "${COLOR_RED}Пользователь ${COLOR_GREEN}\"$1\"${COLOR_RED} не существует. Ошибка выполнения функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_NC}"
+#        		return 2
+#        	#Пользователь $1 не существует (конец)
+#        	fi
+#        #Конец проверки существования системного пользователя $1
+#	#Параметры запуска существуют (конец)
+#	else
+#	#Параметры запуска отсутствуют
+#		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"input_SiteAdd\"${COLOR_RED} ${COLOR_NC}"
+#		return 1
+#	#Параметры запуска отсутствуют (конец)
+#	fi
+#	#Конец проверки существования параметров запуска скрипта
+#}
 
 declare -x -f input_siteRemove
 #удаление сайта

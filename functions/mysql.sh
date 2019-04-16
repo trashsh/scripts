@@ -491,6 +491,7 @@ dbSetUpdateInfoAccessToBase() {
 }
 
 declare -x -f dbSetFullAccessToBase
+#удалить. замена функции - dbUserSetAccessToBase
 #Предоставление всех прав пользователю $1 на базу данных $1
 ###input:
 #$1-dbname ;

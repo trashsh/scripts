@@ -77,6 +77,7 @@ FtpUserAdd() {
                                 userChangePassword $1_$2 $3 $infoFile
                                 fileAddLineToFile $infoFile "Server: $MYSERVER ($2)"
                                 fileAddLineToFile $infoFile "Port: $FTPPORT"
+                                fileAddLineToFile $infoFile "Тип подключения: с использованием TLS"
                                 fileAddLineToFile $infoFile "------------------------"
                                 return 0
                                 ;;

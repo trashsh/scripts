@@ -181,7 +181,6 @@ dbUseradd() {
                         fileAddLineToFile $infoFile "Port: 3306"
                         fileAddLineToFile $infoFile "Username: $1"
                         fileAddLineToFile $infoFile "Password: $2"
-                        fileAddLineToFile $infoFile "Host: $3"
                         fileAddLineToFile $infoFile "------------------------"
 
                         #Проверка существования системного пользователя "$1"
@@ -295,12 +294,11 @@ dbUseraddForDomain() {
 
                         fileAddLineToFile $infoFile "---"
                         fileAddLineToFile $infoFile "Mysql-User:"
-                        fileAddLineToFile $infoFile "Phpmyadmin: http://$MYSERVER:$APACHEHTTPPORT/$PHPMYADMINFOLDER"
+                        fileAddLineToFile $infoFile "Phpmyadmin: http://$CONFSUBDOMAIN/$PHPMYADMINFOLDER"
                         fileAddLineToFile $infoFile "Server: $MYSERVER"
                         fileAddLineToFile $infoFile "Port: 3306"
                         fileAddLineToFile $infoFile "Username: $1"
                         fileAddLineToFile $infoFile "Password: $2"
-                        fileAddLineToFile $infoFile "Host: $5"
                         fileAddLineToFile $infoFile "------------------------"
 
                         #Проверка существования системного пользователя "$1"
