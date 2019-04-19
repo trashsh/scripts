@@ -16,6 +16,7 @@ menuMain() {
 			if  [ $? -eq 0 ]
 			then
 			#Пользователь $1 существует
+			    echo $1
 				USERNAME=$1
 			#Пользователь $1 существует (конец)
 			else
@@ -466,7 +467,7 @@ menuServer() {
         while read
             do
                 case "$REPLY" in
-                "1")   $1; break;;
+                "1") menuUfw $1; break;;
                 "2") menuServer_quota $1; break;;
 
                 "9")   $1; break;;
@@ -486,7 +487,63 @@ menuServer() {
 	#Конец проверки существования параметров запуска скрипта
 }
 
+declare -x -f menuServer
+#Меню управления сервером
+###input
+#$1-username ;
+###return
+#0 - выполнено успешно
+#1 - не переданы параметры в функцию
+menuUfw() {
+	#Проверка на существование параметров запуска скрипта
+	if [ -n "$1" ]
+	then
+	#Параметры запуска существуют
+        echo ''
+        echo -e "${COLOR_GREEN} ===Firewall ufw===${COLOR_NC}"
 
+        echo '1: Открытие порта'
+        echo '2: Открытие порта с указанием IP'
+        echo '3: Открытие диапазона портов'
+        echo '4: Открытие диапазона портов с указанием IP'
+
+        echo '7: Поиск правила'
+        echo '8: Удаление правила ufw'
+        echo '9: Список открытых портов ufw'
+
+        echo '0: Назад'
+        echo 'q: Выход'
+        echo ''
+        echo -n 'Выберите пункт меню:'
+
+        while read
+            do
+                case "$REPLY" in
+                "1") input_ufwAddPort; menuUfw $1; break;;
+                "2") input_ufwAddPortFromIP; menuUfw $1; break;;
+                "3") input_ufwAddPortRange; menuUfw $1; break;;
+                "4") input_ufwAddPortRangeFromIP; menuUfw $1; break;;
+                "7") input_ufwSearchRuleByComment; menuUfw $1; break;;
+                "8") input_ufwDeleteRuleByNumber; menuUfw $1; break;;
+
+
+
+                "9") ufwOpenPorts; menuUfw $1; break;;
+                "0")  $MYFOLDER/scripts/menu $1;  break;;
+                "q"|"Q")  exit 0;;
+                 *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2;;
+                esac
+            done
+        exit 0
+	#Параметры запуска существуют (конец)
+	else
+	#Параметры запуска отсутствуют
+		echo -e "${COLOR_RED} Отсутствуют необходимые параметры в функции ${COLOR_GREEN}\"menuServer\"${COLOR_RED} ${COLOR_NC}"
+		return 1
+	#Параметры запуска отсутствуют (конец)
+	fi
+	#Конец проверки существования параметров запуска скрипта
+}
 
 
 declare -x -f menuSite_cert

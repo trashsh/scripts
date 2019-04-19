@@ -42,6 +42,8 @@ source $SCRIPTS/functions/ssh_input.sh
 #source $SCRIPTS/functions/ssh.sh
 source $SCRIPTS/functions/ufw.sh
 
+source $SCRIPTS/functions/ufw_input.sh
+
 source $SCRIPTS/functions/users.sh
 source $SCRIPTS/functions/users_full.sh
 

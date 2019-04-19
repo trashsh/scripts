@@ -125,7 +125,6 @@ input_SiteAdd() {
                                                         case "$2" in
                                                             php)
                                                                 siteAdd_php $1 $domain $site_path $apache_config $nginx_config $1
-                                                                exit 0
                                                                 ;;
                                                             laravel)
                                                                 siteAdd_Laravel $1 $domain $site_path $apache_config $nginx_config $1
@@ -188,6 +187,23 @@ input_SiteAdd() {
                                 	    return 7
                                 	    ;;
                                 esac
+
+                    echo -n -e "${COLOR_YELLOW}Добавить автоматически SSL-сертификат для домена ${COLOR_GREEN}\"$domain\"${COLOR_YELLOW}? Введите для генерации сертификата ${COLOR_BLUE}\"y\"${COLOR_YELLOW}, для отмены  - введите ${COLOR_BLUE}\"n\"${COLOR_NC}: "
+                        while read
+                        do
+                            case "$REPLY" in
+                                y|Y)
+                                    site_AddSSL $1 $domain auto;
+                                    break
+                                    ;;
+                                n|N)
+
+                                    break
+                                    ;;
+                                *) echo -n "Команда не распознана: ('$REPLY'). Повторите ввод:" >&2
+                                   ;;
+                            esac
+                        done
 
             		#предыдущая команда завершилась с ошибкой (конец)
             fi

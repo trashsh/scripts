@@ -61,7 +61,7 @@ siteAdd_php() {
 
                             siteStatus $1 $2 apache enable
 
-                            chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1 644 755
+                            chModAndOwnSiteFileAndFolder $3 $WWWFOLDER $1_$2 644 755
 
                             dbCreateBase "$1"_"$2" utf8 utf8_general_ci error_only
                             mysqlpassword="$(openssl rand -base64 14)"
@@ -173,7 +173,7 @@ siteAdd_Laravel() {
 
                             cd $HOMEPATHWEBUSERS/$1
 
-                            composer create-project --prefer-dist laravel/laravel $2
+                            su $1 -c 'composer create-project --prefer-dist laravel/laravel $2'
 
                             #добавление ftp-пользователя
                             FtpUserAdd $1 $2 autogenerate site_user $6

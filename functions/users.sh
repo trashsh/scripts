@@ -68,8 +68,8 @@ FtpUserAdd() {
                             esac
 
 
-                                sudo useradd -c "Ftp-user for user $1 domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g ftp-access -G www-data
-                                sudo adduser $1_$2 www-data
+                                sudo useradd -c "Ftp-user for user $1 domain $2" $1_$2 -N -d "$HOMEPATHWEBUSERS"/"$1"/"$2" -m -s /bin/false -g www-data -G www-data
+                                sudo adduser $1_$2 ftp-access
 
                                 fileAddLineToFile $infoFile "FTP-Пользователь:"
 

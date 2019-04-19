@@ -427,7 +427,7 @@ input_dbCreate() {
 		    	#база $fullDbName - не существует (конец)
 		    fi
 		    #конец проверки существования базы данных $fullDbName
-            dbUserSetAccessToBase $fullDbName $fullDbName localhost adminGrant
+            dbUserSetAccessToBase $fullDbName $1_$dbame localhost adminGrant
 
 
 		#Пользователь mysql "$1" существует (конец)

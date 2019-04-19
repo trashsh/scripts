@@ -67,3 +67,10 @@ sed -i '$ a export CONFSUBDOMAIN=\"conf.alixi.ru\"'  /etc/profile
 #ssl
 sudo a2enmod ssl
 sudo service apache2 restart
+
+
+hosts.allow
+mysqld: 83.234.149.31
+
+hosts.deny
+mysqld: ALL
